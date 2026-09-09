@@ -1,9 +1,14 @@
 SELECT
-    w.watchlist_id,
+    wi.watchlist_id,
     w.watchlist_name,
-    u.user_id,
-    u.name AS user_name
-FROM watchlists w
-JOIN app_users u
-    ON w.user_id = u.user_id
-ORDER BY w.watchlist_id;
+    wi.company_id,
+    c.company_name,
+    c.ticker_symbol,
+    wi.target_price,
+    wi.added_at
+FROM watchlist_items wi
+JOIN watchlists w
+    ON wi.watchlist_id = w.watchlist_id
+JOIN companies c
+    ON wi.company_id = c.company_id
+ORDER BY wi.watchlist_id, wi.company_id;

@@ -6,6 +6,10 @@ ShareSync is a full-stack web application designed to help investors track their
 
 The project combines a modern responsive web interface with a structured relational database and an ASP.NET Core backend.
 
+## 🌐 Live Demo
+
+👉 **[View ShareSync Live](https://mtanvira.github.io/ShareSync/)**
+
 ---
 
 ## 🚀 Project Overview

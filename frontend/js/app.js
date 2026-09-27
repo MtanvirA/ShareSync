@@ -16,57 +16,50 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setupTransactionForm();
 
+  setupWatchlistForm();
+
+  setupDividendForm();
+
 });
 
+
 // =========================================
-// TRANSACTION FORM
+// DIVIDEND FORM
 // =========================================
 
-function setupTransactionForm() {
+function setupDividendForm() {
 
-    const form = document.getElementById("transactionForm");
+    const form =
+        document.getElementById("dividendForm");
 
     if (!form) {
         return;
     }
 
-
     const formCard =
-        document.getElementById("transactionFormCard");
+        document.getElementById("dividendFormCard");
 
     const openButton =
-        document.getElementById("openTransactionForm");
+        document.getElementById("openDividendForm");
 
     const closeButton =
-        document.getElementById("closeTransactionForm");
+        document.getElementById("closeDividendForm");
 
     const cancelButton =
-        document.getElementById("cancelTransaction");
+        document.getElementById("cancelDividend");
 
 
-    // -----------------------------------------
-    // Open form
-    // -----------------------------------------
+    openButton.addEventListener("click", () => {
 
-    if (openButton) {
+        formCard.classList.remove("form-hidden");
 
-        openButton.addEventListener("click", () => {
-
-            formCard.classList.remove("form-hidden");
-
-            formCard.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-            });
-
+        formCard.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
         });
 
-    }
+    });
 
-
-    // -----------------------------------------
-    // Close form
-    // -----------------------------------------
 
     function closeForm() {
 
@@ -75,128 +68,284 @@ function setupTransactionForm() {
     }
 
 
-    if (closeButton) {
+    closeButton.addEventListener(
+        "click",
+        closeForm
+    );
 
-        closeButton.addEventListener(
-            "click",
-            closeForm
-        );
+    cancelButton.addEventListener(
+        "click",
+        closeForm
+    );
 
-    }
-
-
-    if (cancelButton) {
-
-        cancelButton.addEventListener(
-            "click",
-            closeForm
-        );
-
-    }
-
-
-    // -----------------------------------------
-    // Buy / Sell buttons
-    // -----------------------------------------
-
-    const typeButtons =
-        document.querySelectorAll(".type-button");
-
-    const typeInput =
-        document.getElementById("transactionType");
-
-
-    typeButtons.forEach((button) => {
-
-        button.addEventListener("click", () => {
-
-            typeButtons.forEach((item) => {
-
-                item.classList.remove("active");
-
-            });
-
-
-            button.classList.add("active");
-
-
-            typeInput.value =
-                button.dataset.type;
-
-
-            console.log(
-                "Transaction type:",
-                typeInput.value
-            );
-
-        });
-
-    });
-
-
-    // -----------------------------------------
-    // Form submission
-    // -----------------------------------------
 
     form.addEventListener("submit", (event) => {
 
         event.preventDefault();
 
 
-        const transactionType =
-            typeInput.value;
-
         const company =
-            document.getElementById("company").value;
+            document.getElementById(
+                "dividendCompany"
+            ).value;
 
-        const quantity =
-            document.getElementById("quantity").value;
+        const amount =
+            document.getElementById(
+                "dividendPerShare"
+            ).value;
 
-        const price =
-            document.getElementById("price").value;
+        const declaration =
+            document.getElementById(
+                "declarationDate"
+            ).value;
+
+        const payment =
+            document.getElementById(
+                "paymentDate"
+            ).value;
 
 
-        if (!company || !quantity || !price) {
+        if (!company || !amount ||
+            !declaration || !payment) {
 
-            alert(
-                "Please complete the required fields."
-            );
+            alert("Please complete all fields.");
 
             return;
-
         }
 
 
-        const total =
-            Number(quantity) * Number(price);
+        if (payment < declaration) {
+
+            alert(
+                "Payment date cannot be earlier than the declaration date."
+            );
+
+            return;
+        }
 
 
         alert(
-            `${transactionType} transaction ready.\n\n` +
-            `Company: ${company}\n` +
-            `Quantity: ${quantity}\n` +
-            `Price: ৳${Number(price).toFixed(2)}\n` +
-            `Total: ৳${total.toLocaleString()}`
+            `${company} dividend recorded successfully.\n` +
+            `Dividend per share: ৳${Number(amount).toFixed(2)}`
         );
 
 
         form.reset();
 
-
-        typeInput.value = "BUY";
-
-
-        typeButtons.forEach((button) => {
-
-            button.classList.remove("active");
-
-        });
-
-
-        typeButtons[0].classList.add("active");
+        closeForm();
 
     });
 
+}
+
+// =========================================
+// WATCHLIST FORM
+// =========================================
+
+function setupWatchlistForm() {
+  const form = document.getElementById("watchlistForm");
+
+  if (!form) {
+    return;
+  }
+
+  const formCard = document.getElementById("watchlistFormCard");
+
+  const openButton = document.getElementById("openWatchlistForm");
+
+  const closeButton = document.getElementById("closeWatchlistForm");
+
+  const cancelButton = document.getElementById("cancelWatchlist");
+
+  // -----------------------------------------
+  // Open form
+  // -----------------------------------------
+
+  openButton.addEventListener("click", () => {
+    formCard.classList.remove("form-hidden");
+
+    formCard.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+
+  // -----------------------------------------
+  // Close form
+  // -----------------------------------------
+
+  function closeForm() {
+    formCard.classList.add("form-hidden");
+  }
+
+  closeButton.addEventListener("click", closeForm);
+
+  cancelButton.addEventListener("click", closeForm);
+
+  // -----------------------------------------
+  // Submit
+  // -----------------------------------------
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const company = document.getElementById("watchlistCompany").value;
+
+    const targetPrice = document.getElementById("targetPrice").value;
+
+    if (!company) {
+      alert("Please select a company.");
+
+      return;
+    }
+
+    let message = `${company} is ready to be added to your watchlist.`;
+
+    if (targetPrice) {
+      message += `\nTarget price: ৳${Number(targetPrice).toFixed(2)}`;
+    }
+
+    alert(message);
+
+    form.reset();
+
+    closeForm();
+  });
+
+  // -----------------------------------------
+  // Remove buttons
+  // -----------------------------------------
+
+  const removeButtons = document.querySelectorAll(".table-action-button");
+
+  removeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const confirmed = confirm("Remove this company from your watchlist?");
+
+      if (confirmed) {
+        const row = button.closest("tr");
+
+        if (row) {
+          row.remove();
+        }
+      }
+    });
+  });
+}
+
+// =========================================
+// TRANSACTION FORM
+// =========================================
+
+function setupTransactionForm() {
+  const form = document.getElementById("transactionForm");
+
+  if (!form) {
+    return;
+  }
+
+  const formCard = document.getElementById("transactionFormCard");
+
+  const openButton = document.getElementById("openTransactionForm");
+
+  const closeButton = document.getElementById("closeTransactionForm");
+
+  const cancelButton = document.getElementById("cancelTransaction");
+
+  // -----------------------------------------
+  // Open form
+  // -----------------------------------------
+
+  if (openButton) {
+    openButton.addEventListener("click", () => {
+      formCard.classList.remove("form-hidden");
+
+      formCard.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
+
+  // -----------------------------------------
+  // Close form
+  // -----------------------------------------
+
+  function closeForm() {
+    formCard.classList.add("form-hidden");
+  }
+
+  if (closeButton) {
+    closeButton.addEventListener("click", closeForm);
+  }
+
+  if (cancelButton) {
+    cancelButton.addEventListener("click", closeForm);
+  }
+
+  // -----------------------------------------
+  // Buy / Sell buttons
+  // -----------------------------------------
+
+  const typeButtons = document.querySelectorAll(".type-button");
+
+  const typeInput = document.getElementById("transactionType");
+
+  typeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      typeButtons.forEach((item) => {
+        item.classList.remove("active");
+      });
+
+      button.classList.add("active");
+
+      typeInput.value = button.dataset.type;
+
+      console.log("Transaction type:", typeInput.value);
+    });
+  });
+
+  // -----------------------------------------
+  // Form submission
+  // -----------------------------------------
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const transactionType = typeInput.value;
+
+    const company = document.getElementById("company").value;
+
+    const quantity = document.getElementById("quantity").value;
+
+    const price = document.getElementById("price").value;
+
+    if (!company || !quantity || !price) {
+      alert("Please complete the required fields.");
+
+      return;
+    }
+
+    const total = Number(quantity) * Number(price);
+
+    alert(
+      `${transactionType} transaction ready.\n\n` +
+        `Company: ${company}\n` +
+        `Quantity: ${quantity}\n` +
+        `Price: ৳${Number(price).toFixed(2)}\n` +
+        `Total: ৳${total.toLocaleString()}`,
+    );
+
+    form.reset();
+
+    typeInput.value = "BUY";
+
+    typeButtons.forEach((button) => {
+      button.classList.remove("active");
+    });
+
+    typeButtons[0].classList.add("active");
+  });
 }
 
 // =========================================

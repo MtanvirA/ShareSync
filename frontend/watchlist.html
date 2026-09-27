@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <meta name="description"
+          content="ShareSync - Investment watchlist">
+
+    <title>ShareSync | Watchlist</title>
+
+
+    <!-- Bootstrap -->
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+        rel="stylesheet">
+
+
+    <!-- Bootstrap Icons -->
+
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+
+
+    <!-- ShareSync CSS -->
+
+    <link rel="stylesheet"
+          href="css/style.css">
+
+</head>
+
+
+<body>
+
+
+    <!-- =====================================
+         TOP BAR
+    ====================================== -->
+
+    <header class="topbar">
+
+        <div class="container-fluid px-4">
+
+            <div class="d-flex align-items-center justify-content-between">
+
+
+                <a href="index.html"
+                   class="brand text-decoration-none">
+
+                    <span class="brand-mark">
+                        S
+                    </span>
+
+                    <span class="brand-name">
+                        Share<span>Sync</span>
+                    </span>
+
+                </a>
+
+
+                <div class="d-flex align-items-center gap-3">
+
+                    <button class="icon-button"
+                            title="Notifications">
+
+                        <i class="bi bi-bell"></i>
+
+                    </button>
+
+
+                    <div class="profile">
+
+                        <div class="profile-avatar">
+                            T
+                        </div>
+
+                        <div class="profile-info d-none d-md-block">
+
+                            <span class="profile-name">
+                                Tanvir
+                            </span>
+
+                            <span class="profile-role">
+                                Investor
+                            </span>
+
+                        </div>
+
+                        <i class="bi bi-chevron-down profile-arrow"></i>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- =====================================
+         APPLICATION LAYOUT
+    ====================================== -->
+
+    <div class="app-layout">
+
+
+        <!-- SIDEBAR -->
+
+        <aside class="sidebar">
+
+            <div class="sidebar-section">
+
+                <p class="sidebar-label">
+                    Workspace
+                </p>
+
+
+                <nav class="sidebar-nav">
+
+
+                    <a href="index.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-grid-1x2-fill"></i>
+
+                        <span>
+                            Dashboard
+                        </span>
+
+                    </a>
+
+
+                    <a href="portfolio.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-briefcase"></i>
+
+                        <span>
+                            Portfolio
+                        </span>
+
+                    </a>
+
+
+                    <a href="transactions.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-arrow-left-right"></i>
+
+                        <span>
+                            Transactions
+                        </span>
+
+                    </a>
+
+
+                    <a href="watchlist.html"
+                       class="sidebar-link active">
+
+                        <i class="bi bi-bookmark"></i>
+
+                        <span>
+                            Watchlist
+                        </span>
+
+                    </a>
+
+
+                    <a href="dividends.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-cash-stack"></i>
+
+                        <span>
+                            Dividends
+                        </span>
+
+                    </a>
+
+                </nav>
+
+            </div>
+
+
+            <div class="sidebar-section sidebar-bottom">
+
+                <p class="sidebar-label">
+                    Account
+                </p>
+
+
+                <nav class="sidebar-nav">
+
+                    <a href="#"
+                       class="sidebar-link">
+
+                        <i class="bi bi-gear"></i>
+
+                        <span>
+                            Settings
+                        </span>
+
+                    </a>
+
+
+                    <a href="#"
+                       class="sidebar-link">
+
+                        <i class="bi bi-box-arrow-right"></i>
+
+                        <span>
+                            Log out
+                        </span>
+
+                    </a>
+
+                </nav>
+
+            </div>
+
+        </aside>
+
+
+
+        <!-- =====================================
+             MAIN CONTENT
+        ====================================== -->
+
+        <main class="main-content">
+
+            <div class="content-container">
+
+
+                <!-- PAGE HEADER -->
+
+                <section class="page-header">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            MARKET WATCH
+                        </p>
+
+                        <h1>
+                            Watchlist
+                        </h1>
+
+                        <p class="page-description">
+                            Keep track of companies you're interested in.
+                        </p>
+
+                    </div>
+
+
+                    <button class="primary-button"
+                            id="openWatchlistForm">
+
+                        <i class="bi bi-plus-lg"></i>
+
+                        Add company
+
+                    </button>
+
+                </section>
+
+
+
+                <!-- =====================================
+                     WATCHLIST SUMMARY
+                ====================================== -->
+
+                <section class="summary-grid">
+
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-bookmark"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Watching
+                            </span>
+
+                            <strong class="summary-value">
+                                8
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-arrow-up-right"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Above target
+                            </span>
+
+                            <strong class="summary-value">
+                                3
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-bell"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Near target
+                            </span>
+
+                            <strong class="summary-value">
+                                2
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-graph-up"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Avg. change
+                            </span>
+
+                            <strong class="summary-value positive-value">
+                                +2.84%
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =====================================
+                     ADD COMPANY FORM
+                ====================================== -->
+
+                <section class="dashboard-card watchlist-form-card form-hidden"
+                         id="watchlistFormCard">
+
+
+                    <div class="card-header">
+
+                        <div>
+
+                            <h2>
+                                Add to watchlist
+                            </h2>
+
+                            <p>
+                                Track a company and optionally set a target price.
+                            </p>
+
+                        </div>
+
+
+                        <button class="close-form-button"
+                                id="closeWatchlistForm">
+
+                            <i class="bi bi-x-lg"></i>
+
+                        </button>
+
+                    </div>
+
+
+                    <form id="watchlistForm">
+
+
+                        <div class="watchlist-form-grid">
+
+
+                            <div class="form-field">
+
+                                <label for="watchlistCompany">
+                                    Company
+                                </label>
+
+                                <select id="watchlistCompany"
+                                        required>
+
+                                    <option value="">
+                                        Select company
+                                    </option>
+
+                                    <option value="BEXIMCO">
+                                        BEXIMCO
+                                    </option>
+
+                                    <option value="GP">
+                                        Grameenphone
+                                    </option>
+
+                                    <option value="BATBC">
+                                        BAT Bangladesh
+                                    </option>
+
+                                    <option value="SQURPHARMA">
+                                        Square Pharmaceuticals
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="form-field">
+
+                                <label for="targetPrice">
+                                    Target price
+                                    <span>(optional)</span>
+                                </label>
+
+                                <div class="input-with-prefix">
+
+                                    <span>
+                                        ৳
+                                    </span>
+
+                                    <input
+                                        type="number"
+                                        id="targetPrice"
+                                        min="0.01"
+                                        step="0.01"
+                                        placeholder="e.g. 320.00">
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="form-field">
+
+                                <label for="watchlistName">
+                                    Watchlist
+                                </label>
+
+                                <select id="watchlistName">
+
+                                    <option>
+                                        Main Watchlist
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="form-actions">
+
+                            <button type="button"
+                                    class="secondary-button"
+                                    id="cancelWatchlist">
+
+                                Cancel
+
+                            </button>
+
+
+                            <button type="submit"
+                                    class="primary-button">
+
+                                <i class="bi bi-bookmark-plus"></i>
+
+                                Add to watchlist
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </section>
+
+
+
+                <!-- =====================================
+                     WATCHLIST TABLE
+                ====================================== -->
+
+                <section class="dashboard-card watchlist-card">
+
+
+                    <div class="watchlist-toolbar">
+
+                        <div>
+
+                            <h2>
+                                Main Watchlist
+                            </h2>
+
+                            <p>
+                                Companies you're currently monitoring
+                            </p>
+
+                        </div>
+
+
+                        <div class="watchlist-toolbar-actions">
+
+                            <select class="filter-select">
+
+                                <option>
+                                    All companies
+                                </option>
+
+                                <option>
+                                    Near target
+                                </option>
+
+                                <option>
+                                    Above target
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="table-responsive">
+
+                        <table class="holdings-table watchlist-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Company
+                                    </th>
+
+                                    <th>
+                                        Current price
+                                    </th>
+
+                                    <th>
+                                        Target price
+                                    </th>
+
+                                    <th>
+                                        Distance
+                                    </th>
+
+                                    <th>
+                                        Daily change
+                                    </th>
+
+                                    <th>
+                                        Added
+                                    </th>
+
+                                    <th>
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+
+                                <!-- BEXIMCO -->
+
+                                <tr>
+
+                                    <td>
+
+                                        <div class="company-cell">
+
+                                            <span class="company-logo">
+                                                BX
+                                            </span>
+
+                                            <div class="company-details">
+
+                                                <strong>
+                                                    BEXIMCO
+                                                </strong>
+
+                                                <small>
+                                                    Beximco Limited
+                                                </small>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <td>
+                                        ৳120.00
+                                    </td>
+
+
+                                    <td>
+                                        ৳135.00
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="target-distance">
+                                            11.11%
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="positive-value">
+                                            +2.31%
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+                                        Sep 12, 2026
+                                    </td>
+
+
+                                    <td>
+
+                                        <button class="table-action-button"
+                                                title="Remove">
+
+                                            <i class="bi bi-trash3"></i>
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+
+
+
+                                <!-- GP -->
+
+                                <tr>
+
+                                    <td>
+
+                                        <div class="company-cell">
+
+                                            <span class="company-logo">
+                                                GP
+                                            </span>
+
+                                            <div class="company-details">
+
+                                                <strong>
+                                                    GP
+                                                </strong>
+
+                                                <small>
+                                                    Grameenphone Ltd.
+                                                </small>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <td>
+                                        ৳295.00
+                                    </td>
+
+
+                                    <td>
+                                        ৳300.00
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="target-distance near-target">
+                                            1.67%
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="negative-value">
+                                            -0.84%
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+                                        Sep 08, 2026
+                                    </td>
+
+
+                                    <td>
+
+                                        <button class="table-action-button"
+                                                title="Remove">
+
+                                            <i class="bi bi-trash3"></i>
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+
+
+
+                                <!-- BATBC -->
+
+                                <tr>
+
+                                    <td>
+
+                                        <div class="company-cell">
+
+                                            <span class="company-logo">
+                                                BT
+                                            </span>
+
+                                            <div class="company-details">
+
+                                                <strong>
+                                                    BATBC
+                                                </strong>
+
+                                                <small>
+                                                    BAT Bangladesh
+                                                </small>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <td>
+                                        ৳450.00
+                                    </td>
+
+
+                                    <td>
+                                        ৳480.00
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="target-distance">
+                                            6.25%
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="positive-value">
+                                            +1.15%
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+                                        Aug 29, 2026
+                                    </td>
+
+
+                                    <td>
+
+                                        <button class="table-action-button"
+                                                title="Remove">
+
+                                            <i class="bi bi-trash3"></i>
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+
+
+
+                                <!-- Square Pharma -->
+
+                                <tr>
+
+                                    <td>
+
+                                        <div class="company-cell">
+
+                                            <span class="company-logo">
+                                                SQ
+                                            </span>
+
+                                            <div class="company-details">
+
+                                                <strong>
+                                                    SQURPHARMA
+                                                </strong>
+
+                                                <small>
+                                                    Square Pharmaceuticals
+                                                </small>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <td>
+                                        ৳235.50
+                                    </td>
+
+
+                                    <td>
+                                        ৳230.00
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="target-distance target-reached">
+                                            Target reached
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="positive-value">
+                                            +3.42%
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+                                        Aug 22, 2026
+                                    </td>
+
+
+                                    <td>
+
+                                        <button class="table-action-button"
+                                                title="Remove">
+
+                                            <i class="bi bi-trash3"></i>
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+            </div>
+
+        </main>
+
+    </div>
+
+
+
+    <!-- Bootstrap JS -->
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js">
+    </script>
+
+
+    <!-- ShareSync JS -->
+
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>

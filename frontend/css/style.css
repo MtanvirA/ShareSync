@@ -1707,3 +1707,259 @@ body {
 .form-hidden {
   display: none;
 }
+
+
+
+/* =========================================
+   WATCHLIST PAGE
+========================================= */
+
+.watchlist-form-card {
+    margin-bottom: 20px;
+}
+
+
+.watchlist-form-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        1.5fr 1fr 1fr;
+
+    gap: 18px;
+
+}
+
+
+.watchlist-card {
+    padding-bottom: 15px;
+}
+
+
+.watchlist-toolbar {
+
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 22px;
+
+}
+
+
+.watchlist-toolbar h2 {
+
+    margin: 0;
+
+    font-size: 15px;
+
+    font-weight: 650;
+
+}
+
+
+.watchlist-toolbar p {
+
+    margin: 4px 0 0;
+
+    color: var(--color-text-muted);
+
+    font-size: 11px;
+
+}
+
+
+.company-details {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 2px;
+
+}
+
+
+.company-details small {
+
+    color: var(--color-text-muted);
+
+    font-size: 9px;
+
+}
+
+
+.target-distance {
+
+    color: var(--color-text-secondary);
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+}
+
+
+.target-distance.near-target {
+
+    color: #9a6b00;
+
+}
+
+
+.target-distance.target-reached {
+
+    color: var(--color-positive);
+
+}
+
+
+.table-action-button {
+
+    width: 30px;
+
+    height: 30px;
+
+    border: 0;
+
+    border-radius: 6px;
+
+    background: transparent;
+
+    color: var(--color-text-muted);
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+}
+
+
+.table-action-button:hover {
+
+    background: var(--color-negative-soft);
+
+    color: var(--color-negative);
+
+}
+
+
+.positive-value {
+
+    color: var(--color-positive) !important;
+
+}
+
+
+.negative-value {
+
+    color: var(--color-negative) !important;
+
+}
+
+
+/* =========================================
+   WATCHLIST RESPONSIVE
+========================================= */
+
+@media (max-width: 900px) {
+
+    .watchlist-form-grid {
+
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .watchlist-form-grid {
+
+        grid-template-columns: 1fr;
+
+    }
+
+
+    .watchlist-toolbar {
+
+        flex-direction: column;
+
+    }
+
+
+    .watchlist-toolbar-actions {
+
+        width: 100%;
+
+    }
+
+
+    .watchlist-toolbar-actions .filter-select {
+
+        width: 100%;
+
+    }
+
+}
+
+/* =========================================
+   DIVIDENDS PAGE
+========================================= */
+
+.dividend-form-card {
+    margin-bottom: 20px;
+}
+
+.dividend-form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.dividend-history-card {
+    padding-bottom: 15px;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.status-paid {
+    background: var(--color-positive-soft);
+    color: var(--color-positive);
+}
+
+.status-upcoming {
+    background: #f5f1df;
+    color: #876d13;
+}
+
+@media (max-width: 1000px) {
+
+    .dividend-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    .dividend-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+}

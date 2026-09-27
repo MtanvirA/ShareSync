@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta name="description" content="ShareSync - Transaction history" />
+
+    <title>ShareSync | Transactions</title>
+
+    <!-- Bootstrap -->
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap Icons -->
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+
+    <!-- ShareSync CSS -->
+
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body>
+    <!-- =========================
+         TOP BAR
+    ========================== -->
+
+    <header class="topbar">
+      <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <a href="index.html" class="brand text-decoration-none">
+            <span class="brand-mark"> S </span>
+
+            <span class="brand-name"> Share<span>Sync</span> </span>
+          </a>
+
+          <div class="d-flex align-items-center gap-3">
+            <button class="icon-button" title="Notifications">
+              <i class="bi bi-bell"></i>
+            </button>
+
+            <div class="profile">
+              <div class="profile-avatar">T</div>
+
+              <div class="profile-info d-none d-md-block">
+                <span class="profile-name"> Tanvir </span>
+
+                <span class="profile-role"> Investor </span>
+              </div>
+
+              <i class="bi bi-chevron-down profile-arrow"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- =========================
+         APPLICATION LAYOUT
+    ========================== -->
+
+    <div class="app-layout">
+      <!-- SIDEBAR -->
+
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <p class="sidebar-label">Workspace</p>
+
+          <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">
+              <i class="bi bi-grid-1x2-fill"></i>
+
+              <span> Dashboard </span>
+            </a>
+
+            <a href="portfolio.html" class="sidebar-link">
+              <i class="bi bi-briefcase"></i>
+
+              <span> Portfolio </span>
+            </a>
+
+            <a href="transactions.html" class="sidebar-link active">
+              <i class="bi bi-arrow-left-right"></i>
+
+              <span> Transactions </span>
+            </a>
+
+            <a href="#" class="sidebar-link">
+              <i class="bi bi-bookmark"></i>
+
+              <span> Watchlist </span>
+            </a>
+
+            <a href="#" class="sidebar-link">
+              <i class="bi bi-cash-stack"></i>
+
+              <span> Dividends </span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="sidebar-section sidebar-bottom">
+          <p class="sidebar-label">Account</p>
+
+          <nav class="sidebar-nav">
+            <a href="#" class="sidebar-link">
+              <i class="bi bi-gear"></i>
+
+              <span> Settings </span>
+            </a>
+
+            <a href="#" class="sidebar-link">
+              <i class="bi bi-box-arrow-right"></i>
+
+              <span> Log out </span>
+            </a>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- =========================
+             MAIN CONTENT
+        ========================== -->
+
+      <main class="main-content">
+        <div class="content-container">
+          <!-- PAGE HEADER -->
+
+          <section class="page-header">
+            <div>
+              <p class="eyebrow">TRANSACTIONS</p>
+
+              <h1>Transaction history</h1>
+
+              <p class="page-description">
+                Record and review your portfolio activity.
+              </p>
+            </div>
+
+            <button class="primary-button" id="openTransactionForm">
+              <i class="bi bi-plus-lg"></i>
+
+              Add transaction
+            </button>
+          </section>
+
+          <!-- =========================
+                     TRANSACTION FORM
+                ========================== -->
+
+          <section
+            class="dashboard-card transaction-form-card form-hidden"
+            id="transactionFormCard"
+          >
+            <div class="card-header">
+              <div>
+                <h2>Add transaction</h2>
+
+                <p>Record a BUY or SELL transaction.</p>
+              </div>
+
+              <button
+                class="close-form-button"
+                id="closeTransactionForm"
+                title="Close form"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <form id="transactionForm">
+              <!-- Transaction type -->
+
+              <div class="transaction-type">
+                <label> Transaction type </label>
+
+                <div class="type-buttons">
+                  <button
+                    type="button"
+                    class="type-button active"
+                    data-type="BUY"
+                  >
+                    <i class="bi bi-arrow-down-left"></i>
+
+                    Buy
+                  </button>
+
+                  <button type="button" class="type-button" data-type="SELL">
+                    <i class="bi bi-arrow-up-right"></i>
+
+                    Sell
+                  </button>
+                </div>
+
+                <input type="hidden" id="transactionType" value="BUY" />
+              </div>
+
+              <!-- Form fields -->
+
+              <div class="transaction-form-grid">
+                <!-- Portfolio -->
+
+                <div class="form-field">
+                  <label for="portfolio"> Portfolio </label>
+
+                  <select id="portfolio" required>
+                    <option value="">Select portfolio</option>
+
+                    <option value="main">Main Portfolio</option>
+                  </select>
+                </div>
+
+                <!-- Company -->
+
+                <div class="form-field">
+                  <label for="company"> Company </label>
+
+                  <select id="company" required>
+                    <option value="">Select company</option>
+
+                    <option value="BEXIMCO">BEXIMCO</option>
+
+                    <option value="GP">GP</option>
+
+                    <option value="BATBC">BATBC</option>
+                  </select>
+                </div>
+
+                <!-- Quantity -->
+
+                <div class="form-field">
+                  <label for="quantity"> Quantity </label>
+
+                  <input
+                    type="number"
+                    id="quantity"
+                    min="0.0001"
+                    step="0.0001"
+                    placeholder="e.g. 100"
+                    required
+                  />
+                </div>
+
+                <!-- Price -->
+
+                <div class="form-field">
+                  <label for="price"> Price per share </label>
+
+                  <div class="input-with-prefix">
+                    <span> ৳ </span>
+
+                    <input
+                      type="number"
+                      id="price"
+                      min="0.01"
+                      step="0.01"
+                      placeholder="e.g. 120.00"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <!-- Date -->
+
+                <div class="form-field">
+                  <label for="transactionDate"> Transaction date </label>
+
+                  <input type="date" id="transactionDate" required />
+                </div>
+
+                <!-- Notes -->
+
+                <div class="form-field">
+                  <label for="notes">
+                    Notes
+                    <span>(optional)</span>
+                  </label>
+
+                  <input type="text" id="notes" placeholder="Add a note" />
+                </div>
+              </div>
+
+              <!-- Form actions -->
+
+              <div class="form-actions">
+                <button
+                  type="button"
+                  class="secondary-button"
+                  id="cancelTransaction"
+                >
+                  Cancel
+                </button>
+
+                <button type="submit" class="primary-button">
+                  <i class="bi bi-check2"></i>
+
+                  Save transaction
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <!-- =========================
+                     FILTER BAR
+                ========================== -->
+
+          <section class="dashboard-card transaction-list-card">
+            <div class="transaction-toolbar">
+              <div>
+                <h2>All transactions</h2>
+
+                <p>12 transactions recorded</p>
+              </div>
+
+              <div class="transaction-filters">
+                <select class="filter-select">
+                  <option>All types</option>
+
+                  <option>Buy</option>
+
+                  <option>Sell</option>
+                </select>
+
+                <select class="filter-select">
+                  <option>All companies</option>
+
+                  <option>BEXIMCO</option>
+
+                  <option>GP</option>
+
+                  <option>BATBC</option>
+                </select>
+
+                <button class="secondary-button">
+                  <i class="bi bi-download"></i>
+
+                  Export
+                </button>
+              </div>
+            </div>
+
+            <!-- Transaction table -->
+
+            <div class="table-responsive">
+              <table class="holdings-table transaction-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+
+                    <th>Company</th>
+
+                    <th>Type</th>
+
+                    <th>Quantity</th>
+
+                    <th>Price</th>
+
+                    <th>Total</th>
+
+                    <th>Portfolio</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <!-- Transaction 1 -->
+
+                  <tr>
+                    <td>Sep 08, 2026</td>
+
+                    <td>
+                      <div class="company-cell">
+                        <span class="company-logo"> BX </span>
+
+                        <strong> BEXIMCO </strong>
+                      </div>
+                    </td>
+
+                    <td>
+                      <span class="transaction-badge buy-badge"> BUY </span>
+                    </td>
+
+                    <td>100</td>
+
+                    <td>৳120.00</td>
+
+                    <td>৳12,000</td>
+
+                    <td>Main Portfolio</td>
+                  </tr>
+
+                  <!-- Transaction 2 -->
+
+                  <tr>
+                    <td>Sep 05, 2026</td>
+
+                    <td>
+                      <div class="company-cell">
+                        <span class="company-logo"> GP </span>
+
+                        <strong> GP </strong>
+                      </div>
+                    </td>
+
+                    <td>
+                      <span class="transaction-badge buy-badge"> BUY </span>
+                    </td>
+
+                    <td>200</td>
+
+                    <td>৳280.00</td>
+
+                    <td>৳56,000</td>
+
+                    <td>Main Portfolio</td>
+                  </tr>
+
+                  <!-- Transaction 3 -->
+
+                  <tr>
+                    <td>Aug 28, 2026</td>
+
+                    <td>
+                      <div class="company-cell">
+                        <span class="company-logo"> GP </span>
+
+                        <strong> GP </strong>
+                      </div>
+                    </td>
+
+                    <td>
+                      <span class="transaction-badge sell-badge"> SELL </span>
+                    </td>
+
+                    <td>50</td>
+
+                    <td>৳290.00</td>
+
+                    <td>৳14,500</td>
+
+                    <td>Main Portfolio</td>
+                  </tr>
+
+                  <!-- Transaction 4 -->
+
+                  <tr>
+                    <td>Aug 20, 2026</td>
+
+                    <td>
+                      <div class="company-cell">
+                        <span class="company-logo"> BT </span>
+
+                        <strong> BATBC </strong>
+                      </div>
+                    </td>
+
+                    <td>
+                      <span class="transaction-badge buy-badge"> BUY </span>
+                    </td>
+
+                    <td>50</td>
+
+                    <td>৳450.00</td>
+
+                    <td>৳22,500</td>
+
+                    <td>Main Portfolio</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+
+            <div class="pagination-row">
+              <span> Showing 1–4 of 12 transactions </span>
+
+              <div class="pagination-buttons">
+                <button disabled>
+                  <i class="bi bi-chevron-left"></i>
+                </button>
+
+                <button class="current-page">1</button>
+
+                <button>2</button>
+
+                <button>3</button>
+
+                <button>
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <!-- Bootstrap JS -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ShareSync JS -->
+
+    <script src="js/app.js"></script>
+  </body>
+</html>

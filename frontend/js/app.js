@@ -20,6 +20,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setupDividendForm();
 
+  setupReports();
+
 });
 
 
@@ -502,4 +504,290 @@ function createPortfolioChart() {
       },
     },
   });
+}
+
+
+// =========================================
+// REPORTS & ANALYTICS
+// =========================================
+
+function setupReports() {
+
+    const portfolioChart =
+        document.getElementById("portfolioValueReport");
+
+    if (!portfolioChart) {
+        return;
+    }
+
+
+    // -----------------------------------------
+    // Portfolio value chart
+    // -----------------------------------------
+
+    new Chart(portfolioChart, {
+
+        type: "line",
+
+        data: {
+
+            labels: [
+                "Apr",
+                "May",
+                "Jun",
+                "Jul",
+                "Aug",
+                "Sep"
+            ],
+
+            datasets: [{
+
+                label: "Portfolio Value",
+
+                data: [
+                    132000,
+                    141500,
+                    149800,
+                    158600,
+                    171200,
+                    186450
+                ],
+
+                borderWidth: 2,
+
+                pointRadius: 3,
+
+                pointHoverRadius: 5,
+
+                tension: 0.35,
+
+                fill: true
+
+            }]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+
+                legend: {
+                    display: false
+                }
+
+            },
+
+            scales: {
+
+                y: {
+
+                    beginAtZero: false,
+
+                    ticks: {
+
+                        callback: function(value) {
+
+                            return "৳" +
+                                Number(value)
+                                    .toLocaleString();
+
+                        }
+
+                    }
+
+                },
+
+                x: {
+
+                    grid: {
+                        display: false
+                    }
+
+                }
+
+            }
+
+        }
+
+    });
+
+
+    // -----------------------------------------
+    // Asset allocation
+    // -----------------------------------------
+
+    const allocationChart =
+        document.getElementById("allocationChart");
+
+
+    if (allocationChart) {
+
+        new Chart(allocationChart, {
+
+            type: "doughnut",
+
+            data: {
+
+                labels: [
+                    "Grameenphone",
+                    "BEXIMCO",
+                    "BAT Bangladesh",
+                    "Square Pharma"
+                ],
+
+                datasets: [{
+
+                    data: [
+                        32,
+                        26,
+                        24,
+                        18
+                    ],
+
+                    borderWidth: 0
+
+                }]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                cutout: "68%",
+
+                plugins: {
+
+                    legend: {
+                        display: false
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    // -----------------------------------------
+    // Transaction activity
+    // -----------------------------------------
+
+    const transactionChart =
+        document.getElementById(
+            "transactionActivityChart"
+        );
+
+
+    if (transactionChart) {
+
+        new Chart(transactionChart, {
+
+            type: "bar",
+
+            data: {
+
+                labels: [
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep"
+                ],
+
+                datasets: [
+
+                    {
+
+                        label: "BUY",
+
+                        data: [
+                            4,
+                            3,
+                            5,
+                            2,
+                            6,
+                            4
+                        ],
+
+                        borderWidth: 0
+
+                    },
+
+                    {
+
+                        label: "SELL",
+
+                        data: [
+                            1,
+                            2,
+                            1,
+                            3,
+                            1,
+                            2
+                        ],
+
+                        borderWidth: 0
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    legend: {
+
+                        position: "bottom"
+
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            stepSize: 1
+
+                        }
+
+                    },
+
+                    x: {
+
+                        grid: {
+                            display: false
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
 }

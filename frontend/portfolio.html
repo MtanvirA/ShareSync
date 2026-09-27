@@ -1,852 +1,445 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
 
-<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <meta name="description"
-          content="ShareSync - Portfolio">
+    <meta name="description" content="ShareSync - Portfolio" />
 
     <title>ShareSync | Portfolio</title>
 
     <!-- Bootstrap -->
     <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-        rel="stylesheet">
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
 
     <!-- Bootstrap Icons -->
     <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
 
     <!-- ShareSync CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
 
-</head>
-
-
-<body>
-
-
+  <body>
     <!-- =========================
          TOP BAR
     ========================== -->
 
     <header class="topbar">
+      <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <!-- Brand -->
 
-        <div class="container-fluid px-4">
+          <a href="index.html" class="brand text-decoration-none">
+            <span class="brand-mark"> S </span>
 
-            <div class="d-flex align-items-center justify-content-between">
+            <span class="brand-name"> Share<span>Sync</span> </span>
+          </a>
 
+          <!-- Profile -->
 
-                <!-- Brand -->
+          <div class="d-flex align-items-center gap-3">
+            <button class="icon-button" title="Notifications">
+              <i class="bi bi-bell"></i>
+            </button>
 
-                <a href="index.html"
-                   class="brand text-decoration-none">
+            <div class="profile">
+              <div class="profile-avatar">T</div>
 
-                    <span class="brand-mark">
-                        S
-                    </span>
+              <div class="profile-info d-none d-md-block">
+                <span class="profile-name"> Tanvir </span>
 
-                    <span class="brand-name">
-                        Share<span>Sync</span>
-                    </span>
+                <span class="profile-role"> Investor </span>
+              </div>
 
-                </a>
-
-
-                <!-- Profile -->
-
-                <div class="d-flex align-items-center gap-3">
-
-                    <button class="icon-button"
-                            title="Notifications">
-
-                        <i class="bi bi-bell"></i>
-
-                    </button>
-
-
-                    <div class="profile">
-
-                        <div class="profile-avatar">
-                            T
-                        </div>
-
-                        <div class="profile-info d-none d-md-block">
-
-                            <span class="profile-name">
-                                Tanvir
-                            </span>
-
-                            <span class="profile-role">
-                                Investor
-                            </span>
-
-                        </div>
-
-                        <i class="bi bi-chevron-down profile-arrow"></i>
-
-                    </div>
-
-                </div>
-
+              <i class="bi bi-chevron-down profile-arrow"></i>
             </div>
-
+          </div>
         </div>
-
+      </div>
     </header>
-
-
 
     <!-- =========================
          APPLICATION LAYOUT
     ========================== -->
 
     <div class="app-layout">
-
-
-        <!-- =========================
+      <!-- =========================
              SIDEBAR
         ========================== -->
 
-        <aside class="sidebar">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <p class="sidebar-label">Workspace</p>
 
-            <div class="sidebar-section">
+          <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">
+              <i class="bi bi-grid-1x2-fill"></i>
 
-                <p class="sidebar-label">
-                    Workspace
-                </p>
+              <span> Dashboard </span>
+            </a>
 
+            <a href="portfolio.html" class="sidebar-link active">
+              <i class="bi bi-briefcase"></i>
 
-                <nav class="sidebar-nav">
+              <span> Portfolio </span>
+            </a>
 
-                    <a href="index.html"
-                       class="sidebar-link">
+            <a href="transactions.html" class="sidebar-link">
+              <i class="bi bi-arrow-left-right"></i>
 
-                        <i class="bi bi-grid-1x2-fill"></i>
+              <span> Transactions </span>
+            </a>
 
-                        <span>
-                            Dashboard
-                        </span>
+            <a href="watchlist.html" class="sidebar-link">
+              <i class="bi bi-bookmark"></i>
 
-                    </a>
+              <span> Watchlist </span>
+            </a>
 
+            <a href="dividends.html" class="sidebar-link">
+              <i class="bi bi-cash-stack"></i>
 
-                    <a href="portfolio.html"
-                       class="sidebar-link active">
+              <span> Dividends </span>
+            </a>
 
-                        <i class="bi bi-briefcase"></i>
+            <a href="reports.html" class="sidebar-link">
+              <i class="bi bi-bar-chart-line"></i>
 
-                        <span>
-                            Portfolio
-                        </span>
+              <span> Reports </span>
+            </a>
+          </nav>
+        </div>
 
-                    </a>
+        <div class="sidebar-section sidebar-bottom">
+          <p class="sidebar-label">Account</p>
 
+          <nav class="sidebar-nav">
+            <a href="#" class="sidebar-link">
+              <i class="bi bi-gear"></i>
 
-                    <a href="transactions.html"
-                       class="sidebar-link">
+              <span> Settings </span>
+            </a>
 
-                        <i class="bi bi-arrow-left-right"></i>
+            <a href="#" class="sidebar-link">
+              <i class="bi bi-box-arrow-right"></i>
 
-                        <span>
-                            Transactions
-                        </span>
+              <span> Log out </span>
+            </a>
+          </nav>
+        </div>
+      </aside>
 
-                    </a>
-
-
-                    <a href="watchlist.html"
-                       class="sidebar-link">
-
-                        <i class="bi bi-bookmark"></i>
-
-                        <span>
-                            Watchlist
-                        </span>
-
-                    </a>
-
-
-                    <a href="dividends.html"
-                       class="sidebar-link">
-
-                        <i class="bi bi-cash-stack"></i>
-
-                        <span>
-                            Dividends
-                        </span>
-
-                    </a>
-
-                </nav>
-
-            </div>
-
-
-            <div class="sidebar-section sidebar-bottom">
-
-                <p class="sidebar-label">
-                    Account
-                </p>
-
-
-                <nav class="sidebar-nav">
-
-                    <a href="#"
-                       class="sidebar-link">
-
-                        <i class="bi bi-gear"></i>
-
-                        <span>
-                            Settings
-                        </span>
-
-                    </a>
-
-
-                    <a href="#"
-                       class="sidebar-link">
-
-                        <i class="bi bi-box-arrow-right"></i>
-
-                        <span>
-                            Log out
-                        </span>
-
-                    </a>
-
-                </nav>
-
-            </div>
-
-        </aside>
-
-
-
-        <!-- =========================
+      <!-- =========================
              MAIN CONTENT
         ========================== -->
 
-        <main class="main-content">
-
-            <div class="content-container">
-
-
-                <!-- =========================
+      <main class="main-content">
+        <div class="content-container">
+          <!-- =========================
                      PAGE HEADER
                 ========================== -->
 
-                <section class="page-header">
+          <section class="page-header">
+            <div>
+              <p class="eyebrow">PORTFOLIO</p>
 
-                    <div>
+              <h1>Main Portfolio</h1>
 
-                        <p class="eyebrow">
-                            PORTFOLIO
-                        </p>
+              <p class="page-description">
+                Track your holdings and investment performance.
+              </p>
+            </div>
 
-                        <h1>
-                            Main Portfolio
-                        </h1>
+            <button class="primary-button" id="addTransactionButton">
+              <i class="bi bi-plus-lg"></i>
 
-                        <p class="page-description">
-                            Track your holdings and investment performance.
-                        </p>
+              Add transaction
+            </button>
+          </section>
 
-                    </div>
-
-
-                    <button class="primary-button"
-                            id="addTransactionButton">
-
-                        <i class="bi bi-plus-lg"></i>
-
-                        Add transaction
-
-                    </button>
-
-                </section>
-
-
-
-                <!-- =========================
+          <!-- =========================
                      PORTFOLIO SUMMARY
                 ========================== -->
 
-                <section class="portfolio-summary">
+          <section class="portfolio-summary">
+            <div class="portfolio-value-card">
+              <div class="portfolio-value-label">Current portfolio value</div>
 
+              <div class="portfolio-value">৳125,400</div>
 
-                    <div class="portfolio-value-card">
+              <div class="portfolio-return">
+                <span> +৳15,400 </span>
 
-                        <div class="portfolio-value-label">
-                            Current portfolio value
-                        </div>
+                <span> +14.0% </span>
 
-                        <div class="portfolio-value">
-                            ৳125,400
-                        </div>
+                <small> Unrealized return </small>
+              </div>
+            </div>
 
-                        <div class="portfolio-return">
+            <div class="portfolio-stat">
+              <span> Total invested </span>
 
-                            <span>
-                                +৳15,400
-                            </span>
+              <strong> ৳110,000 </strong>
+            </div>
 
-                            <span>
-                                +14.0%
-                            </span>
+            <div class="portfolio-stat">
+              <span> Holdings </span>
 
-                            <small>
-                                Unrealized return
-                            </small>
+              <strong> 3 </strong>
+            </div>
 
-                        </div>
+            <div class="portfolio-stat">
+              <span> Dividend income </span>
 
-                    </div>
+              <strong> ৳8,450 </strong>
+            </div>
+          </section>
 
-
-                    <div class="portfolio-stat">
-
-                        <span>
-                            Total invested
-                        </span>
-
-                        <strong>
-                            ৳110,000
-                        </strong>
-
-                    </div>
-
-
-                    <div class="portfolio-stat">
-
-                        <span>
-                            Holdings
-                        </span>
-
-                        <strong>
-                            3
-                        </strong>
-
-                    </div>
-
-
-                    <div class="portfolio-stat">
-
-                        <span>
-                            Dividend income
-                        </span>
-
-                        <strong>
-                            ৳8,450
-                        </strong>
-
-                    </div>
-
-                </section>
-
-
-
-                <!-- =========================
+          <!-- =========================
                      HOLDINGS CARD
                 ========================== -->
 
-                <section class="dashboard-card portfolio-holdings-card">
+          <section class="dashboard-card portfolio-holdings-card">
+            <div class="card-header">
+              <div>
+                <h2>Current holdings</h2>
 
+                <p>Stocks currently held in this portfolio</p>
+              </div>
 
-                    <div class="card-header">
+              <div class="holding-actions">
+                <button class="secondary-button">
+                  <i class="bi bi-funnel"></i>
+
+                  Filter
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="holdings-table portfolio-table">
+                <thead>
+                  <tr>
+                    <th>Company</th>
+
+                    <th>Shares</th>
+
+                    <th>Avg. buy price</th>
+
+                    <th>Current price</th>
+
+                    <th>Market value</th>
+
+                    <th>Return</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <!-- BEXIMCO -->
+
+                  <tr>
+                    <td>
+                      <div class="company-cell">
+                        <span class="company-logo"> BX </span>
 
                         <div>
+                          <strong> BEXIMCO </strong>
 
-                            <h2>
-                                Current holdings
-                            </h2>
-
-                            <p>
-                                Stocks currently held in this portfolio
-                            </p>
-
+                          <small> Beximco Pharmaceuticals </small>
                         </div>
+                      </div>
+                    </td>
 
+                    <td>100</td>
 
-                        <div class="holding-actions">
+                    <td>৳120.00</td>
 
-                            <button class="secondary-button">
+                    <td>৳135.00</td>
 
-                                <i class="bi bi-funnel"></i>
+                    <td>৳13,500</td>
 
-                                Filter
+                    <td class="positive-text">+12.5%</td>
+                  </tr>
 
-                            </button>
+                  <!-- GP -->
 
+                  <tr>
+                    <td>
+                      <div class="company-cell">
+                        <span class="company-logo"> GP </span>
+
+                        <div>
+                          <strong> GP </strong>
+
+                          <small> Grameenphone </small>
                         </div>
+                      </div>
+                    </td>
 
-                    </div>
+                    <td>200</td>
 
+                    <td>৳280.00</td>
 
+                    <td>৳295.00</td>
 
-                    <div class="table-responsive">
+                    <td>৳59,000</td>
 
-                        <table class="holdings-table portfolio-table">
+                    <td class="positive-text">+5.4%</td>
+                  </tr>
 
-                            <thead>
+                  <!-- BATBC -->
 
-                                <tr>
+                  <tr>
+                    <td>
+                      <div class="company-cell">
+                        <span class="company-logo"> BT </span>
 
-                                    <th>
-                                        Company
-                                    </th>
+                        <div>
+                          <strong> BATBC </strong>
 
-                                    <th>
-                                        Shares
-                                    </th>
+                          <small> British American Tobacco </small>
+                        </div>
+                      </div>
+                    </td>
 
-                                    <th>
-                                        Avg. buy price
-                                    </th>
+                    <td>50</td>
 
-                                    <th>
-                                        Current price
-                                    </th>
+                    <td>৳450.00</td>
 
-                                    <th>
-                                        Market value
-                                    </th>
+                    <td>৳470.00</td>
 
-                                    <th>
-                                        Return
-                                    </th>
+                    <td>৳23,500</td>
 
-                                </tr>
+                    <td class="positive-text">+4.4%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-                            </thead>
-
-
-                            <tbody>
-
-
-                                <!-- BEXIMCO -->
-
-                                <tr>
-
-                                    <td>
-
-                                        <div class="company-cell">
-
-                                            <span class="company-logo">
-                                                BX
-                                            </span>
-
-                                            <div>
-
-                                                <strong>
-                                                    BEXIMCO
-                                                </strong>
-
-                                                <small>
-                                                    Beximco Pharmaceuticals
-                                                </small>
-
-                                            </div>
-
-                                        </div>
-
-                                    </td>
-
-
-                                    <td>
-                                        100
-                                    </td>
-
-
-                                    <td>
-                                        ৳120.00
-                                    </td>
-
-
-                                    <td>
-                                        ৳135.00
-                                    </td>
-
-
-                                    <td>
-                                        ৳13,500
-                                    </td>
-
-
-                                    <td class="positive-text">
-                                        +12.5%
-                                    </td>
-
-                                </tr>
-
-
-
-                                <!-- GP -->
-
-                                <tr>
-
-                                    <td>
-
-                                        <div class="company-cell">
-
-                                            <span class="company-logo">
-                                                GP
-                                            </span>
-
-                                            <div>
-
-                                                <strong>
-                                                    GP
-                                                </strong>
-
-                                                <small>
-                                                    Grameenphone
-                                                </small>
-
-                                            </div>
-
-                                        </div>
-
-                                    </td>
-
-
-                                    <td>
-                                        200
-                                    </td>
-
-
-                                    <td>
-                                        ৳280.00
-                                    </td>
-
-
-                                    <td>
-                                        ৳295.00
-                                    </td>
-
-
-                                    <td>
-                                        ৳59,000
-                                    </td>
-
-
-                                    <td class="positive-text">
-                                        +5.4%
-                                    </td>
-
-                                </tr>
-
-
-
-                                <!-- BATBC -->
-
-                                <tr>
-
-                                    <td>
-
-                                        <div class="company-cell">
-
-                                            <span class="company-logo">
-                                                BT
-                                            </span>
-
-                                            <div>
-
-                                                <strong>
-                                                    BATBC
-                                                </strong>
-
-                                                <small>
-                                                    British American Tobacco
-                                                </small>
-
-                                            </div>
-
-                                        </div>
-
-                                    </td>
-
-
-                                    <td>
-                                        50
-                                    </td>
-
-
-                                    <td>
-                                        ৳450.00
-                                    </td>
-
-
-                                    <td>
-                                        ৳470.00
-                                    </td>
-
-
-                                    <td>
-                                        ৳23,500
-                                    </td>
-
-
-                                    <td class="positive-text">
-                                        +4.4%
-                                    </td>
-
-                                </tr>
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                </section>
-
-
-
-                <!-- =========================
+          <!-- =========================
                      BOTTOM GRID
                 ========================== -->
 
-                <section class="portfolio-bottom-grid">
+          <section class="portfolio-bottom-grid">
+            <!-- Portfolio metrics -->
 
+            <article class="dashboard-card">
+              <div class="card-header">
+                <div>
+                  <h2>Performance</h2>
 
-                    <!-- Portfolio metrics -->
+                  <p>Portfolio metrics</p>
+                </div>
+              </div>
 
-                    <article class="dashboard-card">
+              <div class="metric-list">
+                <div class="metric-row">
+                  <span> Total buy cost </span>
 
-                        <div class="card-header">
+                  <strong> ৳110,000 </strong>
+                </div>
 
-                            <div>
+                <div class="metric-row">
+                  <span> Current market value </span>
 
-                                <h2>
-                                    Performance
-                                </h2>
+                  <strong> ৳125,400 </strong>
+                </div>
 
-                                <p>
-                                    Portfolio metrics
-                                </p>
+                <div class="metric-row">
+                  <span> Unrealized profit </span>
 
-                            </div>
+                  <strong class="positive-text"> +৳15,400 </strong>
+                </div>
 
-                        </div>
+                <div class="metric-row">
+                  <span> Return </span>
 
+                  <strong class="positive-text"> +14.0% </strong>
+                </div>
+              </div>
+            </article>
 
-                        <div class="metric-list">
+            <!-- Recent transactions -->
 
+            <article class="dashboard-card">
+              <div class="card-header">
+                <div>
+                  <h2>Recent transactions</h2>
 
-                            <div class="metric-row">
+                  <p>Activity in this portfolio</p>
+                </div>
 
-                                <span>
-                                    Total buy cost
-                                </span>
+                <a href="#" class="view-link">
+                  View all
 
-                                <strong>
-                                    ৳110,000
-                                </strong>
+                  <i class="bi bi-arrow-right"></i>
+                </a>
+              </div>
 
-                            </div>
+              <div class="activity-list">
+                <div class="activity-item">
+                  <div class="activity-icon buy">
+                    <i class="bi bi-arrow-down-left"></i>
+                  </div>
 
+                  <div class="activity-info">
+                    <strong> Bought BEXIMCO </strong>
 
-                            <div class="metric-row">
+                    <span> 100 shares · Sep 8, 2026 </span>
+                  </div>
 
-                                <span>
-                                    Current market value
-                                </span>
+                  <strong class="activity-amount"> -৳12,000 </strong>
+                </div>
 
-                                <strong>
-                                    ৳125,400
-                                </strong>
+                <div class="activity-item">
+                  <div class="activity-icon buy">
+                    <i class="bi bi-arrow-down-left"></i>
+                  </div>
 
-                            </div>
+                  <div class="activity-info">
+                    <strong> Bought GP </strong>
 
+                    <span> 200 shares · Sep 5, 2026 </span>
+                  </div>
 
-                            <div class="metric-row">
+                  <strong class="activity-amount"> -৳56,000 </strong>
+                </div>
 
-                                <span>
-                                    Unrealized profit
-                                </span>
+                <div class="activity-item">
+                  <div class="activity-icon sell">
+                    <i class="bi bi-arrow-up-right"></i>
+                  </div>
 
-                                <strong class="positive-text">
-                                    +৳15,400
-                                </strong>
+                  <div class="activity-info">
+                    <strong> Sold GP </strong>
 
-                            </div>
+                    <span> 50 shares · Aug 28, 2026 </span>
+                  </div>
 
-
-                            <div class="metric-row">
-
-                                <span>
-                                    Return
-                                </span>
-
-                                <strong class="positive-text">
-                                    +14.0%
-                                </strong>
-
-                            </div>
-
-                        </div>
-
-                    </article>
-
-
-
-                    <!-- Recent transactions -->
-
-                    <article class="dashboard-card">
-
-                        <div class="card-header">
-
-                            <div>
-
-                                <h2>
-                                    Recent transactions
-                                </h2>
-
-                                <p>
-                                    Activity in this portfolio
-                                </p>
-
-                            </div>
-
-
-                            <a href="#"
-                               class="view-link">
-
-                                View all
-
-                                <i class="bi bi-arrow-right"></i>
-
-                            </a>
-
-                        </div>
-
-
-                        <div class="activity-list">
-
-
-                            <div class="activity-item">
-
-                                <div class="activity-icon buy">
-
-                                    <i class="bi bi-arrow-down-left"></i>
-
-                                </div>
-
-
-                                <div class="activity-info">
-
-                                    <strong>
-                                        Bought BEXIMCO
-                                    </strong>
-
-                                    <span>
-                                        100 shares · Sep 8, 2026
-                                    </span>
-
-                                </div>
-
-
-                                <strong class="activity-amount">
-                                    -৳12,000
-                                </strong>
-
-                            </div>
-
-
-
-                            <div class="activity-item">
-
-                                <div class="activity-icon buy">
-
-                                    <i class="bi bi-arrow-down-left"></i>
-
-                                </div>
-
-
-                                <div class="activity-info">
-
-                                    <strong>
-                                        Bought GP
-                                    </strong>
-
-                                    <span>
-                                        200 shares · Sep 5, 2026
-                                    </span>
-
-                                </div>
-
-
-                                <strong class="activity-amount">
-                                    -৳56,000
-                                </strong>
-
-                            </div>
-
-
-
-                            <div class="activity-item">
-
-                                <div class="activity-icon sell">
-
-                                    <i class="bi bi-arrow-up-right"></i>
-
-                                </div>
-
-
-                                <div class="activity-info">
-
-                                    <strong>
-                                        Sold GP
-                                    </strong>
-
-                                    <span>
-                                        50 shares · Aug 28, 2026
-                                    </span>
-
-                                </div>
-
-
-                                <strong class="activity-amount positive-text">
-                                    +৳14,500
-                                </strong>
-
-                            </div>
-
-
-                        </div>
-
-                    </article>
-
-                </section>
-
-
-            </div>
-
-        </main>
-
+                  <strong class="activity-amount positive-text">
+                    +৳14,500
+                  </strong>
+                </div>
+              </div>
+            </article>
+          </section>
+        </div>
+      </main>
     </div>
-
-
 
     <!-- Bootstrap JavaScript -->
 
-    <script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js">
-    </script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- ShareSync JavaScript -->
 
     <script src="js/app.js"></script>
-
-
-</body>
-
+  </body>
 </html>

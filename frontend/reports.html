@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <meta name="description"
+          content="ShareSync - Investment reports and analytics">
+
+    <title>ShareSync | Reports</title>
+
+
+    <!-- Bootstrap -->
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+        rel="stylesheet">
+
+
+    <!-- Bootstrap Icons -->
+
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+
+
+    <!-- ShareSync CSS -->
+
+    <link rel="stylesheet"
+          href="css/style.css">
+
+</head>
+
+
+<body>
+
+
+    <!-- =====================================
+         TOP BAR
+    ====================================== -->
+
+    <header class="topbar">
+
+        <div class="container-fluid px-4">
+
+            <div class="d-flex align-items-center justify-content-between">
+
+
+                <a href="index.html"
+                   class="brand text-decoration-none">
+
+                    <span class="brand-mark">
+                        S
+                    </span>
+
+                    <span class="brand-name">
+                        Share<span>Sync</span>
+                    </span>
+
+                </a>
+
+
+                <div class="d-flex align-items-center gap-3">
+
+                    <button class="icon-button"
+                            title="Notifications">
+
+                        <i class="bi bi-bell"></i>
+
+                    </button>
+
+
+                    <div class="profile">
+
+                        <div class="profile-avatar">
+                            T
+                        </div>
+
+                        <div class="profile-info d-none d-md-block">
+
+                            <span class="profile-name">
+                                Tanvir
+                            </span>
+
+                            <span class="profile-role">
+                                Investor
+                            </span>
+
+                        </div>
+
+                        <i class="bi bi-chevron-down profile-arrow"></i>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- =====================================
+         APPLICATION LAYOUT
+    ====================================== -->
+
+    <div class="app-layout">
+
+
+        <!-- SIDEBAR -->
+
+        <aside class="sidebar">
+
+            <div class="sidebar-section">
+
+                <p class="sidebar-label">
+                    Workspace
+                </p>
+
+
+                <nav class="sidebar-nav">
+
+
+                    <a href="index.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-grid-1x2-fill"></i>
+
+                        <span>
+                            Dashboard
+                        </span>
+
+                    </a>
+
+
+                    <a href="portfolio.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-briefcase"></i>
+
+                        <span>
+                            Portfolio
+                        </span>
+
+                    </a>
+
+
+                    <a href="transactions.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-arrow-left-right"></i>
+
+                        <span>
+                            Transactions
+                        </span>
+
+                    </a>
+
+
+                    <a href="watchlist.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-bookmark"></i>
+
+                        <span>
+                            Watchlist
+                        </span>
+
+                    </a>
+
+
+                    <a href="dividends.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-cash-stack"></i>
+
+                        <span>
+                            Dividends
+                        </span>
+
+                    </a>
+
+
+                    <a href="reports.html"
+                       class="sidebar-link active">
+
+                        <i class="bi bi-bar-chart-line"></i>
+
+                        <span>
+                            Reports
+                        </span>
+
+                    </a>
+
+                </nav>
+
+            </div>
+
+
+            <div class="sidebar-section sidebar-bottom">
+
+                <p class="sidebar-label">
+                    Account
+                </p>
+
+
+                <nav class="sidebar-nav">
+
+                    <a href="#"
+                       class="sidebar-link">
+
+                        <i class="bi bi-gear"></i>
+
+                        <span>
+                            Settings
+                        </span>
+
+                    </a>
+
+
+                    <a href="#"
+                       class="sidebar-link">
+
+                        <i class="bi bi-box-arrow-right"></i>
+
+                        <span>
+                            Log out
+                        </span>
+
+                    </a>
+
+                </nav>
+
+            </div>
+
+        </aside>
+
+
+
+        <!-- =====================================
+             MAIN CONTENT
+        ====================================== -->
+
+        <main class="main-content">
+
+            <div class="content-container">
+
+
+                <!-- PAGE HEADER -->
+
+                <section class="page-header">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            PORTFOLIO ANALYTICS
+                        </p>
+
+                        <h1>
+                            Reports
+                        </h1>
+
+                        <p class="page-description">
+                            Understand your portfolio through performance and activity reports.
+                        </p>
+
+                    </div>
+
+
+                    <div class="report-controls">
+
+                        <select class="filter-select"
+                                id="reportPeriod">
+
+                            <option value="6">
+                                Last 6 months
+                            </option>
+
+                            <option value="12">
+                                Last 12 months
+                            </option>
+
+                            <option value="ytd">
+                                Year to date
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =====================================
+                     SUMMARY
+                ====================================== -->
+
+                <section class="summary-grid">
+
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-wallet2"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Portfolio value
+                            </span>
+
+                            <strong class="summary-value">
+                                ৳186,450
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-graph-up-arrow"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Unrealized P/L
+                            </span>
+
+                            <strong class="summary-value positive-value">
+                                +৳18,420
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-cash"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Dividend income
+                            </span>
+
+                            <strong class="summary-value">
+                                ৳8,420
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-arrow-left-right"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Transactions
+                            </span>
+
+                            <strong class="summary-value">
+                                24
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =====================================
+                     PORTFOLIO VALUE CHART
+                ====================================== -->
+
+                <section class="dashboard-card report-chart-card">
+
+                    <div class="card-header">
+
+                        <div>
+
+                            <h2>
+                                Portfolio value
+                            </h2>
+
+                            <p>
+                                Estimated portfolio value over time
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="chart-container report-chart-container">
+
+                        <canvas id="portfolioValueReport"></canvas>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =====================================
+                     TWO COLUMN REPORTS
+                ====================================== -->
+
+                <div class="reports-grid">
+
+
+                    <!-- ASSET ALLOCATION -->
+
+                    <section class="dashboard-card">
+
+                        <div class="card-header">
+
+                            <div>
+
+                                <h2>
+                                    Asset allocation
+                                </h2>
+
+                                <p>
+                                    Current holdings by company
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="allocation-content">
+
+                            <div class="allocation-chart-wrapper">
+
+                                <canvas id="allocationChart"></canvas>
+
+                            </div>
+
+
+                            <div class="allocation-list">
+
+
+                                <div class="allocation-item">
+
+                                    <div class="allocation-label">
+
+                                        <span class="allocation-dot">
+                                        </span>
+
+                                        <span>
+                                            Grameenphone
+                                        </span>
+
+                                    </div>
+
+                                    <strong>
+                                        32%
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="allocation-item">
+
+                                    <div class="allocation-label">
+
+                                        <span class="allocation-dot">
+                                        </span>
+
+                                        <span>
+                                            BEXIMCO
+                                        </span>
+
+                                    </div>
+
+                                    <strong>
+                                        26%
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="allocation-item">
+
+                                    <div class="allocation-label">
+
+                                        <span class="allocation-dot">
+                                        </span>
+
+                                        <span>
+                                            BAT Bangladesh
+                                        </span>
+
+                                    </div>
+
+                                    <strong>
+                                        24%
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="allocation-item">
+
+                                    <div class="allocation-label">
+
+                                        <span class="allocation-dot">
+                                        </span>
+
+                                        <span>
+                                            Square Pharma
+                                        </span>
+
+                                    </div>
+
+                                    <strong>
+                                        18%
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+
+                    <!-- TRANSACTION ACTIVITY -->
+
+                    <section class="dashboard-card">
+
+                        <div class="card-header">
+
+                            <div>
+
+                                <h2>
+                                    Transaction activity
+                                </h2>
+
+                                <p>
+                                    BUY and SELL activity
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="chart-container">
+
+                            <canvas id="transactionActivityChart"></canvas>
+
+                        </div>
+
+                    </section>
+
+                </div>
+
+
+
+                <!-- =====================================
+                     TOP HOLDINGS
+                ====================================== -->
+
+                <section class="dashboard-card">
+
+                    <div class="watchlist-toolbar">
+
+                        <div>
+
+                            <h2>
+                                Top holdings
+                            </h2>
+
+                            <p>
+                                Companies contributing most to portfolio value
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="table-responsive">
+
+                        <table class="holdings-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Company
+                                    </th>
+
+                                    <th>
+                                        Quantity
+                                    </th>
+
+                                    <th>
+                                        Avg. cost
+                                    </th>
+
+                                    <th>
+                                        Current price
+                                    </th>
+
+                                    <th>
+                                        Market value
+                                    </th>
+
+                                    <th>
+                                        Unrealized P/L
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+
+                                <tr>
+
+                                    <td>
+
+                                        <div class="company-cell">
+
+                                            <span class="company-logo">
+                                                GP
+                                            </span>
+
+                                            <div class="company-details">
+
+                                                <strong>
+                                                    GP
+                                                </strong>
+
+                                                <small>
+                                                    Grameenphone Ltd.
+                                                </small>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+                                    <td>
+                                        80
+                                    </td>
+
+                                    <td>
+                                        ৳270.00
+                                    </td>
+
+                                    <td>
+                                        ৳295.00
+                                    </td>
+
+                                    <td>
+                                        ৳23,600
+                                    </td>
+
+                                    <td class="positive-value">
+                                        +৳2,000
+                                    </td>
+
+                                </tr>
+
+
+                                <tr>
+
+                                    <td>
+
+                                        <div class="company-cell">
+
+                                            <span class="company-logo">
+                                                BX
+                                            </span>
+
+                                            <div class="company-details">
+
+                                                <strong>
+                                                    BEXIMCO
+                                                </strong>
+
+                                                <small>
+                                                    Beximco Limited
+                                                </small>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+                                    <td>
+                                        100
+                                    </td>
+
+                                    <td>
+                                        ৳105.00
+                                    </td>
+
+                                    <td>
+                                        ৳120.00
+                                    </td>
+
+                                    <td>
+                                        ৳12,000
+                                    </td>
+
+                                    <td class="positive-value">
+                                        +৳1,500
+                                    </td>
+
+                                </tr>
+
+
+                                <tr>
+
+                                    <td>
+
+                                        <div class="company-cell">
+
+                                            <span class="company-logo">
+                                                BT
+                                            </span>
+
+                                            <div class="company-details">
+
+                                                <strong>
+                                                    BATBC
+                                                </strong>
+
+                                                <small>
+                                                    BAT Bangladesh</small>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+                                    <td>
+                                        40
+                                    </td>
+
+                                    <td>
+                                        ৳420.00
+                                    </td>
+
+                                    <td>
+                                        ৳450.00
+                                    </td>
+
+                                    <td>
+                                        ৳18,000
+                                    </td>
+
+                                    <td class="positive-value">
+                                        +৳1,200
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+            </div>
+
+        </main>
+
+    </div>
+
+
+
+    <!-- Chart.js -->
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js">
+    </script>
+
+
+    <!-- Bootstrap JS -->
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js">
+    </script>
+
+
+    <!-- ShareSync JS -->
+
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>

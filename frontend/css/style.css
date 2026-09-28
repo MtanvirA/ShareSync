@@ -354,7 +354,7 @@ body {
 }
 
 .sidebar-link.active {
-  background: rgba(127, 255, 212, 0.16);
+  background: rgba(127, 255, 212, 0.13);
   color: var(--color-aquamarine);
 
   box-shadow:
@@ -370,6 +370,10 @@ body {
   min-width: 0;
 
   margin-left: 238px;
+}
+
+.content-container {
+  padding: 32px 32px 56px;
 }
 
 /* =========================================
@@ -473,7 +477,7 @@ body {
 
   border-radius: var(--radius-card);
 
-  padding: 19px;
+  padding: 20px;
 
   box-shadow: var(--shadow-card);
 }
@@ -1064,9 +1068,6 @@ body {
     min-height: calc(100vh - 60px);
   }
 
-  .sidebar {
-    display: none;
-  }
 
   .content-container {
     padding: 24px 16px 40px;

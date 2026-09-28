@@ -3,12 +3,151 @@
 // Main JavaScript file
 // =========================================
 
+let portfolioChart;
+
+function showToast(message, tone = "success") {
+  let toast = document.querySelector(".app-toast");
+
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.className = "app-toast";
+    toast.setAttribute("role", "status");
+    document.body.appendChild(toast);
+  }
+
+  toast.className = `app-toast ${tone}`;
+  toast.textContent = message;
+  toast.classList.add("is-visible");
+
+  window.clearTimeout(toast.dismissTimer);
+  toast.dismissTimer = window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+  }, 3600);
+}
+
+function setFieldError(field, message) {
+  const wrapper = field.closest(".form-field");
+
+  if (!wrapper) {
+    return;
+  }
+
+  let error = wrapper.querySelector(".field-error");
+
+  if (!error) {
+    error = document.createElement("small");
+    error.className = "field-error";
+    wrapper.appendChild(error);
+  }
+
+  error.textContent = message;
+  field.setAttribute("aria-invalid", "true");
+  wrapper.classList.add("has-error");
+}
+
+function clearFieldError(field) {
+  const wrapper = field.closest(".form-field");
+
+  if (!wrapper) {
+    return;
+  }
+
+  const error = wrapper.querySelector(".field-error");
+
+  if (error) {
+    error.remove();
+  }
+
+  field.removeAttribute("aria-invalid");
+  wrapper.classList.remove("has-error");
+}
+
+function validateRequiredFields(form) {
+  let firstInvalidField;
+
+  form.querySelectorAll("[required]").forEach((field) => {
+    clearFieldError(field);
+
+    if (!field.value.trim()) {
+      setFieldError(field, "This field is required.");
+
+      if (!firstInvalidField) {
+        firstInvalidField = field;
+      }
+    }
+  });
+
+  if (firstInvalidField) {
+    firstInvalidField.focus();
+    return false;
+  }
+
+  return true;
+}
+
+function setupInlineValidation(form) {
+  form.querySelectorAll("[required]").forEach((field) => {
+    field.addEventListener("input", () => clearFieldError(field));
+    field.addEventListener("change", () => clearFieldError(field));
+  });
+}
+
+function setupLastUpdated() {
+  const pageHeader = document.querySelector(".page-header > div");
+
+  if (!pageHeader || pageHeader.querySelector(".last-updated")) {
+    return;
+  }
+
+  const updated = document.createElement("span");
+  updated.className = "last-updated";
+  updated.textContent = "Updated just now";
+  pageHeader.appendChild(updated);
+}
+
+function setupMobileNavigation() {
+  const links = [...document.querySelectorAll(".sidebar-section:first-child .sidebar-link")];
+
+  if (!links.length || document.querySelector(".mobile-nav")) {
+    return;
+  }
+
+  const mobileNav = document.createElement("nav");
+  mobileNav.className = "mobile-nav";
+  mobileNav.setAttribute("aria-label", "Primary navigation");
+
+  links.slice(0, 4).forEach((link) => {
+    const mobileLink = link.cloneNode(true);
+    mobileLink.classList.add("mobile-nav-link");
+    mobileNav.appendChild(mobileLink);
+  });
+
+  document.body.appendChild(mobileNav);
+}
+
+function setupTableHints() {
+  document.querySelectorAll(".table-responsive").forEach((wrapper) => {
+    if (wrapper.querySelector(".table-scroll-hint")) {
+      return;
+    }
+
+    const hint = document.createElement("small");
+    hint.className = "table-scroll-hint";
+    hint.textContent = "Swipe horizontally to view all columns";
+    wrapper.appendChild(hint);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   console.log("ShareSync dashboard loaded.");
 
   setupSidebarNavigation();
 
-  setupTransactionButton();
+  setupMobileNavigation();
+
+  setupLastUpdated();
+
+  setupTableHints();
 
   createPortfolioChart();
 
@@ -21,6 +160,12 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDividendForm();
 
   setupReports();
+
+  setupTransactionFilters();
+
+  setupWatchlistFilter();
+
+  setupDividendFilter();
 });
 
 // =========================================
@@ -42,6 +187,8 @@ function setupDividendForm() {
 
   const cancelButton = document.getElementById("cancelDividend");
 
+  setupInlineValidation(form);
+
   openButton.addEventListener("click", () => {
     formCard.classList.remove("form-hidden");
 
@@ -62,6 +209,10 @@ function setupDividendForm() {
   form.addEventListener("submit", (event) => {
     event.preventDefault();
 
+    if (!validateRequiredFields(form)) {
+      return;
+    }
+
     const company = document.getElementById("dividendCompany").value;
 
     const amount = document.getElementById("dividendPerShare").value;
@@ -70,22 +221,13 @@ function setupDividendForm() {
 
     const payment = document.getElementById("paymentDate").value;
 
-    if (!company || !amount || !declaration || !payment) {
-      alert("Please complete all fields.");
-
-      return;
-    }
-
     if (payment < declaration) {
-      alert("Payment date cannot be earlier than the declaration date.");
+      setFieldError(document.getElementById("paymentDate"), "Payment date must be after declaration date.");
 
       return;
     }
 
-    alert(
-      `${company} dividend recorded successfully.\n` +
-        `Dividend per share: ৳${Number(amount).toFixed(2)}`,
-    );
+    showToast(`${company} dividend recorded successfully.`);
 
     form.reset();
 
@@ -111,6 +253,8 @@ function setupWatchlistForm() {
   const closeButton = document.getElementById("closeWatchlistForm");
 
   const cancelButton = document.getElementById("cancelWatchlist");
+
+  setupInlineValidation(form);
 
   // -----------------------------------------
   // Open form
@@ -144,23 +288,15 @@ function setupWatchlistForm() {
   form.addEventListener("submit", (event) => {
     event.preventDefault();
 
+    if (!validateRequiredFields(form)) {
+      return;
+    }
+
     const company = document.getElementById("watchlistCompany").value;
 
     const targetPrice = document.getElementById("targetPrice").value;
 
-    if (!company) {
-      alert("Please select a company.");
-
-      return;
-    }
-
-    let message = `${company} is ready to be added to your watchlist.`;
-
-    if (targetPrice) {
-      message += `\nTarget price: ৳${Number(targetPrice).toFixed(2)}`;
-    }
-
-    alert(message);
+    showToast(`${company} is ready to be added to your watchlist.`);
 
     form.reset();
 
@@ -182,6 +318,7 @@ function setupWatchlistForm() {
 
         if (row) {
           row.remove();
+          showToast("Company removed from your watchlist.");
         }
       }
     });
@@ -206,6 +343,8 @@ function setupTransactionForm() {
   const closeButton = document.getElementById("closeTransactionForm");
 
   const cancelButton = document.getElementById("cancelTransaction");
+
+  setupInlineValidation(form);
 
   // -----------------------------------------
   // Open form
@@ -250,9 +389,11 @@ function setupTransactionForm() {
     button.addEventListener("click", () => {
       typeButtons.forEach((item) => {
         item.classList.remove("active");
+        item.setAttribute("aria-pressed", "false");
       });
 
       button.classList.add("active");
+      button.setAttribute("aria-pressed", "true");
 
       typeInput.value = button.dataset.type;
 
@@ -267,6 +408,10 @@ function setupTransactionForm() {
   form.addEventListener("submit", (event) => {
     event.preventDefault();
 
+    if (!validateRequiredFields(form)) {
+      return;
+    }
+
     const transactionType = typeInput.value;
 
     const company = document.getElementById("company").value;
@@ -275,21 +420,9 @@ function setupTransactionForm() {
 
     const price = document.getElementById("price").value;
 
-    if (!company || !quantity || !price) {
-      alert("Please complete the required fields.");
-
-      return;
-    }
-
     const total = Number(quantity) * Number(price);
 
-    alert(
-      `${transactionType} transaction ready.\n\n` +
-        `Company: ${company}\n` +
-        `Quantity: ${quantity}\n` +
-        `Price: ৳${Number(price).toFixed(2)}\n` +
-        `Total: ৳${total.toLocaleString()}`,
-    );
+    showToast(`${transactionType} transaction saved. Total ৳${total.toLocaleString()}.`);
 
     form.reset();
 
@@ -297,9 +430,11 @@ function setupTransactionForm() {
 
     typeButtons.forEach((button) => {
       button.classList.remove("active");
+      button.setAttribute("aria-pressed", "false");
     });
 
     typeButtons[0].classList.add("active");
+    typeButtons[0].setAttribute("aria-pressed", "true");
   });
 }
 
@@ -310,13 +445,154 @@ function setupTransactionForm() {
 function setupChartPeriod() {
   const selector = document.getElementById("chartPeriod");
 
-  if (!selector) {
+  if (!selector || !portfolioChart) {
     return;
   }
 
   selector.addEventListener("change", () => {
-    console.log("Selected period:", selector.value);
+    const periods = {
+      "1 month": {
+        labels: ["Aug 29", "Sep 05", "Sep 12", "Sep 19", "Sep 26"],
+        data: [116200, 117900, 120400, 123100, 125400],
+      },
+      "6 months": {
+        labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
+        data: [82000, 91000, 88000, 104000, 116000, 125400],
+      },
+      "1 year": {
+        labels: ["Oct", "Dec", "Feb", "Apr", "Jun", "Aug", "Sep"],
+        data: [72000, 76000, 80000, 82000, 88000, 116000, 125400],
+      },
+      "All time": {
+        labels: ["2022", "2023", "2024", "2025", "2026"],
+        data: [42000, 59000, 71000, 94000, 125400],
+      },
+    };
+
+    const period = periods[selector.value] || periods["6 months"];
+    portfolioChart.data.labels = period.labels;
+    portfolioChart.data.datasets[0].data = period.data;
+    portfolioChart.update();
   });
+}
+
+function setupTransactionFilters() {
+  const table = document.querySelector(".transaction-table");
+
+  if (!table) {
+    return;
+  }
+
+  const typeFilter = document.getElementById("transactionTypeFilter");
+  const companyFilter = document.getElementById("transactionCompanyFilter");
+  const exportButton = document.getElementById("exportTransactions");
+  const rows = [...table.querySelectorAll("tbody tr")];
+  const countLabel = document.querySelector(".transaction-toolbar p");
+  const tableWrapper = table.closest(".table-responsive");
+
+  function filterRows() {
+    const type = typeFilter?.value || "all";
+    const company = companyFilter?.value || "all";
+    let visibleRows = 0;
+
+    rows.forEach((row) => {
+      const rowType = row.querySelector(".transaction-badge")?.textContent.trim().toLowerCase();
+      const rowCompany = row.querySelector(".company-cell strong")?.textContent.trim().toLowerCase();
+      const matchesType = type === "all" || rowType === type;
+      const matchesCompany = company === "all" || rowCompany === company;
+      const visible = matchesType && matchesCompany;
+
+      row.hidden = !visible;
+      visibleRows += visible ? 1 : 0;
+    });
+
+    if (countLabel) {
+      countLabel.textContent = visibleRows
+        ? `${visibleRows} transaction${visibleRows === 1 ? "" : "s"} shown`
+        : "No transactions match these filters";
+    }
+
+    let emptyState = tableWrapper?.querySelector(".table-empty-state");
+
+    if (!visibleRows && tableWrapper) {
+      if (!emptyState) {
+        emptyState = document.createElement("div");
+        emptyState.className = "table-empty-state";
+        tableWrapper.appendChild(emptyState);
+      }
+
+      emptyState.textContent = "No transactions match these filters.";
+    } else if (emptyState) {
+      emptyState.remove();
+    }
+  }
+
+  typeFilter?.addEventListener("change", filterRows);
+  companyFilter?.addEventListener("change", filterRows);
+  exportButton?.addEventListener("click", () => exportTableCsv(table, "sharesync-transactions.csv"));
+}
+
+function setupWatchlistFilter() {
+  const filter = document.getElementById("watchlistFilter");
+  const table = document.querySelector(".watchlist-table");
+
+  if (!filter || !table) {
+    return;
+  }
+
+  filter.addEventListener("change", () => {
+    const rows = table.querySelectorAll("tbody tr");
+
+    rows.forEach((row) => {
+      const distance = row.querySelector(".target-distance");
+      const mode = filter.value;
+      const isNear = distance?.classList.contains("near-target");
+      const isAbove = distance?.classList.contains("target-reached");
+      const visible = mode === "all" || (mode === "near" && isNear) || (mode === "above" && isAbove);
+      row.hidden = !visible;
+    });
+  });
+}
+
+function setupDividendFilter() {
+  const filter = document.getElementById("dividendFilter");
+  const table = document.querySelector(".dividend-table");
+
+  if (!filter || !table) {
+    return;
+  }
+
+  filter.addEventListener("change", () => {
+    const rows = table.querySelectorAll("tbody tr");
+    const currentYear = new Date().getFullYear();
+
+    rows.forEach((row) => {
+      const company = row.querySelector(".company-details strong")?.textContent.trim().toLowerCase();
+      const paymentDate = row.querySelectorAll("td")[3]?.textContent.trim();
+      const paymentYear = new Date(paymentDate).getFullYear();
+      const mode = filter.value;
+      const visible = mode === "all"
+        || (mode === "company" && company)
+        || (mode === "current" && paymentYear === currentYear)
+        || (mode === "previous" && paymentYear === currentYear - 1);
+
+      row.hidden = !visible;
+    });
+  });
+}
+
+function exportTableCsv(table, filename) {
+  const headers = [...table.querySelectorAll("thead th")].map((cell) => cell.textContent.trim());
+  const rows = [...table.querySelectorAll("tbody tr:not([hidden])")].map((row) =>
+    [...row.querySelectorAll("td")].map((cell) => `"${cell.textContent.trim().replaceAll('"', '""')}"`),
+  );
+  const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+  showToast("Transaction export downloaded.");
 }
 
 // =========================================
@@ -360,22 +636,6 @@ function setupSidebarNavigation() {
 }
 
 // =========================================
-// TRANSACTION BUTTON
-// =========================================
-
-function setupTransactionButton() {
-  const button = document.querySelector(".primary-button");
-
-  if (!button) {
-    return;
-  }
-
-  button.addEventListener("click", () => {
-    alert("Transaction form will be connected here in the next stage.");
-  });
-}
-
-// =========================================
 // PORTFOLIO PERFORMANCE CHART
 // =========================================
 
@@ -388,7 +648,9 @@ function createPortfolioChart() {
 
   const ctx = canvas.getContext("2d");
 
-  new Chart(ctx, {
+  Chart.defaults.font.family = "Inter, Segoe UI, sans-serif";
+
+  portfolioChart = new Chart(ctx, {
     type: "line",
 
     data: {
@@ -400,15 +662,16 @@ function createPortfolioChart() {
 
           data: [82000, 91000, 88000, 104000, 116000, 125400],
 
+          borderColor: "#0F172A",
+          backgroundColor: "rgba(15, 23, 42, 0.035)",
           borderWidth: 2,
-
-          pointRadius: 3,
-
-          pointHoverRadius: 5,
-
-          tension: 0.35,
-
-          fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 3,
+          pointBackgroundColor: "#0F172A",
+          pointBorderColor: "#0F172A",
+          pointBorderWidth: 1,
+          tension: 0.28,
+          fill: true,
         },
       ],
     },
@@ -418,12 +681,23 @@ function createPortfolioChart() {
 
       maintainAspectRatio: false,
 
+      interaction: {
+        intersect: false,
+        mode: "index",
+      },
+
       plugins: {
         legend: {
           display: false,
         },
 
         tooltip: {
+          backgroundColor: "rgba(15, 23, 42, 0.96)",
+          titleColor: "#F8FAFC",
+          bodyColor: "#F8FAFC",
+          padding: 10,
+          displayColors: false,
+          borderWidth: 0,
           callbacks: {
             label: function (context) {
               return "৳" + context.raw.toLocaleString();
@@ -437,21 +711,33 @@ function createPortfolioChart() {
           grid: {
             display: false,
           },
-
-          ticks: {
+          border: {
             display: false,
+          },
+          ticks: {
+            color: "#64748B",
+            font: {
+              size: 10,
+            },
           },
         },
 
         y: {
           beginAtZero: false,
-
-          grid: {
-            color: "#E2E8F0",
-          },
-
-          ticks: {
+          border: {
             display: false,
+          },
+          grid: {
+            color: "rgba(148, 163, 184, 0.18)",
+          },
+          ticks: {
+            color: "#64748B",
+            font: {
+              size: 10,
+            },
+            callback: function (value) {
+              return "৳" + Number(value / 1000).toFixed(0) + "k";
+            },
           },
         },
       },
@@ -474,6 +760,8 @@ function setupReports() {
   // Portfolio value chart
   // -----------------------------------------
 
+  Chart.defaults.font.family = "Inter, Segoe UI, sans-serif";
+
   new Chart(portfolioChart, {
     type: "line",
 
@@ -486,12 +774,12 @@ function setupReports() {
 
           data: [132000, 141500, 149800, 158600, 171200, 186450],
 
-          borderColor: "#2563EB",
-          backgroundColor: "rgba(37, 99, 235, 0.10)",
+          borderColor: "#0F172A",
+          backgroundColor: "rgba(15, 23, 42, 0.035)",
 
           borderWidth: 2,
-          pointRadius: 3,
-          pointHoverRadius: 5,
+          pointRadius: 0,
+          pointHoverRadius: 3,
           tension: 0.35,
           fill: true,
         },
@@ -503,6 +791,11 @@ function setupReports() {
 
       maintainAspectRatio: false,
 
+      interaction: {
+        mode: "index",
+        intersect: false,
+      },
+
       plugins: {
         legend: {
           display: false,
@@ -512,10 +805,19 @@ function setupReports() {
       scales: {
         y: {
           beginAtZero: false,
-
+          border: {
+            display: false,
+          },
+          grid: {
+            color: "rgba(148, 163, 184, 0.18)",
+          },
           ticks: {
             callback: function (value) {
-              return "৳" + Number(value).toLocaleString();
+              return "৳" + Number(value / 1000).toFixed(0) + "k";
+            },
+            color: "#64748B",
+            font: {
+              size: 10,
             },
           },
         },
@@ -523,6 +825,15 @@ function setupReports() {
         x: {
           grid: {
             display: false,
+          },
+          border: {
+            display: false,
+          },
+          ticks: {
+            color: "#64748B",
+            font: {
+              size: 10,
+            },
           },
         },
       },
@@ -545,8 +856,9 @@ function setupReports() {
         datasets: [
           {
             data: [32, 26, 24, 18],
-
+            backgroundColor: ["#0F172A", "#64748B", "#94A3B8", "#DDE5EE"],
             borderWidth: 0,
+            hoverOffset: 2,
           },
         ],
       },
@@ -561,6 +873,13 @@ function setupReports() {
         plugins: {
           legend: {
             display: false,
+          },
+          tooltip: {
+            backgroundColor: "rgba(15, 23, 42, 0.96)",
+            titleColor: "#F8FAFC",
+            bodyColor: "#F8FAFC",
+            displayColors: false,
+            padding: 10,
           },
         },
       },
@@ -585,7 +904,9 @@ function setupReports() {
             label: "BUY",
 
             data: [4, 3, 5, 2, 6, 4],
-
+            backgroundColor: "#0F172A",
+            borderRadius: 3,
+            borderSkipped: false,
             borderWidth: 0,
           },
 
@@ -593,7 +914,9 @@ function setupReports() {
             label: "SELL",
 
             data: [1, 2, 1, 3, 1, 2],
-
+            backgroundColor: "#DDE5EE",
+            borderRadius: 3,
+            borderSkipped: false,
             borderWidth: 0,
           },
         ],
@@ -607,21 +930,38 @@ function setupReports() {
         plugins: {
           legend: {
             position: "bottom",
+            labels: {
+              usePointStyle: true,
+              pointStyle: "circle",
+              boxWidth: 8,
+            },
           },
         },
 
         scales: {
           y: {
             beginAtZero: true,
-
+            border: {
+              display: false,
+            },
+            grid: {
+              color: "rgba(148, 163, 184, 0.18)",
+            },
             ticks: {
               stepSize: 1,
+              color: "#64748B",
             },
           },
 
           x: {
             grid: {
               display: false,
+            },
+            border: {
+              display: false,
+            },
+            ticks: {
+              color: "#64748B",
             },
           },
         },

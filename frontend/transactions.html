@@ -188,18 +188,19 @@
               <div class="transaction-type">
                 <label> Transaction type </label>
 
-                <div class="type-buttons">
+                <div class="type-buttons" role="group" aria-label="Transaction type">
                   <button
                     type="button"
                     class="type-button active"
                     data-type="BUY"
+                    aria-pressed="true"
                   >
                     <i class="bi bi-arrow-down-left"></i>
 
                     Buy
                   </button>
 
-                  <button type="button" class="type-button" data-type="SELL">
+                  <button type="button" class="type-button" data-type="SELL" aria-pressed="false">
                     <i class="bi bi-arrow-up-right"></i>
 
                     Sell
@@ -327,25 +328,25 @@
               </div>
 
               <div class="transaction-filters">
-                <select class="filter-select">
-                  <option>All types</option>
+                <select class="filter-select" id="transactionTypeFilter" aria-label="Filter transactions by type">
+                  <option value="all">All types</option>
 
-                  <option>Buy</option>
+                  <option value="buy">Buy</option>
 
-                  <option>Sell</option>
+                  <option value="sell">Sell</option>
                 </select>
 
-                <select class="filter-select">
-                  <option>All companies</option>
+                <select class="filter-select" id="transactionCompanyFilter" aria-label="Filter transactions by company">
+                  <option value="all">All companies</option>
 
-                  <option>BEXIMCO</option>
+                  <option value="beximco">BEXIMCO</option>
 
-                  <option>GP</option>
+                  <option value="gp">GP</option>
 
-                  <option>BATBC</option>
+                  <option value="batbc">BATBC</option>
                 </select>
 
-                <button class="secondary-button">
+                <button class="secondary-button" id="exportTransactions" type="button">
                   <i class="bi bi-download"></i>
 
                   Export

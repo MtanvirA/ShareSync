@@ -21,123 +21,76 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDividendForm();
 
   setupReports();
-
 });
-
 
 // =========================================
 // DIVIDEND FORM
 // =========================================
 
 function setupDividendForm() {
+  const form = document.getElementById("dividendForm");
 
-    const form =
-        document.getElementById("dividendForm");
+  if (!form) {
+    return;
+  }
 
-    if (!form) {
-        return;
+  const formCard = document.getElementById("dividendFormCard");
+
+  const openButton = document.getElementById("openDividendForm");
+
+  const closeButton = document.getElementById("closeDividendForm");
+
+  const cancelButton = document.getElementById("cancelDividend");
+
+  openButton.addEventListener("click", () => {
+    formCard.classList.remove("form-hidden");
+
+    formCard.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+
+  function closeForm() {
+    formCard.classList.add("form-hidden");
+  }
+
+  closeButton.addEventListener("click", closeForm);
+
+  cancelButton.addEventListener("click", closeForm);
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const company = document.getElementById("dividendCompany").value;
+
+    const amount = document.getElementById("dividendPerShare").value;
+
+    const declaration = document.getElementById("declarationDate").value;
+
+    const payment = document.getElementById("paymentDate").value;
+
+    if (!company || !amount || !declaration || !payment) {
+      alert("Please complete all fields.");
+
+      return;
     }
 
-    const formCard =
-        document.getElementById("dividendFormCard");
+    if (payment < declaration) {
+      alert("Payment date cannot be earlier than the declaration date.");
 
-    const openButton =
-        document.getElementById("openDividendForm");
-
-    const closeButton =
-        document.getElementById("closeDividendForm");
-
-    const cancelButton =
-        document.getElementById("cancelDividend");
-
-
-    openButton.addEventListener("click", () => {
-
-        formCard.classList.remove("form-hidden");
-
-        formCard.scrollIntoView({
-            behavior: "smooth",
-            block: "start"
-        });
-
-    });
-
-
-    function closeForm() {
-
-        formCard.classList.add("form-hidden");
-
+      return;
     }
 
-
-    closeButton.addEventListener(
-        "click",
-        closeForm
+    alert(
+      `${company} dividend recorded successfully.\n` +
+        `Dividend per share: ৳${Number(amount).toFixed(2)}`,
     );
 
-    cancelButton.addEventListener(
-        "click",
-        closeForm
-    );
+    form.reset();
 
-
-    form.addEventListener("submit", (event) => {
-
-        event.preventDefault();
-
-
-        const company =
-            document.getElementById(
-                "dividendCompany"
-            ).value;
-
-        const amount =
-            document.getElementById(
-                "dividendPerShare"
-            ).value;
-
-        const declaration =
-            document.getElementById(
-                "declarationDate"
-            ).value;
-
-        const payment =
-            document.getElementById(
-                "paymentDate"
-            ).value;
-
-
-        if (!company || !amount ||
-            !declaration || !payment) {
-
-            alert("Please complete all fields.");
-
-            return;
-        }
-
-
-        if (payment < declaration) {
-
-            alert(
-                "Payment date cannot be earlier than the declaration date."
-            );
-
-            return;
-        }
-
-
-        alert(
-            `${company} dividend recorded successfully.\n` +
-            `Dividend per share: ৳${Number(amount).toFixed(2)}`
-        );
-
-
-        form.reset();
-
-        closeForm();
-
-    });
-
+    closeForm();
+  });
 }
 
 // =========================================
@@ -494,7 +447,7 @@ function createPortfolioChart() {
           beginAtZero: false,
 
           grid: {
-            color: "#eef0f3",
+            color: "#E2E8F0",
           },
 
           ticks: {
@@ -506,288 +459,173 @@ function createPortfolioChart() {
   });
 }
 
-
 // =========================================
 // REPORTS & ANALYTICS
 // =========================================
 
 function setupReports() {
+  const portfolioChart = document.getElementById("portfolioValueReport");
 
-    const portfolioChart =
-        document.getElementById("portfolioValueReport");
+  if (!portfolioChart) {
+    return;
+  }
 
-    if (!portfolioChart) {
-        return;
-    }
+  // -----------------------------------------
+  // Portfolio value chart
+  // -----------------------------------------
 
+  new Chart(portfolioChart, {
+    type: "line",
 
-    // -----------------------------------------
-    // Portfolio value chart
-    // -----------------------------------------
+    data: {
+      labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
 
-    new Chart(portfolioChart, {
+      datasets: [
+        {
+          label: "Portfolio Value",
 
-        type: "line",
+          data: [132000, 141500, 149800, 158600, 171200, 186450],
 
-        data: {
+          borderColor: "#2563EB",
+          backgroundColor: "rgba(37, 99, 235, 0.10)",
 
-            labels: [
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep"
-            ],
+          borderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.35,
+          fill: true,
+        },
+      ],
+    },
 
-            datasets: [{
+    options: {
+      responsive: true,
 
-                label: "Portfolio Value",
+      maintainAspectRatio: false,
 
-                data: [
-                    132000,
-                    141500,
-                    149800,
-                    158600,
-                    171200,
-                    186450
-                ],
+      plugins: {
+        legend: {
+          display: false,
+        },
+      },
 
-                borderWidth: 2,
+      scales: {
+        y: {
+          beginAtZero: false,
 
-                pointRadius: 3,
-
-                pointHoverRadius: 5,
-
-                tension: 0.35,
-
-                fill: true
-
-            }]
-
+          ticks: {
+            callback: function (value) {
+              return "৳" + Number(value).toLocaleString();
+            },
+          },
         },
 
-        options: {
+        x: {
+          grid: {
+            display: false,
+          },
+        },
+      },
+    },
+  });
 
-            responsive: true,
+  // -----------------------------------------
+  // Asset allocation
+  // -----------------------------------------
 
-            maintainAspectRatio: false,
+  const allocationChart = document.getElementById("allocationChart");
 
-            plugins: {
+  if (allocationChart) {
+    new Chart(allocationChart, {
+      type: "doughnut",
 
-                legend: {
-                    display: false
-                }
+      data: {
+        labels: ["Grameenphone", "BEXIMCO", "BAT Bangladesh", "Square Pharma"],
 
-            },
+        datasets: [
+          {
+            data: [32, 26, 24, 18],
 
-            scales: {
+            borderWidth: 0,
+          },
+        ],
+      },
 
-                y: {
+      options: {
+        responsive: true,
 
-                    beginAtZero: false,
+        maintainAspectRatio: false,
 
-                    ticks: {
+        cutout: "68%",
 
-                        callback: function(value) {
-
-                            return "৳" +
-                                Number(value)
-                                    .toLocaleString();
-
-                        }
-
-                    }
-
-                },
-
-                x: {
-
-                    grid: {
-                        display: false
-                    }
-
-                }
-
-            }
-
-        }
-
+        plugins: {
+          legend: {
+            display: false,
+          },
+        },
+      },
     });
+  }
 
+  // -----------------------------------------
+  // Transaction activity
+  // -----------------------------------------
 
-    // -----------------------------------------
-    // Asset allocation
-    // -----------------------------------------
+  const transactionChart = document.getElementById("transactionActivityChart");
 
-    const allocationChart =
-        document.getElementById("allocationChart");
+  if (transactionChart) {
+    new Chart(transactionChart, {
+      type: "bar",
 
+      data: {
+        labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
 
-    if (allocationChart) {
+        datasets: [
+          {
+            label: "BUY",
 
-        new Chart(allocationChart, {
+            data: [4, 3, 5, 2, 6, 4],
 
-            type: "doughnut",
+            borderWidth: 0,
+          },
 
-            data: {
+          {
+            label: "SELL",
 
-                labels: [
-                    "Grameenphone",
-                    "BEXIMCO",
-                    "BAT Bangladesh",
-                    "Square Pharma"
-                ],
+            data: [1, 2, 1, 3, 1, 2],
 
-                datasets: [{
+            borderWidth: 0,
+          },
+        ],
+      },
 
-                    data: [
-                        32,
-                        26,
-                        24,
-                        18
-                    ],
+      options: {
+        responsive: true,
 
-                    borderWidth: 0
+        maintainAspectRatio: false,
 
-                }]
+        plugins: {
+          legend: {
+            position: "bottom",
+          },
+        },
 
+        scales: {
+          y: {
+            beginAtZero: true,
+
+            ticks: {
+              stepSize: 1,
             },
+          },
 
-            options: {
-
-                responsive: true,
-
-                maintainAspectRatio: false,
-
-                cutout: "68%",
-
-                plugins: {
-
-                    legend: {
-                        display: false
-                    }
-
-                }
-
-            }
-
-        });
-
-    }
-
-
-    // -----------------------------------------
-    // Transaction activity
-    // -----------------------------------------
-
-    const transactionChart =
-        document.getElementById(
-            "transactionActivityChart"
-        );
-
-
-    if (transactionChart) {
-
-        new Chart(transactionChart, {
-
-            type: "bar",
-
-            data: {
-
-                labels: [
-                    "Apr",
-                    "May",
-                    "Jun",
-                    "Jul",
-                    "Aug",
-                    "Sep"
-                ],
-
-                datasets: [
-
-                    {
-
-                        label: "BUY",
-
-                        data: [
-                            4,
-                            3,
-                            5,
-                            2,
-                            6,
-                            4
-                        ],
-
-                        borderWidth: 0
-
-                    },
-
-                    {
-
-                        label: "SELL",
-
-                        data: [
-                            1,
-                            2,
-                            1,
-                            3,
-                            1,
-                            2
-                        ],
-
-                        borderWidth: 0
-
-                    }
-
-                ]
-
+          x: {
+            grid: {
+              display: false,
             },
-
-            options: {
-
-                responsive: true,
-
-                maintainAspectRatio: false,
-
-                plugins: {
-
-                    legend: {
-
-                        position: "bottom"
-
-                    }
-
-                },
-
-                scales: {
-
-                    y: {
-
-                        beginAtZero: true,
-
-                        ticks: {
-
-                            stepSize: 1
-
-                        }
-
-                    },
-
-                    x: {
-
-                        grid: {
-                            display: false
-                        }
-
-                    }
-
-                }
-
-            }
-
-        });
-
-    }
-
+          },
+        },
+      },
+    });
+  }
 }

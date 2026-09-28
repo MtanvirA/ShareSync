@@ -8,31 +8,63 @@
 ========================================= */
 
 :root {
-  --color-background: #f5f6f8;
-  --color-surface: #ffffff;
-  --color-surface-soft: #f8f9fb;
+  /* =========================================
+     SHARESYNC COLOR SYSTEM
+  ========================================= */
 
-  --color-border: #e5e7eb;
+  /* Main palette */
+  --color-aquamarine: #7FFFD4;
+  --color-blanched-almond: #FFEBCD;
+  --color-floral-white: #FFFAF0;
+  --color-ghost-white: #F8F8FF;
+  --color-light-green: #90EE90;
+  --color-beige: #F5F5DC;
 
-  --color-text: #17202a;
-  --color-text-secondary: #667085;
-  --color-text-muted: #98a2b3;
+  /* Application colors */
+  --color-background: #FFFAF0;
+  --color-surface: #F8F8FF;
+  --color-surface-soft: #F5F5DC;
 
-  --color-primary: #155e63;
-  --color-primary-dark: #104a4e;
-  --color-primary-soft: #e7f3f2;
+  /* Borders */
+  --color-border: #E7E4D9;
 
-  --color-positive: #087443;
-  --color-positive-soft: #e9f7ef;
+  /* Typography */
+  --color-text: #18322D;
+  --color-text-secondary: #61736E;
+  --color-text-muted: #899A95;
 
-  --color-negative: #b42318;
-  --color-negative-soft: #fef0ef;
+  /* Primary */
+  --color-primary: #2F8F7A;
+  --color-primary-dark: #216B5B;
+  --color-primary-soft: #DFF8EF;
 
-  --color-sidebar: #102a2d;
+  /* Aquamarine */
+  --color-aquamarine-soft: #E6FFF7;
 
+  /* Positive */
+  --color-positive: #277A43;
+  --color-positive-soft: #E7F8E9;
+
+  /* Negative */
+  --color-negative: #B54747;
+  --color-negative-soft: #FCECEC;
+
+  /* Warning */
+  --color-warning: #9A6B00;
+  --color-warning-soft: #FFF4DC;
+
+  /* Sidebar */
+  --color-sidebar: #173B35;
+  --color-sidebar-text: #F8F8FF;
+  --color-sidebar-link: #C7D8D3;
+  --color-sidebar-muted: #91AAA3;
+
+  /* Shadows */
   --shadow-card:
-    0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px rgba(16, 24, 40, 0.03);
+    0 1px 2px rgba(24, 50, 45, 0.04),
+    0 6px 18px rgba(24, 50, 45, 0.05);
 
+  /* Shape */
   --radius-card: 14px;
   --radius-small: 9px;
 }
@@ -108,24 +140,20 @@ body {
 
 .brand-mark {
   width: 34px;
-
   height: 34px;
 
   border-radius: 9px;
 
-  background: var(--color-primary);
+  background: var(--color-aquamarine);
 
-  color: white;
+  color: #173B35;
 
   display: flex;
-
   align-items: center;
-
   justify-content: center;
 
   font-size: 17px;
-
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .brand-name {
@@ -233,10 +261,9 @@ body {
 ========================================= */
 
 .app-layout {
-  display: flex;
-
   min-height: calc(100vh - 68px);
 }
+
 
 /* =========================================
    SIDEBAR
@@ -245,17 +272,23 @@ body {
 .sidebar {
   width: 238px;
 
-  flex-shrink: 0;
+  position: fixed;
+  top: 68px;
+  left: 0;
+  bottom: 0;
+
+  z-index: 900;
 
   background: var(--color-sidebar);
 
-  color: #ffffff;
+  color: var(--color-sidebar-text);
 
   padding: 28px 14px;
 
   display: flex;
-
   flex-direction: column;
+
+  overflow-y: auto;
 }
 
 .sidebar-section {
@@ -267,46 +300,39 @@ body {
 }
 
 .sidebar-label {
-  color: #82989a;
+  color: var(--color-sidebar-muted);
 
   text-transform: uppercase;
 
   font-size: 10px;
-
   font-weight: 700;
 
   letter-spacing: 0.09em;
 
   padding: 0 12px;
-
   margin: 0 0 9px;
 }
 
 .sidebar-nav {
   display: flex;
-
   flex-direction: column;
-
   gap: 3px;
 }
 
 .sidebar-link {
   display: flex;
-
   align-items: center;
-
   gap: 12px;
 
   padding: 10px 12px;
 
   border-radius: 8px;
 
-  color: #b9c8c9;
+  color: var(--color-sidebar-link);
 
   text-decoration: none;
 
   font-size: 13px;
-
   font-weight: 500;
 
   transition:
@@ -323,33 +349,27 @@ body {
 }
 
 .sidebar-link:hover {
-  background: rgba(255, 255, 255, 0.06);
-
-  color: #ffffff;
+  background: rgba(127, 255, 212, 0.10);
+  color: var(--color-aquamarine);
 }
 
 .sidebar-link.active {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(127, 255, 212, 0.16);
+  color: var(--color-aquamarine);
 
-  color: #ffffff;
+  box-shadow:
+    inset 3px 0 0 var(--color-aquamarine);
 }
+
 
 /* =========================================
    MAIN CONTENT
 ========================================= */
 
 .main-content {
-  flex: 1;
-
   min-width: 0;
-}
 
-.content-container {
-  width: min(1440px, 100%);
-
-  margin: 0 auto;
-
-  padding: 38px 40px 60px;
+  margin-left: 238px;
 }
 
 /* =========================================
@@ -410,24 +430,24 @@ body {
   border-radius: 8px;
 
   font-size: 13px;
-
   font-weight: 600;
 
   display: inline-flex;
-
   align-items: center;
-
   gap: 8px;
 
   white-space: nowrap;
 
   transition:
     background 0.2s ease,
+    color 0.2s ease,
     transform 0.2s ease;
 }
 
 .primary-button:hover {
   background: var(--color-primary-dark);
+
+  color: #ffffff;
 
   transform: translateY(-1px);
 }
@@ -670,21 +690,18 @@ body {
 
 .donut {
   width: 150px;
-
   height: 150px;
 
   border-radius: 50%;
 
   background: conic-gradient(
     var(--color-primary) 0 42%,
-    #6d9d99 42% 76%,
-    #a9c6c3 76% 100%
+    var(--color-aquamarine) 42% 76%,
+    var(--color-light-green) 76% 100%
   );
 
   display: flex;
-
   align-items: center;
-
   justify-content: center;
 }
 
@@ -763,11 +780,11 @@ body {
 }
 
 .dot-two {
-  background: #6d9d99;
+  background: var(--color-aquamarine);
 }
 
 .dot-three {
-  background: #a9c6c3;
+  background: var(--color-light-green);
 }
 
 /* =========================================
@@ -1021,14 +1038,16 @@ body {
 
   .sidebar-link {
     justify-content: center;
-
     padding: 11px;
   }
 
   .sidebar-link i {
     width: auto;
-
     font-size: 17px;
+  }
+
+  .main-content {
+    margin-left: 72px;
   }
 
   .content-container {
@@ -1944,8 +1963,8 @@ body {
 }
 
 .status-upcoming {
-    background: #f5f1df;
-    color: #876d13;
+  background: var(--color-blanched-almond);
+  color: var(--color-warning);
 }
 
 @media (max-width: 1000px) {

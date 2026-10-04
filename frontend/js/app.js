@@ -303,94 +303,454 @@ function setupDividendForm() {
 }
 
 // =========================================
-// WATCHLIST FORM
+// WATCHLIST MANAGEMENT
 // =========================================
 
-function setupWatchlistForm() {
-  const form = document.getElementById("watchlistForm");
+let userWatchlistsCache = [];
+let currentWatchlistId = null;
+let currentWatchlistData = null;
 
-  if (!form) {
+async function setupWatchlistForm() {
+  const watchlistTable = document.querySelector(".watchlist-table");
+  const watchlistForm = document.getElementById("watchlistForm");
+  const watchlistManageForm = document.getElementById("watchlistManageForm");
+
+  // Only run if on watchlist page
+  if (!watchlistTable && !watchlistForm && !watchlistManageForm) {
     return;
   }
 
-  const formCard = document.getElementById("watchlistFormCard");
+  const openAddCompBtn = document.getElementById("openWatchlistForm");
+  const closeAddCompBtn = document.getElementById("closeWatchlistForm");
+  const cancelAddCompBtn = document.getElementById("cancelWatchlist");
+  const addCompCard = document.getElementById("watchlistFormCard");
+  const companySelect = document.getElementById("watchlistCompany");
+  const targetPriceInput = document.getElementById("targetPrice");
+  const targetWatchlistSelect = document.getElementById("targetWatchlistSelect");
 
-  const openButton = document.getElementById("openWatchlistForm");
+  const openCreateWatchlistBtn = document.getElementById("openCreateWatchlistBtn");
+  const openEditWatchlistBtn = document.getElementById("openEditWatchlistBtn");
+  const deleteWatchlistBtn = document.getElementById("deleteWatchlistBtn");
+  const watchlistManageCard = document.getElementById("watchlistManageCard");
+  const closeWatchlistManage = document.getElementById("closeWatchlistManage");
+  const cancelWatchlistManage = document.getElementById("cancelWatchlistManage");
+  const watchlistManageTitle = document.getElementById("watchlistManageTitle");
+  const watchlistManageSubtitle = document.getElementById("watchlistManageSubtitle");
+  const watchlistManageId = document.getElementById("watchlistManageId");
+  const watchlistManageName = document.getElementById("watchlistManageName");
+  const watchlistManageDesc = document.getElementById("watchlistManageDesc");
 
-  const closeButton = document.getElementById("closeWatchlistForm");
+  const watchlistSelect = document.getElementById("watchlistSelect");
 
-  const cancelButton = document.getElementById("cancelWatchlist");
+  if (watchlistForm) setupInlineValidation(watchlistForm);
+  if (watchlistManageForm) setupInlineValidation(watchlistManageForm);
 
-  setupInlineValidation(form);
-
-  // -----------------------------------------
-  // Open form
-  // -----------------------------------------
-
-  openButton.addEventListener("click", () => {
-    formCard.classList.remove("form-hidden");
-
-    formCard.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  });
-
-  // -----------------------------------------
-  // Close form
-  // -----------------------------------------
-
-  function closeForm() {
-    formCard.classList.add("form-hidden");
+  // Load companies for the Add Company dropdown
+  try {
+    const res = await apiRequest("/companies");
+    const companies = res.data || [];
+    if (companySelect) {
+      companySelect.innerHTML = '<option value="">Select company</option>' +
+        companies.map(c => `<option value="${c.companyId}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
+    }
+  } catch (err) {
+    console.error("Failed to load companies for watchlist:", err);
   }
 
-  closeButton.addEventListener("click", closeForm);
+  // Load user watchlists
+  await loadUserWatchlists();
 
-  cancelButton.addEventListener("click", closeForm);
+  // Watchlist switcher dropdown change
+  if (watchlistSelect) {
+    watchlistSelect.addEventListener("change", async (e) => {
+      const selectedId = parseInt(e.target.value, 10);
+      if (selectedId) {
+        currentWatchlistId = selectedId;
+        if (targetWatchlistSelect) targetWatchlistSelect.value = selectedId;
+        await loadWatchlistDetail(currentWatchlistId);
+      }
+    });
+  }
 
-  // -----------------------------------------
-  // Submit
-  // -----------------------------------------
+  // Open/Close Add Company form
+  if (openAddCompBtn) {
+    openAddCompBtn.addEventListener("click", () => {
+      if (watchlistForm) watchlistForm.reset();
+      if (targetWatchlistSelect && currentWatchlistId) {
+        targetWatchlistSelect.value = currentWatchlistId;
+      }
+      if (addCompCard) {
+        addCompCard.classList.remove("form-hidden");
+        addCompCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
 
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
+  function closeAddCompForm() {
+    if (addCompCard) addCompCard.classList.add("form-hidden");
+    if (watchlistForm) watchlistForm.reset();
+  }
 
-    if (!validateRequiredFields(form)) {
+  if (closeAddCompBtn) closeAddCompBtn.addEventListener("click", closeAddCompForm);
+  if (cancelAddCompBtn) cancelAddCompBtn.addEventListener("click", closeAddCompForm);
+
+  // Submit Add Company form
+  if (watchlistForm) {
+    watchlistForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!validateRequiredFields(watchlistForm)) return;
+
+      const compId = parseInt(companySelect?.value, 10);
+      const targetPriceVal = targetPriceInput?.value ? parseFloat(targetPriceInput.value) : null;
+      const targetWId = parseInt(targetWatchlistSelect?.value, 10) || currentWatchlistId;
+
+      if (!compId) {
+        setFieldError(companySelect, "Please select a company.");
+        return;
+      }
+
+      if (!targetWId) {
+        showToast("Please create or select a watchlist first.", "danger");
+        return;
+      }
+
+      if (targetPriceVal !== null && (isNaN(targetPriceVal) || targetPriceVal <= 0)) {
+        setFieldError(targetPriceInput, "Target price must be greater than zero.");
+        return;
+      }
+
+      try {
+        const payload = {
+          companyId: compId,
+          targetPrice: targetPriceVal
+        };
+
+        const res = await apiRequest(`/watchlists/${targetWId}/items`, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        showToast(res.message || "Company added to watchlist.", "success");
+        closeAddCompForm();
+        currentWatchlistId = targetWId;
+        await loadWatchlistDetail(currentWatchlistId);
+      } catch (err) {
+        console.error("Failed to add company to watchlist:", err);
+        showToast(err.message, "danger");
+      }
+    });
+  }
+
+  // Watchlist Manage Form (Create / Edit)
+  if (openCreateWatchlistBtn) {
+    openCreateWatchlistBtn.addEventListener("click", () => {
+      if (watchlistManageForm) watchlistManageForm.reset();
+      if (watchlistManageId) watchlistManageId.value = "";
+      if (watchlistManageTitle) watchlistManageTitle.textContent = "Create watchlist";
+      if (watchlistManageSubtitle) watchlistManageSubtitle.textContent = "Add a new watchlist to your account";
+      if (watchlistManageCard) {
+        watchlistManageCard.classList.remove("form-hidden");
+        watchlistManageCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
+
+  if (openEditWatchlistBtn) {
+    openEditWatchlistBtn.addEventListener("click", () => {
+      if (!currentWatchlistId) {
+        showToast("No watchlist selected to edit.", "warning");
+        return;
+      }
+      if (watchlistManageId) watchlistManageId.value = currentWatchlistId;
+      if (watchlistManageTitle) watchlistManageTitle.textContent = "Edit watchlist";
+      if (watchlistManageSubtitle) watchlistManageSubtitle.textContent = "Update watchlist name or description";
+      if (watchlistManageName && currentWatchlistData) watchlistManageName.value = currentWatchlistData.watchlistName || "";
+      if (watchlistManageDesc && currentWatchlistData) watchlistManageDesc.value = currentWatchlistData.description || "";
+      if (watchlistManageCard) {
+        watchlistManageCard.classList.remove("form-hidden");
+        watchlistManageCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
+
+  function closeWatchlistManageForm() {
+    if (watchlistManageCard) watchlistManageCard.classList.add("form-hidden");
+    if (watchlistManageForm) watchlistManageForm.reset();
+  }
+
+  if (closeWatchlistManage) closeWatchlistManage.addEventListener("click", closeWatchlistManageForm);
+  if (cancelWatchlistManage) cancelWatchlistManage.addEventListener("click", closeWatchlistManageForm);
+
+  if (watchlistManageForm) {
+    watchlistManageForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!validateRequiredFields(watchlistManageForm)) return;
+
+      const editId = watchlistManageId?.value;
+      const name = watchlistManageName?.value?.trim();
+      const desc = watchlistManageDesc?.value?.trim() || null;
+
+      try {
+        if (editId) {
+          const res = await apiRequest(`/watchlists/${editId}`, {
+            method: "PUT",
+            body: JSON.stringify({ watchlistName: name, description: desc })
+          });
+          showToast(res.message || "Watchlist updated.", "success");
+        } else {
+          const res = await apiRequest("/watchlists", {
+            method: "POST",
+            body: JSON.stringify({ watchlistName: name, description: desc })
+          });
+          showToast(res.message || "Watchlist created.", "success");
+          if (res.data?.watchlistId) currentWatchlistId = res.data.watchlistId;
+        }
+
+        closeWatchlistManageForm();
+        await loadUserWatchlists();
+      } catch (err) {
+        console.error("Watchlist save failed:", err);
+        showToast(err.message, "danger");
+      }
+    });
+  }
+
+  // Delete current watchlist
+  if (deleteWatchlistBtn) {
+    deleteWatchlistBtn.addEventListener("click", async () => {
+      if (!currentWatchlistId) {
+        showToast("No watchlist selected to delete.", "warning");
+        return;
+      }
+
+      const confirmed = confirm(`Are you sure you want to delete '${currentWatchlistData?.watchlistName || "this watchlist"}'?`);
+      if (!confirmed) return;
+
+      try {
+        const res = await apiRequest(`/watchlists/${currentWatchlistId}`, { method: "DELETE" });
+        showToast(res.message || "Watchlist deleted.", "success");
+        currentWatchlistId = null;
+        await loadUserWatchlists();
+      } catch (err) {
+        console.error("Delete watchlist failed:", err);
+        showToast("Cannot delete watchlist: " + err.message, "danger");
+      }
+    });
+  }
+}
+
+async function loadUserWatchlists() {
+  const watchlistSelect = document.getElementById("watchlistSelect");
+  const targetWatchlistSelect = document.getElementById("targetWatchlistSelect");
+
+  try {
+    const res = await apiRequest("/watchlists");
+    userWatchlistsCache = res.data || [];
+
+    if (userWatchlistsCache.length === 0) {
+      currentWatchlistId = null;
+      currentWatchlistData = null;
+      if (watchlistSelect) {
+        watchlistSelect.classList.add("d-none");
+        watchlistSelect.innerHTML = "";
+      }
+      if (targetWatchlistSelect) {
+        targetWatchlistSelect.innerHTML = '<option value="">No watchlists</option>';
+      }
+      renderEmptyWatchlistState();
       return;
     }
 
-    const company = document.getElementById("watchlistCompany").value;
+    if (watchlistSelect) {
+      watchlistSelect.innerHTML = userWatchlistsCache
+        .map(w => `<option value="${w.watchlistId}">${escapeHtml(w.watchlistName)}</option>`)
+        .join("");
+      watchlistSelect.classList.remove("d-none");
+    }
 
-    const targetPrice = document.getElementById("targetPrice").value;
+    if (targetWatchlistSelect) {
+      targetWatchlistSelect.innerHTML = userWatchlistsCache
+        .map(w => `<option value="${w.watchlistId}">${escapeHtml(w.watchlistName)}</option>`)
+        .join("");
+    }
 
-    showToast(`${company} is ready to be added to your watchlist.`);
+    if (!currentWatchlistId || !userWatchlistsCache.some(w => w.watchlistId === currentWatchlistId)) {
+      currentWatchlistId = userWatchlistsCache[0].watchlistId;
+    }
 
-    form.reset();
+    if (watchlistSelect) watchlistSelect.value = currentWatchlistId;
+    if (targetWatchlistSelect) targetWatchlistSelect.value = currentWatchlistId;
 
-    closeForm();
-  });
-
-  // -----------------------------------------
-  // Remove buttons
-  // -----------------------------------------
-
-  const removeButtons = document.querySelectorAll(".table-action-button");
-
-  removeButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const confirmed = confirm("Remove this company from your watchlist?");
-
-      if (confirmed) {
-        const row = button.closest("tr");
-
-        if (row) {
-          row.remove();
-          showToast("Company removed from your watchlist.");
-        }
-      }
-    });
-  });
+    await loadWatchlistDetail(currentWatchlistId);
+  } catch (err) {
+    console.error("Failed to load user watchlists:", err);
+    showToast("Could not load watchlists: " + err.message, "danger");
+  }
 }
+
+async function loadWatchlistDetail(watchlistId) {
+  const titleEl = document.getElementById("watchlistTitle");
+  const descEl = document.getElementById("watchlistDescription");
+  const headingEl = document.getElementById("currentWatchlistHeading");
+  const currentDescEl = document.getElementById("currentWatchlistDesc");
+
+  const summaryWatching = document.getElementById("summaryWatching");
+  const summaryAboveTarget = document.getElementById("summaryAboveTarget");
+  const summaryNearTarget = document.getElementById("summaryNearTarget");
+  const summaryAvgChange = document.getElementById("summaryAvgChange");
+
+  const tbody = document.getElementById("watchlistTableBody");
+
+  try {
+    const res = await apiRequest(`/watchlists/${watchlistId}`);
+    currentWatchlistData = res.data;
+    const d = currentWatchlistData;
+
+    if (titleEl) titleEl.textContent = d.watchlistName;
+    if (descEl) descEl.textContent = d.description || "Keep track of companies you're interested in.";
+    if (headingEl) headingEl.textContent = d.watchlistName;
+    if (currentDescEl) currentDescEl.textContent = d.description || "Companies you're currently monitoring";
+
+    if (summaryWatching) summaryWatching.textContent = d.totalWatching;
+    if (summaryAboveTarget) summaryAboveTarget.textContent = d.aboveTargetCount;
+    if (summaryNearTarget) summaryNearTarget.textContent = d.nearTargetCount;
+    if (summaryAvgChange) summaryAvgChange.textContent = "+0.00%";
+
+    if (tbody) {
+      if (!d.items || d.items.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">
+              <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+              No companies in this watchlist yet. Click "Add company" above to begin tracking.
+            </td>
+          </tr>
+        `;
+      } else {
+        tbody.innerHTML = d.items.map(item => {
+          const logoText = escapeHtml((item.tickerSymbol || "SS").slice(0, 2).toUpperCase());
+          const currentPriceFormatted = "৳" + item.currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const targetPriceFormatted = item.targetPrice
+            ? "৳" + item.targetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : '<span class="text-muted">Not set</span>';
+
+          let distanceHtml = '<span class="text-muted">-</span>';
+          if (item.isTargetReached) {
+            distanceHtml = '<span class="target-distance target-reached">Target reached</span>';
+          } else if (item.targetDistancePercentage !== null && item.targetDistancePercentage !== undefined) {
+            const isNear = item.targetDistancePercentage <= 5.0;
+            const badgeClass = isNear ? "target-distance near-target" : "target-distance";
+            distanceHtml = `<span class="${badgeClass}">${item.targetDistancePercentage.toFixed(2)}%</span>`;
+          }
+
+          const addedFormatted = new Date(item.addedAt).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+
+          return `
+            <tr>
+              <td>
+                <div class="company-cell">
+                  <span class="company-logo">${logoText}</span>
+                  <div class="company-details">
+                    <strong>${escapeHtml(item.tickerSymbol)}</strong>
+                    <small>${escapeHtml(item.companyName)}</small>
+                  </div>
+                </div>
+              </td>
+              <td>${currentPriceFormatted}</td>
+              <td>
+                ${targetPriceFormatted}
+                <button type="button" class="btn btn-sm btn-link p-0 ms-1 text-primary text-decoration-none" onclick="editWatchlistTargetPrice(${item.watchlistId}, ${item.companyId}, ${item.targetPrice || 0})" title="Edit target price">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+              </td>
+              <td>${distanceHtml}</td>
+              <td><span class="positive-value">+0.00%</span></td>
+              <td>${addedFormatted}</td>
+              <td>
+                <button type="button" class="table-action-button text-danger" onclick="removeWatchlistCompany(${item.watchlistId}, ${item.companyId}, '${escapeHtml(item.tickerSymbol)}')" title="Remove">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load watchlist detail:", err);
+    showToast("Error loading watchlist: " + err.message, "danger");
+  }
+}
+
+function renderEmptyWatchlistState() {
+  const titleEl = document.getElementById("watchlistTitle");
+  const headingEl = document.getElementById("currentWatchlistHeading");
+  const tbody = document.getElementById("watchlistTableBody");
+
+  if (titleEl) titleEl.textContent = "No Watchlists";
+  if (headingEl) headingEl.textContent = "No Watchlists";
+
+  const summaryWatching = document.getElementById("summaryWatching");
+  const summaryAboveTarget = document.getElementById("summaryAboveTarget");
+  const summaryNearTarget = document.getElementById("summaryNearTarget");
+
+  if (summaryWatching) summaryWatching.textContent = "0";
+  if (summaryAboveTarget) summaryAboveTarget.textContent = "0";
+  if (summaryNearTarget) summaryNearTarget.textContent = "0";
+
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-4 text-muted">
+          <i class="bi bi-folder-plus fs-4 d-block mb-2"></i>
+          You have no watchlists yet. Click "New watchlist" above to get started.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+window.editWatchlistTargetPrice = async function(watchlistId, companyId, currentTarget) {
+  const currentVal = currentTarget && currentTarget > 0 ? currentTarget : "";
+  const input = prompt("Enter new target price (৳) (or leave blank to remove target):", currentVal);
+  if (input === null) return;
+
+  const trimmed = input.trim();
+  let targetPrice = null;
+  if (trimmed) {
+    targetPrice = parseFloat(trimmed);
+    if (isNaN(targetPrice) || targetPrice <= 0) {
+      showToast("Target price must be greater than zero.", "danger");
+      return;
+    }
+  }
+
+  try {
+    const res = await apiRequest(`/watchlists/${watchlistId}/items/${companyId}`, {
+      method: "PUT",
+      body: JSON.stringify({ targetPrice })
+    });
+    showToast(res.message || "Target price updated.", "success");
+    await loadWatchlistDetail(watchlistId);
+  } catch (err) {
+    console.error("Failed to update target price:", err);
+    showToast("Cannot update target price: " + err.message, "danger");
+  }
+};
+
+window.removeWatchlistCompany = async function(watchlistId, companyId, ticker) {
+  const confirmed = confirm(`Remove ${ticker} from this watchlist?`);
+  if (!confirmed) return;
+
+  try {
+    const res = await apiRequest(`/watchlists/${watchlistId}/items/${companyId}`, { method: "DELETE" });
+    showToast(res.message || `${ticker} removed from watchlist.`, "success");
+    await loadWatchlistDetail(watchlistId);
+  } catch (err) {
+    console.error("Failed to remove company from watchlist:", err);
+    showToast("Cannot remove company: " + err.message, "danger");
+  }
+};
 
 // =========================================
 // TRANSACTION FORM

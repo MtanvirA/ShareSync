@@ -12,6 +12,7 @@ public static class DependencyInjection
         services.AddScoped<IPortfolioService, PortfolioService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<ICompanyService, CompanyService>();
+        services.AddScoped<IWatchlistService, WatchlistService>();
 
         return services;
     }

@@ -144,18 +144,76 @@
             <div>
               <p class="eyebrow">MARKET WATCH</p>
 
-              <h1>Watchlist</h1>
+              <div class="d-flex align-items-center gap-3">
+                <h1 id="watchlistTitle">Watchlist</h1>
+                <select id="watchlistSelect" class="form-select form-select-sm d-none" style="width: auto; max-width: 220px; font-weight: 600;"></select>
+              </div>
 
-              <p class="page-description">
+              <p class="page-description" id="watchlistDescription">
                 Keep track of companies you're interested in.
               </p>
             </div>
 
-            <button class="primary-button" id="openWatchlistForm">
-              <i class="bi bi-plus-lg"></i>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <button class="secondary-button" id="openCreateWatchlistBtn" title="Create New Watchlist">
+                <i class="bi bi-folder-plus"></i>
+                New watchlist
+              </button>
 
-              Add company
-            </button>
+              <button class="secondary-button" id="openEditWatchlistBtn" title="Edit Watchlist">
+                <i class="bi bi-pencil"></i>
+                Edit
+              </button>
+
+              <button class="secondary-button text-danger" id="deleteWatchlistBtn" title="Delete Watchlist">
+                <i class="bi bi-trash"></i>
+                Delete
+              </button>
+
+              <button class="primary-button" id="openWatchlistForm">
+                <i class="bi bi-plus-lg"></i>
+                Add company
+              </button>
+            </div>
+          </section>
+
+          <!-- =====================================
+                     WATCHLIST MANAGE CARD
+                ====================================== -->
+
+          <section
+            class="dashboard-card form-hidden"
+            id="watchlistManageCard"
+            style="margin-bottom: 24px;"
+          >
+            <div class="card-header">
+              <div>
+                <h2 id="watchlistManageTitle">Create watchlist</h2>
+                <p id="watchlistManageSubtitle">Add a new watchlist to your account</p>
+              </div>
+              <button class="close-form-button" id="closeWatchlistManage" title="Close">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <form id="watchlistManageForm">
+              <input type="hidden" id="watchlistManageId" value="" />
+              <div class="watchlist-form-grid">
+                <div class="form-field">
+                  <label for="watchlistManageName">Watchlist name</label>
+                  <input type="text" id="watchlistManageName" required maxlength="100" placeholder="e.g. Dividend Stocks" />
+                </div>
+                <div class="form-field">
+                  <label for="watchlistManageDesc">Description <span>(optional)</span></label>
+                  <input type="text" id="watchlistManageDesc" maxlength="255" placeholder="e.g. High dividend yield stocks" />
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="secondary-button" id="cancelWatchlistManage">Cancel</button>
+                <button type="submit" class="primary-button" id="saveWatchlistManageBtn">
+                  <i class="bi bi-check2"></i> Save watchlist
+                </button>
+              </div>
+            </form>
           </section>
 
           <!-- =====================================
@@ -171,7 +229,7 @@
               <div>
                 <span class="summary-label"> Watching </span>
 
-                <strong class="summary-value"> 8 </strong>
+                <strong class="summary-value" id="summaryWatching"> 0 </strong>
               </div>
             </div>
 
@@ -183,7 +241,7 @@
               <div>
                 <span class="summary-label"> Above target </span>
 
-                <strong class="summary-value"> 3 </strong>
+                <strong class="summary-value" id="summaryAboveTarget"> 0 </strong>
               </div>
             </div>
 
@@ -195,7 +253,7 @@
               <div>
                 <span class="summary-label"> Near target </span>
 
-                <strong class="summary-value"> 2 </strong>
+                <strong class="summary-value" id="summaryNearTarget"> 0 </strong>
               </div>
             </div>
 
@@ -207,7 +265,7 @@
               <div>
                 <span class="summary-label"> Avg. change </span>
 
-                <strong class="summary-value positive-value"> +2.84% </strong>
+                <strong class="summary-value positive-value" id="summaryAvgChange"> +0.00% </strong>
               </div>
             </div>
           </section>
@@ -239,14 +297,6 @@
 
                   <select id="watchlistCompany" required>
                     <option value="">Select company</option>
-
-                    <option value="BEXIMCO">BEXIMCO</option>
-
-                    <option value="GP">Grameenphone</option>
-
-                    <option value="BATBC">BAT Bangladesh</option>
-
-                    <option value="SQURPHARMA">Square Pharmaceuticals</option>
                   </select>
                 </div>
 
@@ -270,10 +320,10 @@
                 </div>
 
                 <div class="form-field">
-                  <label for="watchlistName"> Watchlist </label>
+                  <label for="targetWatchlistSelect"> Watchlist </label>
 
-                  <select id="watchlistName">
-                    <option>Main Watchlist</option>
+                  <select id="targetWatchlistSelect" required>
+                    <option value="">Select watchlist</option>
                   </select>
                 </div>
               </div>
@@ -303,9 +353,9 @@
           <section class="dashboard-card watchlist-card">
             <div class="watchlist-toolbar">
               <div>
-                <h2>Main Watchlist</h2>
+                <h2 id="currentWatchlistHeading">Watchlist</h2>
 
-                <p>Companies you're currently monitoring</p>
+                <p id="currentWatchlistDesc">Companies you're currently monitoring</p>
               </div>
 
               <div class="watchlist-toolbar-actions">
@@ -335,154 +385,15 @@
 
                     <th>Added</th>
 
-                    <th></th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
 
-                <tbody>
-                  <!-- BEXIMCO -->
-
+                <tbody id="watchlistTableBody">
                   <tr>
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> BX </span>
-
-                        <div class="company-details">
-                          <strong> BEXIMCO </strong>
-
-                          <small> Beximco Limited </small>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>৳120.00</td>
-
-                    <td>৳135.00</td>
-
-                    <td>
-                      <span class="target-distance"> 11.11% </span>
-                    </td>
-
-                    <td>
-                      <span class="positive-value"> +2.31% </span>
-                    </td>
-
-                    <td>Sep 12, 2026</td>
-
-                    <td>
-                      <button class="table-action-button" title="Remove">
-                        <i class="bi bi-trash3"></i>
-                      </button>
-                    </td>
-                  </tr>
-
-                  <!-- GP -->
-
-                  <tr>
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> GP </span>
-
-                        <div class="company-details">
-                          <strong> GP </strong>
-
-                          <small> Grameenphone Ltd. </small>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>৳295.00</td>
-
-                    <td>৳300.00</td>
-
-                    <td>
-                      <span class="target-distance near-target"> 1.67% </span>
-                    </td>
-
-                    <td>
-                      <span class="negative-value"> -0.84% </span>
-                    </td>
-
-                    <td>Sep 08, 2026</td>
-
-                    <td>
-                      <button class="table-action-button" title="Remove">
-                        <i class="bi bi-trash3"></i>
-                      </button>
-                    </td>
-                  </tr>
-
-                  <!-- BATBC -->
-
-                  <tr>
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> BT </span>
-
-                        <div class="company-details">
-                          <strong> BATBC </strong>
-
-                          <small> BAT Bangladesh </small>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>৳450.00</td>
-
-                    <td>৳480.00</td>
-
-                    <td>
-                      <span class="target-distance"> 6.25% </span>
-                    </td>
-
-                    <td>
-                      <span class="positive-value"> +1.15% </span>
-                    </td>
-
-                    <td>Aug 29, 2026</td>
-
-                    <td>
-                      <button class="table-action-button" title="Remove">
-                        <i class="bi bi-trash3"></i>
-                      </button>
-                    </td>
-                  </tr>
-
-                  <!-- Square Pharma -->
-
-                  <tr>
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> SQ </span>
-
-                        <div class="company-details">
-                          <strong> SQURPHARMA </strong>
-
-                          <small> Square Pharmaceuticals </small>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>৳235.50</td>
-
-                    <td>৳230.00</td>
-
-                    <td>
-                      <span class="target-distance target-reached">
-                        Target reached
-                      </span>
-                    </td>
-
-                    <td>
-                      <span class="positive-value"> +3.42% </span>
-                    </td>
-
-                    <td>Aug 22, 2026</td>
-
-                    <td>
-                      <button class="table-action-button" title="Remove">
-                        <i class="bi bi-trash3"></i>
-                      </button>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                      <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                      Loading watchlist...
                     </td>
                   </tr>
                 </tbody>

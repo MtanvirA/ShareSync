@@ -17,6 +17,9 @@ public static class DbInitializer
             // Create view if it does not exist
             await EnsureViewsAsync(context, logger, cancellationToken);
 
+            // Ensure reporting analytical indexes exist
+            await EnsureIndexesAsync(context, logger, cancellationToken);
+
             // Seed reference data if empty
             await SeedAsync(context, logger, cancellationToken);
 
@@ -78,6 +81,29 @@ HAVING SUM(CASE WHEN t.transaction_type = 'BUY' THEN t.quantity WHEN t.transacti
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Could not ensure VW_PORTFOLIO_HOLDINGS view. Continuing...");
+        }
+    }
+
+    private static async Task EnsureIndexesAsync(ShareSyncDbContext context, ILogger logger, CancellationToken cancellationToken)
+    {
+        var indexSqls = new[]
+        {
+            "CREATE INDEX idx_tx_portfolio_date ON transactions (portfolio_id, transaction_date)",
+            "CREATE INDEX idx_tx_company ON transactions (company_id)",
+            "CREATE INDEX idx_dividends_comp_paydate ON dividends (company_id, payment_date)",
+            "CREATE INDEX idx_companies_sector ON companies (sector_id)"
+        };
+
+        foreach (var sql in indexSqls)
+        {
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            }
+            catch
+            {
+                // Index already exists (e.g. ORA-00955)
+            }
         }
     }
 

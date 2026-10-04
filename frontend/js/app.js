@@ -1724,225 +1724,662 @@ function createPortfolioChart() {
 // REPORTS & ANALYTICS
 // =========================================
 
-function setupReports() {
-  const portfolioChart = document.getElementById("portfolioValueReport");
+let reportValueChartInstance = null;
+let reportAllocationChartInstance = null;
+let reportActivityChartInstance = null;
 
-  if (!portfolioChart) {
+async function setupReports() {
+  const portfolioCanvas = document.getElementById("portfolioValueReport");
+  if (!portfolioCanvas) {
     return;
   }
 
-  // -----------------------------------------
-  // Portfolio value chart
-  // -----------------------------------------
+  const portfolioSelect = document.getElementById("reportPortfolioSelect");
+  const reportTypeSelect = document.getElementById("reportTypeSelect");
+  const periodSelect = document.getElementById("reportPeriod");
 
+  // Load portfolios into filter dropdown
+  try {
+    const res = await apiRequest("/portfolios");
+    const portfolios = res.data || [];
+    if (portfolioSelect) {
+      portfolioSelect.innerHTML = '<option value="">All Portfolios</option>' +
+        portfolios.map(p => `<option value="${p.portfolioId}">${escapeHtml(p.portfolioName)}</option>`).join("");
+    }
+  } catch (err) {
+    console.error("Failed to load portfolios for reports:", err);
+  }
+
+  async function refreshReports() {
+    const portfolioId = portfolioSelect ? portfolioSelect.value : "";
+    const period = periodSelect ? periodSelect.value : "6";
+    const reportType = reportTypeSelect ? reportTypeSelect.value : "holdings";
+
+    await Promise.allSettled([
+      loadReportSummary(portfolioId),
+      loadReportCharts(portfolioId, period),
+      loadActiveReportTable(reportType, portfolioId, period)
+    ]);
+  }
+
+  if (portfolioSelect) {
+    portfolioSelect.addEventListener("change", refreshReports);
+  }
+  if (periodSelect) {
+    periodSelect.addEventListener("change", refreshReports);
+  }
+  if (reportTypeSelect) {
+    reportTypeSelect.addEventListener("change", () => {
+      const portfolioId = portfolioSelect ? portfolioSelect.value : "";
+      const period = periodSelect ? periodSelect.value : "6";
+      const reportType = reportTypeSelect.value;
+      loadActiveReportTable(reportType, portfolioId, period);
+    });
+  }
+
+  await refreshReports();
+}
+
+async function loadReportSummary(portfolioId) {
+  const valEl = document.getElementById("reportSummaryPortfolioValue");
+  const plEl = document.getElementById("reportSummaryUnrealizedPL");
+  const divEl = document.getElementById("reportSummaryDividendIncome");
+  const txEl = document.getElementById("reportSummaryTransactions");
+
+  try {
+    const url = portfolioId ? `/reports/summary?portfolioId=${portfolioId}` : "/reports/summary";
+    const res = await apiRequest(url);
+    const d = res.data;
+
+    if (valEl) {
+      valEl.textContent = "৳" + Number(d.totalPortfolioValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    if (plEl) {
+      const isPos = d.totalUnrealizedProfitLoss >= 0;
+      const sign = isPos ? "+" : "-";
+      plEl.textContent = `${sign}৳${Math.abs(d.totalUnrealizedProfitLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      plEl.className = isPos ? "summary-value positive-text" : "summary-value negative-text";
+    }
+    if (divEl) {
+      divEl.textContent = "৳" + Number(d.totalDividendIncome).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    if (txEl) {
+      txEl.textContent = Number(d.totalTransactionsCount).toLocaleString();
+    }
+  } catch (err) {
+    console.error("Failed to load report summary:", err);
+  }
+}
+
+async function loadReportCharts(portfolioId, period) {
   Chart.defaults.font.family = "Inter, Segoe UI, sans-serif";
 
-  new Chart(portfolioChart, {
-    type: "line",
+  // 1. Performance Chart
+  const perfCanvas = document.getElementById("portfolioValueReport");
+  if (perfCanvas) {
+    try {
+      const params = new URLSearchParams();
+      if (portfolioId) params.append("portfolioId", portfolioId);
+      if (period) params.append("period", period);
+      const res = await apiRequest(`/reports/performance?${params.toString()}`);
+      const snapshots = res.data?.snapshots || [];
+      const labels = res.data?.chartLabels?.length ? res.data.chartLabels : snapshots.map(s => {
+        const d = new Date(s.snapshotDate);
+        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      });
+      const data = res.data?.chartValues?.length ? res.data.chartValues : snapshots.map(s => s.portfolioValue);
 
-    data: {
-      labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
+      if (reportValueChartInstance) {
+        reportValueChartInstance.destroy();
+      }
 
-      datasets: [
-        {
-          label: "Portfolio Value",
-
-          data: [132000, 141500, 149800, 158600, 171200, 186450],
-
-          borderColor: "#0F172A",
-          backgroundColor: "rgba(15, 23, 42, 0.035)",
-
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 3,
-          tension: 0.35,
-          fill: true,
+      reportValueChartInstance = new Chart(perfCanvas, {
+        type: "line",
+        data: {
+          labels: labels.length ? labels : ["No data"],
+          datasets: [{
+            label: "Portfolio Value",
+            data: data.length ? data : [0],
+            borderColor: "#0F172A",
+            backgroundColor: "rgba(15, 23, 42, 0.04)",
+            borderWidth: 2,
+            pointRadius: data.length > 20 ? 1 : 3,
+            pointHoverRadius: 5,
+            tension: 0.25,
+            fill: true
+          }]
         },
-      ],
-    },
-
-    options: {
-      responsive: true,
-
-      maintainAspectRatio: false,
-
-      interaction: {
-        mode: "index",
-        intersect: false,
-      },
-
-      plugins: {
-        legend: {
-          display: false,
-        },
-      },
-
-      scales: {
-        y: {
-          beginAtZero: false,
-          border: {
-            display: false,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "rgba(15, 23, 42, 0.95)",
+              titleColor: "#F8FAFC",
+              bodyColor: "#F8FAFC",
+              callbacks: {
+                label: (ctx) => "৳" + Number(ctx.raw).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+              }
+            }
           },
-          grid: {
-            color: "rgba(148, 163, 184, 0.18)",
-          },
-          ticks: {
-            callback: function (value) {
-              return "৳" + Number(value / 1000).toFixed(0) + "k";
+          scales: {
+            y: {
+              beginAtZero: false,
+              grid: { color: "rgba(148, 163, 184, 0.15)" },
+              ticks: {
+                color: "#64748B",
+                callback: (val) => "৳" + (val >= 1000 ? (val / 1000).toFixed(0) + "k" : val)
+              }
             },
-            color: "#64748B",
-            font: {
-              size: 10,
-            },
-          },
-        },
-
-        x: {
-          grid: {
-            display: false,
-          },
-          border: {
-            display: false,
-          },
-          ticks: {
-            color: "#64748B",
-            font: {
-              size: 10,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  // -----------------------------------------
-  // Asset allocation
-  // -----------------------------------------
-
-  const allocationChart = document.getElementById("allocationChart");
-
-  if (allocationChart) {
-    new Chart(allocationChart, {
-      type: "doughnut",
-
-      data: {
-        labels: ["Grameenphone", "BEXIMCO", "BAT Bangladesh", "Square Pharma"],
-
-        datasets: [
-          {
-            data: [32, 26, 24, 18],
-            backgroundColor: ["#0F172A", "#64748B", "#94A3B8", "#DDE5EE"],
-            borderWidth: 0,
-            hoverOffset: 2,
-          },
-        ],
-      },
-
-      options: {
-        responsive: true,
-
-        maintainAspectRatio: false,
-
-        cutout: "68%",
-
-        plugins: {
-          legend: {
-            display: false,
-          },
-          tooltip: {
-            backgroundColor: "rgba(15, 23, 42, 0.96)",
-            titleColor: "#F8FAFC",
-            bodyColor: "#F8FAFC",
-            displayColors: false,
-            padding: 10,
-          },
-        },
-      },
-    });
+            x: {
+              grid: { display: false },
+              ticks: { color: "#64748B" }
+            }
+          }
+        }
+      });
+    } catch (err) {
+      console.error("Failed to load performance chart:", err);
+    }
   }
 
-  // -----------------------------------------
-  // Transaction activity
-  // -----------------------------------------
+  // 2. Allocation Chart & List
+  const allocCanvas = document.getElementById("allocationChart");
+  const allocList = document.getElementById("reportAllocationList");
+  if (allocCanvas) {
+    try {
+      const url = portfolioId ? `/reports/company-sector?portfolioId=${portfolioId}` : "/reports/company-sector";
+      const res = await apiRequest(url);
+      const sectors = res.data?.sectors || [];
 
-  const transactionChart = document.getElementById("transactionActivityChart");
+      const colors = ["#0F172A", "#334155", "#475569", "#64748B", "#94A3B8", "#CBD5E1", "#E2E8F0"];
+      const labels = sectors.map(s => s.sectorName);
+      const data = sectors.map(s => s.currentMarketValue);
+      const bgColors = sectors.map((_, i) => colors[i % colors.length]);
 
-  if (transactionChart) {
-    new Chart(transactionChart, {
-      type: "bar",
+      if (reportAllocationChartInstance) {
+        reportAllocationChartInstance.destroy();
+      }
 
-      data: {
-        labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
-
-        datasets: [
-          {
-            label: "BUY",
-
-            data: [4, 3, 5, 2, 6, 4],
-            backgroundColor: "#0F172A",
-            borderRadius: 3,
-            borderSkipped: false,
+      reportAllocationChartInstance = new Chart(allocCanvas, {
+        type: "doughnut",
+        data: {
+          labels: labels.length ? labels : ["No Holdings"],
+          datasets: [{
+            data: data.length ? data : [1],
+            backgroundColor: data.length ? bgColors : ["#E2E8F0"],
             borderWidth: 0,
-          },
-
-          {
-            label: "SELL",
-
-            data: [1, 2, 1, 3, 1, 2],
-            backgroundColor: "#DDE5EE",
-            borderRadius: 3,
-            borderSkipped: false,
-            borderWidth: 0,
-          },
-        ],
-      },
-
-      options: {
-        responsive: true,
-
-        maintainAspectRatio: false,
-
-        plugins: {
-          legend: {
-            position: "bottom",
-            labels: {
-              usePointStyle: true,
-              pointStyle: "circle",
-              boxWidth: 8,
-            },
-          },
+            hoverOffset: 3
+          }]
         },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "68%",
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "rgba(15, 23, 42, 0.95)",
+              callbacks: {
+                label: (ctx) => {
+                  const val = Number(ctx.raw);
+                  return " ৳" + val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+              }
+            }
+          }
+        }
+      });
 
-        scales: {
-          y: {
-            beginAtZero: true,
-            border: {
-              display: false,
-            },
-            grid: {
-              color: "rgba(148, 163, 184, 0.18)",
-            },
-            ticks: {
-              stepSize: 1,
-              color: "#64748B",
-            },
-          },
-
-          x: {
-            grid: {
-              display: false,
-            },
-            border: {
-              display: false,
-            },
-            ticks: {
-              color: "#64748B",
-            },
-          },
-        },
-      },
-    });
+      if (allocList) {
+        if (!sectors.length) {
+          allocList.innerHTML = `<div class="text-muted text-center py-3">No holdings found for allocation.</div>`;
+        } else {
+          allocList.innerHTML = sectors.map((s, idx) => `
+            <div class="allocation-item">
+              <div class="allocation-label">
+                <span class="allocation-dot" style="background-color: ${bgColors[idx]};"></span>
+                <span>${escapeHtml(s.sectorName)}</span>
+              </div>
+              <strong>${s.allocationPercentage.toFixed(1)}%</strong>
+            </div>
+          `).join("");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load allocation chart:", err);
+    }
   }
+
+  // 3. Transaction Activity Chart
+  const txCanvas = document.getElementById("transactionActivityChart");
+  if (txCanvas) {
+    try {
+      const params = new URLSearchParams();
+      if (portfolioId) params.append("portfolioId", portfolioId);
+      if (period) params.append("period", period);
+      const res = await apiRequest(`/reports/transactions?${params.toString()}`);
+      const txs = res.data?.transactions || [];
+
+      // Group transactions by month
+      const monthlyGroups = {};
+      txs.forEach(t => {
+        const d = new Date(t.transactionDate);
+        const monthKey = d.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+        if (!monthlyGroups[monthKey]) {
+          monthlyGroups[monthKey] = { BUY: 0, SELL: 0 };
+        }
+        if (t.transactionType === "BUY") {
+          monthlyGroups[monthKey].BUY++;
+        } else {
+          monthlyGroups[monthKey].SELL++;
+        }
+      });
+
+      const months = Object.keys(monthlyGroups);
+      const buyCounts = months.map(m => monthlyGroups[m].BUY);
+      const sellCounts = months.map(m => monthlyGroups[m].SELL);
+
+      if (reportActivityChartInstance) {
+        reportActivityChartInstance.destroy();
+      }
+
+      reportActivityChartInstance = new Chart(txCanvas, {
+        type: "bar",
+        data: {
+          labels: months.length ? months : ["No activity"],
+          datasets: [
+            {
+              label: "BUY",
+              data: buyCounts.length ? buyCounts : [0],
+              backgroundColor: "#0F172A",
+              borderRadius: 3,
+              borderSkipped: false
+            },
+            {
+              label: "SELL",
+              data: sellCounts.length ? sellCounts : [0],
+              backgroundColor: "#CBD5E1",
+              borderRadius: 3,
+              borderSkipped: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 8 }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: "rgba(148, 163, 184, 0.15)" },
+              ticks: { stepSize: 1, color: "#64748B" }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: "#64748B" }
+            }
+          }
+        }
+      });
+    } catch (err) {
+      console.error("Failed to load transaction activity chart:", err);
+    }
+  }
+}
+
+async function loadActiveReportTable(reportType, portfolioId, period) {
+  const titleEl = document.getElementById("reportSectionTitle");
+  const subEl = document.getElementById("reportSectionSubtitle");
+  const headEl = document.getElementById("reportTableHead");
+  const bodyEl = document.getElementById("reportTableBody");
+
+  if (!headEl || !bodyEl) return;
+
+  bodyEl.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2" role="status"></div>Loading report data...</td></tr>`;
+
+  try {
+    switch (reportType) {
+      case "holdings":
+        if (titleEl) titleEl.textContent = "1. Portfolio Holdings Report";
+        if (subEl) subEl.textContent = "Real-time holdings calculated from normalized transactions with weighted average cost, market prices, and unrealized profit/loss.";
+        await renderHoldingsReport(portfolioId, headEl, bodyEl);
+        break;
+
+      case "performance":
+        if (titleEl) titleEl.textContent = "2. Portfolio Performance / Profit-Loss Report";
+        if (subEl) subEl.textContent = "Chronological valuation snapshots tracking capital progression, profit/loss margins, and period-over-period variations.";
+        await renderPerformanceReport(portfolioId, period, headEl, bodyEl);
+        break;
+
+      case "transactions":
+        if (titleEl) titleEl.textContent = "3. Transaction History Report";
+        if (subEl) subEl.textContent = "Comprehensive audit log of all investment operations with unit prices, quantity balances, and transaction totals.";
+        await renderTransactionsReport(portfolioId, period, headEl, bodyEl);
+        break;
+
+      case "company-sector":
+        if (titleEl) titleEl.textContent = "4. Company & Sector Investment Report";
+        if (subEl) subEl.textContent = "Meaningful aggregation of invested capital, market valuation, and portfolio diversification by industry sector.";
+        await renderCompanySectorReport(portfolioId, headEl, bodyEl);
+        break;
+
+      case "dividends":
+        if (titleEl) titleEl.textContent = "5. Dividend Income Report";
+        if (subEl) subEl.textContent = "Historical corporate dividend distributions with entitlement yield calculations based on active holdings.";
+        await renderDividendsReport(portfolioId, period, headEl, bodyEl);
+        break;
+
+      case "watchlist":
+        if (titleEl) titleEl.textContent = "6. Watchlist / Target Price Report";
+        if (subEl) subEl.textContent = "Tracked securities across personal watchlists showing distance to target price and target proximity indicators.";
+        await renderWatchlistReport(headEl, bodyEl);
+        break;
+
+      default:
+        await renderHoldingsReport(portfolioId, headEl, bodyEl);
+        break;
+    }
+  } catch (err) {
+    console.error("Error loading report table:", err);
+    bodyEl.innerHTML = `<tr><td colspan="10" class="text-center text-danger py-4">Failed to load report: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
+  headEl.innerHTML = `
+    <tr>
+      <th>Company</th>
+      <th>Ticker</th>
+      <th>Quantity</th>
+      <th>Avg. Cost</th>
+      <th>Market Price</th>
+      <th>Invested Value</th>
+      <th>Market Value</th>
+      <th>Unrealized P/L</th>
+      <th>Return %</th>
+    </tr>
+  `;
+
+  const url = portfolioId ? `/reports/holdings?portfolioId=${portfolioId}` : "/reports/holdings";
+  const res = await apiRequest(url);
+  const rows = res.data?.holdings || [];
+
+  if (!rows.length) {
+    bodyEl.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">No holdings found for the selected portfolio.</td></tr>`;
+    return;
+  }
+
+  bodyEl.innerHTML = rows.map(r => {
+    const isPos = r.unrealizedProfitLoss >= 0;
+    const sign = isPos ? "+" : "-";
+    const plClass = isPos ? "positive-text" : "negative-text";
+    const logo = escapeHtml(r.tickerSymbol.slice(0, 2).toUpperCase());
+    const avgCost = r.weightedAverageBuyPrice ?? r.weightedAveragePurchasePrice ?? 0;
+
+    return `
+      <tr>
+        <td>
+          <div class="company-cell">
+            <span class="company-logo">${logo}</span>
+            <div class="company-details">
+              <strong>${escapeHtml(r.companyName)}</strong>
+              <small>${escapeHtml(r.sectorName || "Equity")}</small>
+            </div>
+          </div>
+        </td>
+        <td><strong>${escapeHtml(r.tickerSymbol)}</strong></td>
+        <td>${r.currentQuantity.toLocaleString()}</td>
+        <td>৳${avgCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>৳${r.currentMarketPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>৳${r.investedValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>৳${r.currentMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td class="${plClass}"><strong>${sign}৳${Math.abs(r.unrealizedProfitLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+        <td class="${plClass}">${sign}${Math.abs(r.profitLossPercentage).toFixed(2)}%</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
+  headEl.innerHTML = `
+    <tr>
+      <th>Snapshot Date</th>
+      <th>Portfolio</th>
+      <th>Portfolio Value</th>
+      <th>Change from Prev</th>
+      <th>% Change</th>
+    </tr>
+  `;
+
+  const params = new URLSearchParams();
+  if (portfolioId) params.append("portfolioId", portfolioId);
+  if (period) params.append("period", period);
+  const res = await apiRequest(`/reports/performance?${params.toString()}`);
+  const rows = res.data?.snapshots || [];
+
+  if (!rows.length) {
+    bodyEl.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No snapshot records found for the selected criteria.</td></tr>`;
+    return;
+  }
+
+  const pName = res.data?.portfolioName || "Portfolio";
+
+  bodyEl.innerHTML = rows.map(r => {
+    let changeText = "-";
+    let changePctText = "-";
+    let changeClass = "text-muted";
+
+    if (r.changeFromPrevious !== null && r.changeFromPrevious !== undefined) {
+      const isChgPos = r.changeFromPrevious >= 0;
+      const chgSign = isChgPos ? "+" : "-";
+      changeClass = isChgPos ? "positive-text" : "negative-text";
+      changeText = `${chgSign}৳${Math.abs(r.changeFromPrevious).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      changePctText = `${chgSign}${Math.abs(r.percentageChange || 0).toFixed(2)}%`;
+    }
+
+    const dateStr = new Date(r.snapshotDate).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(dateStr)}</strong></td>
+        <td>${escapeHtml(pName)}</td>
+        <td><strong>৳${r.portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+        <td class="${changeClass}">${changeText}</td>
+        <td class="${changeClass}">${changePctText}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function renderTransactionsReport(portfolioId, period, headEl, bodyEl) {
+  headEl.innerHTML = `
+    <tr>
+      <th>Tx ID</th>
+      <th>Date</th>
+      <th>Portfolio</th>
+      <th>Company</th>
+      <th>Ticker</th>
+      <th>Type</th>
+      <th>Quantity</th>
+      <th>Price / Share</th>
+      <th>Total Value</th>
+    </tr>
+  `;
+
+  const params = new URLSearchParams();
+  if (portfolioId) params.append("portfolioId", portfolioId);
+  if (period) params.append("period", period);
+  const res = await apiRequest(`/reports/transactions?${params.toString()}`);
+  const rows = res.data?.transactions || [];
+
+  if (!rows.length) {
+    bodyEl.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">No transactions found for the selected period.</td></tr>`;
+    return;
+  }
+
+  bodyEl.innerHTML = rows.map(r => {
+    const isBuy = r.transactionType === "BUY";
+    const badgeClass = isBuy ? "buy-badge" : "sell-badge";
+    const dateStr = new Date(r.transactionDate).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+
+    return `
+      <tr>
+        <td>#${r.transactionId}</td>
+        <td>${escapeHtml(dateStr)}</td>
+        <td>${escapeHtml(r.portfolioName)}</td>
+        <td>${escapeHtml(r.companyName)}</td>
+        <td><strong>${escapeHtml(r.tickerSymbol)}</strong></td>
+        <td><span class="transaction-badge ${badgeClass}">${escapeHtml(r.transactionType)}</span></td>
+        <td>${r.quantity.toLocaleString()}</td>
+        <td>৳${r.pricePerShare.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td><strong>৳${r.totalTransactionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function renderCompanySectorReport(portfolioId, headEl, bodyEl) {
+  headEl.innerHTML = `
+    <tr>
+      <th>Sector Name</th>
+      <th>Holdings Count</th>
+      <th>Total Invested</th>
+      <th>Market Value</th>
+      <th>Unrealized P/L</th>
+      <th>Sector Allocation</th>
+    </tr>
+  `;
+
+  const url = portfolioId ? `/reports/company-sector?portfolioId=${portfolioId}` : "/reports/company-sector";
+  const res = await apiRequest(url);
+  const rows = res.data?.sectors || [];
+
+  if (!rows.length) {
+    bodyEl.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No sector investment data found.</td></tr>`;
+    return;
+  }
+
+  bodyEl.innerHTML = rows.map(r => {
+    const isPos = r.unrealizedProfitLoss >= 0;
+    const sign = isPos ? "+" : "-";
+    const plClass = isPos ? "positive-text" : "negative-text";
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(r.sectorName)}</strong></td>
+        <td>${r.holdingsCount}</td>
+        <td>৳${r.totalInvested.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>৳${r.currentMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td class="${plClass}">${sign}৳${Math.abs(r.unrealizedProfitLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="progress flex-grow-1" style="height: 6px;">
+              <div class="progress-bar bg-dark" style="width: ${Math.min(r.allocationPercentage, 100)}%;"></div>
+            </div>
+            <strong style="min-width: 45px;">${r.allocationPercentage.toFixed(1)}%</strong>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function renderDividendsReport(portfolioId, period, headEl, bodyEl) {
+  headEl.innerHTML = `
+    <tr>
+      <th>Company</th>
+      <th>Ticker</th>
+      <th>Dividend / Share</th>
+      <th>Declaration Date</th>
+      <th>Payment Date</th>
+      <th>Shares Held</th>
+      <th>Est. Total Dividend</th>
+      <th>Status</th>
+    </tr>
+  `;
+
+  const params = new URLSearchParams();
+  if (portfolioId) params.append("portfolioId", portfolioId);
+  if (period) params.append("period", period);
+  const res = await apiRequest(`/reports/dividends?${params.toString()}`);
+  const rows = res.data?.dividends || [];
+
+  if (!rows.length) {
+    bodyEl.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No dividend records found.</td></tr>`;
+    return;
+  }
+
+  bodyEl.innerHTML = rows.map(r => {
+    const declStr = r.declarationDate ? new Date(r.declarationDate).toLocaleDateString() : "-";
+    const payStr = r.paymentDate ? new Date(r.paymentDate).toLocaleDateString() : "-";
+    const isPaid = new Date(r.paymentDate) <= new Date();
+    const statusClass = isPaid ? "status-badge status-paid" : "status-badge status-declared";
+    const statusText = isPaid ? "Paid" : "Declared";
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(r.companyName)}</strong></td>
+        <td>${escapeHtml(r.tickerSymbol)}</td>
+        <td>৳${r.dividendPerShare.toFixed(2)}</td>
+        <td>${escapeHtml(declStr)}</td>
+        <td>${escapeHtml(payStr)}</td>
+        <td>${r.userSharesHeld.toLocaleString()}</td>
+        <td><strong>৳${r.estimatedIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+        <td><span class="${statusClass}">${statusText}</span></td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function renderWatchlistReport(headEl, bodyEl) {
+  headEl.innerHTML = `
+    <tr>
+      <th>Watchlist</th>
+      <th>Company</th>
+      <th>Ticker</th>
+      <th>Current Price</th>
+      <th>Target Price</th>
+      <th>Price Difference</th>
+      <th>Difference %</th>
+      <th>Proximity</th>
+    </tr>
+  `;
+
+  const res = await apiRequest("/reports/watchlist");
+  const rows = res.data?.items || [];
+
+  if (!rows.length) {
+    bodyEl.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No watchlist items with target prices found.</td></tr>`;
+    return;
+  }
+
+  bodyEl.innerHTML = rows.map(r => {
+    const isNear = Math.abs(r.percentageDifference) <= 5.0;
+    const badgeClass = isNear ? "target-distance near-target" : "target-distance";
+    const targetStatus = r.status || (isNear ? "Near Target (±5%)" : (r.percentageDifference > 0 ? "Above Target" : "Below Target"));
+    const diffSign = r.priceDifference >= 0 ? "+" : "-";
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(r.watchlistName)}</strong></td>
+        <td>${escapeHtml(r.companyName)}</td>
+        <td><strong>${escapeHtml(r.tickerSymbol)}</strong></td>
+        <td>৳${r.currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>${r.targetPrice !== null ? `৳${r.targetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"}</td>
+        <td>${r.priceDifference !== null ? `${diffSign}৳${Math.abs(r.priceDifference).toFixed(2)}` : "-"}</td>
+        <td>${r.percentageDifference !== null ? `${diffSign}${Math.abs(r.percentageDifference).toFixed(2)}%` : "-"}</td>
+        <td><span class="${badgeClass}">${targetStatus}</span></td>
+      </tr>
+    `;
+  }).join("");
 }
 
 // =========================================

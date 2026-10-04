@@ -1249,34 +1249,14 @@ async function setupTransactionForm() {
 function setupChartPeriod() {
   const selector = document.getElementById("chartPeriod");
 
-  if (!selector || !portfolioChart) {
+  if (!selector) {
     return;
   }
 
   selector.addEventListener("change", () => {
-    const periods = {
-      "1 month": {
-        labels: ["Aug 29", "Sep 05", "Sep 12", "Sep 19", "Sep 26"],
-        data: [116200, 117900, 120400, 123100, 125400],
-      },
-      "6 months": {
-        labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
-        data: [82000, 91000, 88000, 104000, 116000, 125400],
-      },
-      "1 year": {
-        labels: ["Oct", "Dec", "Feb", "Apr", "Jun", "Aug", "Sep"],
-        data: [72000, 76000, 80000, 82000, 88000, 116000, 125400],
-      },
-      "All time": {
-        labels: ["2022", "2023", "2024", "2025", "2026"],
-        data: [42000, 59000, 71000, 94000, 125400],
-      },
-    };
-
-    const period = periods[selector.value] || periods["6 months"];
-    portfolioChart.data.labels = period.labels;
-    portfolioChart.data.datasets[0].data = period.data;
-    portfolioChart.update();
+    if (typeof loadPortfolioPerformanceChart === "function") {
+      loadPortfolioPerformanceChart(selector.value);
+    }
   });
 }
 
@@ -1587,6 +1567,49 @@ function setupSidebarNavigation() {
 // PORTFOLIO PERFORMANCE CHART
 // =========================================
 
+async function loadPortfolioPerformanceChart(period = "6 months") {
+  const canvas = document.getElementById("portfolioChart");
+  if (!canvas || !portfolioChart) return;
+
+  try {
+    let pId = currentPortfolioId;
+    if (!pId) {
+      const res = await apiRequest("/portfolios");
+      if (res.data && res.data.length > 0) {
+        pId = res.data[0].portfolioId;
+        currentPortfolioId = pId;
+      }
+    }
+
+    if (!pId) {
+      portfolioChart.data.labels = ["No Data"];
+      portfolioChart.data.datasets[0].data = [0];
+      portfolioChart.update();
+      return;
+    }
+
+    const perfRes = await apiRequest(`/portfolios/${pId}/snapshots/performance?period=${encodeURIComponent(period)}`);
+    const perfData = perfRes.data;
+
+    if (perfData && perfData.labels && perfData.labels.length > 0) {
+      portfolioChart.data.labels = perfData.labels;
+      portfolioChart.data.datasets[0].data = perfData.values;
+      portfolioChart.update();
+
+      const datesEl = document.querySelector(".chart-dates");
+      if (datesEl) {
+        datesEl.innerHTML = perfData.labels.map(l => `<span>${escapeHtml(l)}</span>`).join("");
+      }
+    } else {
+      portfolioChart.data.labels = ["No Data"];
+      portfolioChart.data.datasets[0].data = [0];
+      portfolioChart.update();
+    }
+  } catch (err) {
+    console.error("Failed to load portfolio performance chart:", err);
+  }
+}
+
 function createPortfolioChart() {
   const canvas = document.getElementById("portfolioChart");
 
@@ -1602,19 +1625,19 @@ function createPortfolioChart() {
     type: "line",
 
     data: {
-      labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
+      labels: [],
 
       datasets: [
         {
           label: "Portfolio Value",
 
-          data: [82000, 91000, 88000, 104000, 116000, 125400],
+          data: [],
 
           borderColor: "#0F172A",
           backgroundColor: "rgba(15, 23, 42, 0.035)",
           borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 3,
+          pointRadius: 2,
+          pointHoverRadius: 4,
           pointBackgroundColor: "#0F172A",
           pointBorderColor: "#0F172A",
           pointBorderWidth: 1,
@@ -1648,7 +1671,7 @@ function createPortfolioChart() {
           borderWidth: 0,
           callbacks: {
             label: function (context) {
-              return "৳" + context.raw.toLocaleString();
+              return "৳" + Number(context.raw).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             },
           },
         },
@@ -1691,6 +1714,10 @@ function createPortfolioChart() {
       },
     },
   });
+
+  const selector = document.getElementById("chartPeriod");
+  const initialPeriod = selector ? selector.value : "6 months";
+  loadPortfolioPerformanceChart(initialPeriod);
 }
 
 // =========================================

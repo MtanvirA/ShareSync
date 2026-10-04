@@ -10,10 +10,14 @@ namespace ShareSync.Web.Controllers;
 public class CompaniesController : ControllerBase
 {
     private readonly ICompanyService _companyService;
+    private readonly IDsePriceService _dsePriceService;
 
-    public CompaniesController(ICompanyService companyService)
+    public CompaniesController(
+        ICompanyService companyService,
+        IDsePriceService dsePriceService)
     {
         _companyService = companyService;
+        _dsePriceService = dsePriceService;
     }
 
     [HttpGet]
@@ -27,6 +31,13 @@ public class CompaniesController : ControllerBase
     public async Task<IActionResult> GetCompany(int id, CancellationToken cancellationToken)
     {
         var result = await _companyService.GetCompanyByIdAsync(id, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("sync-prices")]
+    public async Task<IActionResult> SyncDsePrices(CancellationToken cancellationToken)
+    {
+        var result = await _dsePriceService.SyncAllCompanyPricesAsync(cancellationToken);
         return Ok(result);
     }
 }

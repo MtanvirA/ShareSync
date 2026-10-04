@@ -4,8 +4,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ShareSync.Application;
 using ShareSync.Application.Common.Interfaces;
+using ShareSync.Application.Interfaces;
 using ShareSync.Infrastructure;
 using ShareSync.Infrastructure.Data;
+using ShareSync.Infrastructure.Services;
 using ShareSync.Web.Middleware;
 using ShareSync.Web.Services;
 
@@ -19,6 +21,8 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 // 2. Add Layer Dependencies
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddHttpClient<IDsePriceService, DsePriceService>();
+builder.Services.AddHostedService<DsePriceBackgroundService>();
 
 // 3. Configure JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "ShareSyncSuperSecretKeyForAcademicProjectSecurity2026#LongEnoughKey";

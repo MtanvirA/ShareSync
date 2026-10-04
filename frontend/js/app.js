@@ -826,8 +826,63 @@ async function setupDashboard() {
     }
   }
 
+  window.refreshDashboard = loadDashboardData;
   const initialPeriod = periodSelect ? periodSelect.value || "6m" : "6m";
   await loadDashboardData(initialPeriod);
+}
+
+// =========================================
+// DSE LIVE PRICE SYNCHRONIZATION
+// =========================================
+
+function setupDseSync() {
+  const syncBtns = document.querySelectorAll("#syncDseBtn");
+  if (!syncBtns.length) return;
+
+  syncBtns.forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Syncing DSE...';
+      try {
+        const res = await apiRequest("/companies/sync-prices", { method: "POST" });
+        showToast(res?.message || "DSE live prices synchronized successfully!", "success");
+
+        const updatedEl = document.querySelector(".last-updated");
+        if (updatedEl) {
+          const nowTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          updatedEl.textContent = `DSE Live · ${nowTime}`;
+        }
+
+        // 1. Refresh Dashboard if on dashboard
+        if (typeof window.refreshDashboard === "function") {
+          const periodSelect = document.getElementById("chartPeriod");
+          await window.refreshDashboard(periodSelect ? periodSelect.value || "6m" : "6m");
+        }
+
+        // 2. Refresh Portfolio if on portfolio page
+        if (typeof loadUserPortfolios === "function" && document.getElementById("portfolioTotalValue")) {
+          const activeId = typeof currentPortfolioId !== "undefined" ? currentPortfolioId : null;
+          await loadUserPortfolios(activeId);
+        }
+
+        // 3. Refresh Watchlist if on watchlist page
+        if (typeof loadWatchlistDetail === "function" && document.getElementById("watchlistTableBody")) {
+          const wlSelect = document.getElementById("watchlistSelect");
+          if (wlSelect && wlSelect.value) {
+            await loadWatchlistDetail(parseInt(wlSelect.value, 10));
+          }
+        }
+      } catch (err) {
+        console.error("DSE price sync error:", err);
+        showToast("DSE sync: " + (err.message || "Unable to sync prices"), "danger");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    });
+  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -851,6 +906,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (typeof setupWatchlistFilter === "function") setupWatchlistFilter();
   if (typeof setupDividendFilter === "function") setupDividendFilter();
   if (typeof setupPortfolioManagement === "function") setupPortfolioManagement();
+  if (typeof setupDseSync === "function") setupDseSync();
 });
 
 // =========================================

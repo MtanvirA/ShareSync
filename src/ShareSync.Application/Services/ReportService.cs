@@ -59,29 +59,87 @@ public class ReportService : IReportService
             .OrderByDescending(h => h.CurrentMarketValue)
             .ToListAsync(cancellationToken);
 
-        var items = viewHoldings.Select(h =>
-        {
-            var invested = Math.Round(h.CurrentQuantity * h.WeightedAverageBuyPrice, 2);
-            var plPct = invested > 0
-                ? Math.Round((h.UnrealizedProfitLoss / invested) * 100, 2)
-                : 0m;
+        List<PortfolioHoldingsReportItemDto> items;
 
-            return new PortfolioHoldingsReportItemDto
+        if (viewHoldings.Any())
+        {
+            items = viewHoldings.Select(h =>
             {
-                CompanyId = h.CompanyId,
-                CompanyName = h.CompanyName,
-                TickerSymbol = h.TickerSymbol,
-                PortfolioId = h.PortfolioId,
-                PortfolioName = h.PortfolioName,
-                CurrentQuantity = h.CurrentQuantity,
-                WeightedAverageBuyPrice = Math.Round(h.WeightedAverageBuyPrice, 2),
-                CurrentMarketPrice = Math.Round(h.CurrentPrice, 2),
-                InvestedValue = invested,
-                CurrentMarketValue = Math.Round(h.CurrentMarketValue, 2),
-                UnrealizedProfitLoss = Math.Round(h.UnrealizedProfitLoss, 2),
-                ProfitLossPercentage = plPct
-            };
-        }).ToList();
+                var invested = Math.Round(h.CurrentQuantity * h.WeightedAverageBuyPrice, 2);
+                var plPct = invested > 0
+                    ? Math.Round((h.UnrealizedProfitLoss / invested) * 100, 2)
+                    : 0m;
+
+                return new PortfolioHoldingsReportItemDto
+                {
+                    CompanyId = h.CompanyId,
+                    CompanyName = h.CompanyName,
+                    TickerSymbol = h.TickerSymbol,
+                    PortfolioId = h.PortfolioId,
+                    PortfolioName = h.PortfolioName,
+                    CurrentQuantity = h.CurrentQuantity,
+                    WeightedAverageBuyPrice = Math.Round(h.WeightedAverageBuyPrice, 2),
+                    CurrentMarketPrice = Math.Round(h.CurrentPrice, 2),
+                    InvestedValue = invested,
+                    CurrentMarketValue = Math.Round(h.CurrentMarketValue, 2),
+                    UnrealizedProfitLoss = Math.Round(h.UnrealizedProfitLoss, 2),
+                    ProfitLossPercentage = plPct
+                };
+            }).ToList();
+        }
+        else
+        {
+            // Fallback for InMemory tests or when view is empty: calculate directly from transactions
+            var txs = await _context.Transactions
+                .AsNoTracking()
+                .Include(t => t.Company)
+                .Include(t => t.Portfolio)
+                .Where(t => userPortfolioIds.Contains(t.PortfolioId) && t.Company != null)
+                .ToListAsync(cancellationToken);
+
+            items = new List<PortfolioHoldingsReportItemDto>();
+            var grouped = txs.GroupBy(t => new { t.PortfolioId, t.CompanyId });
+
+            foreach (var g in grouped)
+            {
+                var company = g.First().Company!;
+                var portfolio = g.First().Portfolio!;
+                var buyTxs = g.Where(t => t.TransactionType == "BUY").ToList();
+                var sellTxs = g.Where(t => t.TransactionType == "SELL").ToList();
+
+                var buyQty = buyTxs.Sum(t => t.Quantity);
+                var sellQty = sellTxs.Sum(t => t.Quantity);
+                var netQty = buyQty - sellQty;
+
+                if (netQty <= 0) continue;
+
+                var totalBuyCost = buyTxs.Sum(t => t.Quantity * t.PricePerShare);
+                var avgBuyPrice = buyQty > 0 ? totalBuyCost / buyQty : 0m;
+                var currentPrice = company.CurrentPrice;
+                var marketVal = netQty * currentPrice;
+                var investedVal = netQty * avgBuyPrice;
+                var unrealizedPL = marketVal - investedVal;
+                var plPct = investedVal > 0 ? (unrealizedPL / investedVal) * 100 : 0m;
+
+                items.Add(new PortfolioHoldingsReportItemDto
+                {
+                    CompanyId = company.CompanyId,
+                    CompanyName = company.CompanyName,
+                    TickerSymbol = company.TickerSymbol,
+                    PortfolioId = portfolio.PortfolioId,
+                    PortfolioName = portfolio.PortfolioName,
+                    CurrentQuantity = netQty,
+                    WeightedAverageBuyPrice = Math.Round(avgBuyPrice, 2),
+                    CurrentMarketPrice = Math.Round(currentPrice, 2),
+                    InvestedValue = Math.Round(investedVal, 2),
+                    CurrentMarketValue = Math.Round(marketVal, 2),
+                    UnrealizedProfitLoss = Math.Round(unrealizedPL, 2),
+                    ProfitLossPercentage = Math.Round(plPct, 2)
+                });
+            }
+
+            items = items.OrderByDescending(i => i.CurrentMarketValue).ToList();
+        }
 
         var totalInvested = Math.Round(items.Sum(i => i.InvestedValue), 2);
         var totalMarketValue = Math.Round(items.Sum(i => i.CurrentMarketValue), 2);

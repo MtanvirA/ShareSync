@@ -50,10 +50,10 @@
             </button>
 
             <div class="profile">
-              <div class="profile-avatar">T</div>
+              <div class="profile-avatar" id="headerAvatar">T</div>
 
               <div class="profile-info d-none d-md-block">
-                <span class="profile-name"> Tanvir </span>
+                <span class="profile-name" id="headerUserName"> Tanvir </span>
 
                 <span class="profile-role"> Investor </span>
               </div>
@@ -152,9 +152,9 @@
             <div>
               <p class="eyebrow">PORTFOLIO OVERVIEW</p>
 
-              <h1>Good morning, Tanvir.</h1>
+              <h1 id="dashboardGreeting">Good morning</h1>
 
-              <p class="page-description">
+              <p class="page-description" id="dashboardSubtitle">
                 Here's how your investments are performing today.
               </p>
             </div>
@@ -180,12 +180,11 @@
                 </span>
               </div>
 
-              <div class="summary-value">৳125,400</div>
+              <div class="summary-value" id="dashboardPortfolioValue">৳0.00</div>
 
-              <div class="summary-meta positive">
+              <div class="summary-meta positive" id="dashboardPortfolioMeta">
                 <i class="bi bi-arrow-up"></i>
-
-                8.4% this month
+                <span>0.0% this month</span>
               </div>
             </article>
 
@@ -198,9 +197,9 @@
                 </span>
               </div>
 
-              <div class="summary-value">৳110,000</div>
+              <div class="summary-value" id="dashboardTotalInvested">৳0.00</div>
 
-              <div class="summary-meta neutral">Across 3 holdings</div>
+              <div class="summary-meta neutral" id="dashboardHoldingsMeta">Across 0 holdings</div>
             </article>
 
             <article class="summary-card">
@@ -212,12 +211,11 @@
                 </span>
               </div>
 
-              <div class="summary-value positive-text">+৳15,400</div>
+              <div class="summary-value" id="dashboardUnrealizedPL">৳0.00</div>
 
-              <div class="summary-meta positive">
-                <i class="bi bi-arrow-up"></i>
-
-                14.0% return
+              <div class="summary-meta" id="dashboardReturnMeta">
+                <i class="bi bi-dash"></i>
+                <span>0.0% return</span>
               </div>
             </article>
 
@@ -230,9 +228,9 @@
                 </span>
               </div>
 
-              <div class="summary-value">৳8,450</div>
+              <div class="summary-value" id="dashboardDividendIncome">৳0.00</div>
 
-              <div class="summary-meta neutral">This year</div>
+              <div class="summary-meta neutral" id="dashboardDividendMeta">Total received</div>
             </article>
           </section>
 
@@ -248,40 +246,24 @@
                 <div>
                   <h2>Portfolio performance</h2>
 
-                  <p>Portfolio value over the last 6 months</p>
+                  <p id="dashboardChartSubtitle">Portfolio value over the last 6 months</p>
                 </div>
 
                 <select class="period-select" id="chartPeriod">
-                  <option>1 month</option>
+                  <option value="1m">1 month</option>
 
-                  <option>6 months</option>
+                  <option value="6m" selected>6 months</option>
 
-                  <option>1 year</option>
+                  <option value="1y">1 year</option>
 
-                  <option>All time</option>
+                  <option value="all">All time</option>
                 </select>
               </div>
 
               <div class="chart-placeholder">
-                <div class="chart-y-axis">
-                  <span>৳140k</span>
-                  <span>৳120k</span>
-                  <span>৳100k</span>
-                  <span>৳80k</span>
-                </div>
-
                 <div class="chart-wrapper">
                   <canvas id="portfolioChart"></canvas>
                 </div>
-              </div>
-
-              <div class="chart-dates">
-                <span>Apr</span>
-                <span>May</span>
-                <span>Jun</span>
-                <span>Jul</span>
-                <span>Aug</span>
-                <span>Sep</span>
               </div>
             </article>
 
@@ -292,50 +274,22 @@
                 <div>
                   <h2>Portfolio allocation</h2>
 
-                  <p>By current market value</p>
+                  <p id="dashboardAllocationSubtitle">By sector market value</p>
                 </div>
               </div>
 
               <div class="allocation-visual">
-                <div class="donut">
+                <div class="donut" id="dashboardDonut">
                   <div class="donut-center">
-                    <strong> 3 </strong>
+                    <strong id="dashboardHoldingsCount">0</strong>
 
-                    <span> holdings </span>
+                    <span id="dashboardHoldingsLabel">holdings</span>
                   </div>
                 </div>
               </div>
 
-              <div class="allocation-list">
-                <div class="allocation-row">
-                  <span class="allocation-company">
-                    <span class="allocation-dot dot-one"></span>
-
-                    BEXIMCO
-                  </span>
-
-                  <strong> 42% </strong>
-                </div>
-
-                <div class="allocation-row">
-                  <span class="allocation-company">
-                    <span class="allocation-dot dot-two"></span>
-
-                    GP
-                  </span>
-
-                  <strong> 34% </strong>
-                </div>
-
-                <div class="allocation-row">
-                  <span class="allocation-company">
-                    <span class="allocation-dot dot-three"></span>
-
-                    BATBC
-                  </span>
-
-                  <strong> 24% </strong>
-                </div>
+              <div class="allocation-list" id="dashboardAllocationList">
+                <div class="text-muted text-center py-3">No holdings found</div>
               </div>
             </article>
 
@@ -349,7 +303,7 @@
                   <p>Your current positions</p>
                 </div>
 
-                <a href="#" class="view-link">
+                <a href="portfolio.html" class="view-link">
                   View all
                   <i class="bi bi-arrow-right"></i>
                 </a>
@@ -371,71 +325,12 @@
                     </tr>
                   </thead>
 
-                  <tbody>
+                  <tbody id="dashboardHoldingsBody">
                     <tr>
-                      <td>
-                        <div class="company-cell">
-                          <span class="company-logo"> BX </span>
-
-                          <div>
-                            <strong> BEXIMCO </strong>
-
-                            <small> Beximco Pharmaceuticals </small>
-                          </div>
-                        </div>
+                      <td colspan="5" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+                        Loading holdings...
                       </td>
-
-                      <td>100</td>
-
-                      <td>৳120.00</td>
-
-                      <td>৳135.00</td>
-
-                      <td class="positive-text">+12.5%</td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="company-cell">
-                          <span class="company-logo"> GP </span>
-
-                          <div>
-                            <strong> GP </strong>
-
-                            <small> Grameenphone </small>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td>200</td>
-
-                      <td>৳280.00</td>
-
-                      <td>৳295.00</td>
-
-                      <td class="positive-text">+5.4%</td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="company-cell">
-                          <span class="company-logo"> BT </span>
-
-                          <div>
-                            <strong> BATBC </strong>
-
-                            <small> British American Tobacco </small>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td>50</td>
-
-                      <td>৳450.00</td>
-
-                      <td>৳470.00</td>
-
-                      <td class="positive-text">+4.4%</td>
                     </tr>
                   </tbody>
                 </table>
@@ -452,55 +347,16 @@
                   <p>Latest portfolio transactions</p>
                 </div>
 
-                <a href="#" class="view-link">
+                <a href="transactions.html" class="view-link">
                   View all
                   <i class="bi bi-arrow-right"></i>
                 </a>
               </div>
 
-              <div class="activity-list">
-                <div class="activity-item">
-                  <div class="activity-icon buy">
-                    <i class="bi bi-arrow-down-left"></i>
-                  </div>
-
-                  <div class="activity-info">
-                    <strong> Bought BEXIMCO </strong>
-
-                    <span> 100 shares · Sep 8, 2026 </span>
-                  </div>
-
-                  <strong class="activity-amount"> -৳12,000 </strong>
-                </div>
-
-                <div class="activity-item">
-                  <div class="activity-icon buy">
-                    <i class="bi bi-arrow-down-left"></i>
-                  </div>
-
-                  <div class="activity-info">
-                    <strong> Bought GP </strong>
-
-                    <span> 200 shares · Sep 5, 2026 </span>
-                  </div>
-
-                  <strong class="activity-amount"> -৳56,000 </strong>
-                </div>
-
-                <div class="activity-item">
-                  <div class="activity-icon sell">
-                    <i class="bi bi-arrow-up-right"></i>
-                  </div>
-
-                  <div class="activity-info">
-                    <strong> Sold GP </strong>
-
-                    <span> 50 shares · Aug 28, 2026 </span>
-                  </div>
-
-                  <strong class="activity-amount positive-text">
-                    +৳14,500
-                  </strong>
+              <div class="activity-list" id="dashboardActivityList">
+                <div class="text-muted text-center py-4">
+                  <i class="bi bi-clock-history fs-4 d-block mb-1"></i>
+                  Loading recent activity...
                 </div>
               </div>
             </article>

@@ -203,36 +203,398 @@ function setupTableHints() {
   });
 }
 
+function setupSidebarNavigation() {
+  document.querySelectorAll(".sidebar-link").forEach(link => {
+    const text = (link.textContent || "").trim().toLowerCase();
+    if (text === "log out") {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        localStorage.removeItem("sharesync_token");
+        localStorage.removeItem("sharesync_user");
+        window.location.href = "login.html";
+      });
+    }
+  });
+}
+
+// =========================================
+// DASHBOARD MANAGEMENT
+// =========================================
+
+function formatBDT(amount) {
+  const num = Number(amount) || 0;
+  return "৳" + num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderDashboardError(message) {
+  const valueEl = document.getElementById("dashboardPortfolioValue");
+  if (valueEl) valueEl.textContent = "৳0.00";
+  const bodyEl = document.getElementById("dashboardHoldingsBody");
+  if (bodyEl) {
+    bodyEl.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center py-4 text-danger">
+          <i class="bi bi-exclamation-triangle fs-4 d-block mb-1"></i>
+          ${escapeHtml(message)}
+        </td>
+      </tr>
+    `;
+  }
+  const activityEl = document.getElementById("dashboardActivityList");
+  if (activityEl) {
+    activityEl.innerHTML = `
+      <div class="text-center py-4 text-danger">
+        <i class="bi bi-exclamation-triangle fs-4 d-block mb-1"></i>
+        ${escapeHtml(message)}
+      </div>
+    `;
+  }
+}
+
+async function setupDashboard() {
+  const dashboardValueEl = document.getElementById("dashboardPortfolioValue");
+  if (!dashboardValueEl) return;
+
+  // Personalized greeting based on time of day
+  const userStr = localStorage.getItem("sharesync_user");
+  let cachedUser = null;
+  if (userStr) {
+    try { cachedUser = JSON.parse(userStr); } catch (_) {}
+  }
+  let firstName = cachedUser?.firstName || "Investor";
+  const nowHour = new Date().getHours();
+  let greetingPrefix = "Good morning";
+  if (nowHour >= 12 && nowHour < 18) greetingPrefix = "Good afternoon";
+  else if (nowHour >= 18) greetingPrefix = "Good evening";
+
+  const greetingEl = document.getElementById("dashboardGreeting");
+  if (greetingEl) greetingEl.textContent = `${greetingPrefix}, ${firstName}.`;
+
+  const headerAvatar = document.getElementById("headerAvatar");
+  if (headerAvatar) headerAvatar.textContent = firstName.charAt(0).toUpperCase();
+
+  const headerUserName = document.getElementById("headerUserName");
+  if (headerUserName) headerUserName.textContent = firstName;
+
+  // Chart period selector handling
+  const periodSelect = document.getElementById("chartPeriod");
+  if (periodSelect && !periodSelect.dataset.initialized) {
+    periodSelect.dataset.initialized = "true";
+    periodSelect.addEventListener("change", (e) => {
+      const period = e.target.value;
+      const subTitle = document.getElementById("dashboardChartSubtitle");
+      if (subTitle) {
+        const labels = {
+          "1m": "Portfolio value over the last 1 month",
+          "6m": "Portfolio value over the last 6 months",
+          "1y": "Portfolio value over the last 1 year",
+          "all": "Portfolio value all time"
+        };
+        subTitle.textContent = labels[period] || `Portfolio value (${period})`;
+      }
+      loadDashboardData(period);
+    });
+  }
+
+  async function loadDashboardData(period = "6m") {
+    try {
+      const res = await apiRequest(`/dashboard?period=${encodeURIComponent(period)}`);
+      if (!res || !res.success || !res.data) {
+        throw new Error(res?.message || "Failed to load dashboard data");
+      }
+      const d = res.data;
+
+      // Update name if returned from backend
+      if (d.userFullName && d.userFullName.trim()) {
+        const parts = d.userFullName.trim().split(" ");
+        firstName = parts[0];
+        if (greetingEl) greetingEl.textContent = `${greetingPrefix}, ${firstName}.`;
+        if (headerAvatar) headerAvatar.textContent = firstName.charAt(0).toUpperCase();
+        if (headerUserName) headerUserName.textContent = firstName;
+      }
+
+      // 1. Summary Cards
+      const summary = d.summary || {};
+      dashboardValueEl.textContent = formatBDT(summary.totalPortfolioValue);
+
+      const totalInvestedEl = document.getElementById("dashboardTotalInvested");
+      if (totalInvestedEl) totalInvestedEl.textContent = formatBDT(summary.totalInvested);
+
+      const holdingsMetaEl = document.getElementById("dashboardHoldingsMeta");
+      if (holdingsMetaEl) {
+        const count = summary.holdingsCount || 0;
+        holdingsMetaEl.textContent = `Across ${count} ${count === 1 ? 'holding' : 'holdings'}`;
+      }
+
+      const unrealizedPLEl = document.getElementById("dashboardUnrealizedPL");
+      if (unrealizedPLEl) {
+        const pl = Number(summary.totalUnrealizedProfitLoss) || 0;
+        const isUp = pl >= 0;
+        unrealizedPLEl.textContent = (isUp ? "+" : "-") + formatBDT(Math.abs(pl));
+        unrealizedPLEl.className = `summary-value ${isUp ? 'positive-text' : 'negative-text'}`;
+      }
+
+      const returnMetaEl = document.getElementById("dashboardReturnMeta");
+      if (returnMetaEl) {
+        const retPct = Number(summary.profitLossPercentage) || 0;
+        const isUp = retPct >= 0;
+        const icon = retPct > 0 ? "bi-arrow-up" : (retPct < 0 ? "bi-arrow-down" : "bi-dash");
+        returnMetaEl.className = `summary-meta ${isUp ? 'positive' : 'negative'}`;
+        returnMetaEl.innerHTML = `<i class="bi ${icon}"></i> <span>${isUp ? '+' : ''}${retPct.toFixed(1)}% return</span>`;
+      }
+
+      const dividendIncomeEl = document.getElementById("dashboardDividendIncome");
+      if (dividendIncomeEl) dividendIncomeEl.textContent = formatBDT(summary.totalDividendIncome);
+
+      const portfolioMetaEl = document.getElementById("dashboardPortfolioMeta");
+      if (portfolioMetaEl) {
+        const perf = d.performance || {};
+        if (perf.startingValue > 0) {
+          const perfPct = Number(perf.netChangePercentage) || 0;
+          const isUp = perfPct >= 0;
+          portfolioMetaEl.className = `summary-meta ${isUp ? 'positive' : 'negative'}`;
+          portfolioMetaEl.innerHTML = `<i class="bi bi-arrow-${isUp ? 'up' : 'down'}"></i> <span>${isUp ? '+' : ''}${perfPct.toFixed(1)}% this period</span>`;
+        } else {
+          portfolioMetaEl.className = "summary-meta neutral";
+          const pCount = summary.portfoliosCount || 0;
+          portfolioMetaEl.innerHTML = `<span>${pCount} ${pCount === 1 ? 'portfolio' : 'portfolios'}</span>`;
+        }
+      }
+
+      // 2. Chart.js Line Chart
+      const canvas = document.getElementById("portfolioChart");
+      if (canvas && typeof Chart !== "undefined") {
+        if (portfolioChart) {
+          portfolioChart.destroy();
+          portfolioChart = null;
+        }
+
+        const perf = d.performance || {};
+        const labels = perf.labels && perf.labels.length > 0 ? perf.labels : ["Current"];
+        const values = perf.values && perf.values.length > 0 ? perf.values : [summary.totalPortfolioValue || 0];
+
+        const isUp = (perf.netChange || 0) >= 0;
+        const strokeColor = isUp ? "#10b981" : "#ef4444";
+        const bgGradColor = isUp ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)";
+
+        const ctx = canvas.getContext("2d");
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, bgGradColor);
+        gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+        portfolioChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Portfolio Value",
+              data: values,
+              borderColor: strokeColor,
+              borderWidth: 2.5,
+              backgroundColor: gradient,
+              fill: true,
+              tension: 0.35,
+              pointRadius: values.length > 30 ? 0 : 3,
+              pointHoverRadius: 6,
+              pointBackgroundColor: strokeColor,
+              pointBorderColor: "#ffffff",
+              pointBorderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              intersect: false,
+              mode: "index"
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: "#0f172a",
+                titleFont: { size: 12 },
+                bodyFont: { size: 12 },
+                padding: 10,
+                cornerRadius: 6,
+                displayColors: false,
+                callbacks: {
+                  label: context => "Value: ৳" + Number(context.parsed.y).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: {
+                  font: { size: 11 },
+                  color: "#64748b",
+                  maxTicksLimit: 7
+                }
+              },
+              y: {
+                grid: { color: "rgba(226, 232, 240, 0.7)" },
+                ticks: {
+                  font: { size: 11 },
+                  color: "#64748b",
+                  callback: value => "৳" + (value >= 1000 ? (value / 1000).toFixed(0) + "k" : value)
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // 3. Sector Allocation Donut
+      const donut = document.getElementById("dashboardDonut");
+      const holdingsCountEl = document.getElementById("dashboardHoldingsCount");
+      const holdingsLabelEl = document.getElementById("dashboardHoldingsLabel");
+      const allocListEl = document.getElementById("dashboardAllocationList");
+
+      if (holdingsCountEl) holdingsCountEl.textContent = summary.holdingsCount || 0;
+      if (holdingsLabelEl) holdingsLabelEl.textContent = summary.holdingsCount === 1 ? "holding" : "holdings";
+
+      const sectors = d.sectorAllocation || [];
+      const palette = ["#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#6366f1", "#14b8a6", "#64748b"];
+
+      if (allocListEl) {
+        if (sectors.length === 0) {
+          if (donut) donut.style.background = "#e2e8f0";
+          allocListEl.innerHTML = `<div class="text-center text-muted py-3">No sector allocations yet.</div>`;
+        } else {
+          let gradientParts = [];
+          let currentPct = 0;
+          let rowsHtml = "";
+
+          sectors.forEach((sec, idx) => {
+            const color = palette[idx % palette.length];
+            const nextPct = currentPct + Number(sec.allocationPercentage || 0);
+            gradientParts.push(`${color} ${currentPct.toFixed(1)}% ${nextPct.toFixed(1)}%`);
+            currentPct = nextPct;
+
+            rowsHtml += `
+              <div class="allocation-row">
+                <span class="allocation-company">
+                  <span class="allocation-dot" style="background-color: ${color};"></span>
+                  ${escapeHtml(sec.sectorName)}
+                </span>
+                <strong>${Number(sec.allocationPercentage || 0).toFixed(1)}%</strong>
+              </div>
+            `;
+          });
+
+          if (donut) {
+            donut.style.background = `conic-gradient(${gradientParts.join(", ")})`;
+          }
+          allocListEl.innerHTML = rowsHtml;
+        }
+      }
+
+      // 4. Top Holdings Table
+      const holdingsBody = document.getElementById("dashboardHoldingsBody");
+      if (holdingsBody) {
+        const topHoldings = d.topHoldings || [];
+        if (topHoldings.length === 0) {
+          holdingsBody.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">
+                <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+                No holdings in portfolio yet. Click "Add transaction" above to begin.
+              </td>
+            </tr>
+          `;
+        } else {
+          holdingsBody.innerHTML = topHoldings.map(h => {
+            const isUp = (h.unrealizedProfitLoss || 0) >= 0;
+            const logo = escapeHtml((h.tickerSymbol || "SH").slice(0, 2).toUpperCase());
+            const sign = isUp ? "+" : "";
+            return `
+              <tr>
+                <td>
+                  <div class="company-cell">
+                    <span class="company-logo">${logo}</span>
+                    <div>
+                      <strong>${escapeHtml(h.tickerSymbol)}</strong>
+                      <small>${escapeHtml(h.companyName)}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>${Number(h.shares).toLocaleString()}</td>
+                <td>${formatBDT(h.averageBuyPrice)}</td>
+                <td>${formatBDT(h.currentPrice)}</td>
+                <td class="${isUp ? 'positive-text' : 'negative-text'}">${sign}${Number(h.returnPercentage || 0).toFixed(1)}%</td>
+              </tr>
+            `;
+          }).join("");
+        }
+      }
+
+      // 5. Recent Activity List
+      const activityList = document.getElementById("dashboardActivityList");
+      if (activityList) {
+        const txs = d.recentTransactions || [];
+        if (txs.length === 0) {
+          activityList.innerHTML = `
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-clock-history fs-4 d-block mb-1"></i>
+              No recent transaction activity.
+            </div>
+          `;
+        } else {
+          activityList.innerHTML = txs.map(tx => {
+            const isBuy = (tx.transactionType || "").toUpperCase() === "BUY";
+            const icon = isBuy ? "bi-arrow-down-left" : "bi-arrow-up-right";
+            const iconClass = isBuy ? "activity-icon buy" : "activity-icon sell";
+            const amountClass = isBuy ? "activity-amount" : "activity-amount positive-text";
+            const sign = isBuy ? "-৳" : "+৳";
+            const dateStr = new Date(tx.transactionDate).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric"
+            });
+
+            return `
+              <div class="activity-item">
+                <div class="${iconClass}">
+                  <i class="bi ${icon}"></i>
+                </div>
+                <div class="activity-info">
+                  <strong>${isBuy ? 'Bought' : 'Sold'} ${escapeHtml(tx.tickerSymbol)}</strong>
+                  <span>${Number(tx.quantity).toLocaleString()} shares · ${dateStr}</span>
+                </div>
+                <strong class="${amountClass}">${sign}${Number(tx.totalValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              </div>
+            `;
+          }).join("");
+        }
+      }
+
+    } catch (err) {
+      console.error("Failed to load dashboard data:", err);
+      renderDashboardError("Unable to load dashboard data. Please verify your connection.");
+    }
+  }
+
+  const initialPeriod = periodSelect ? periodSelect.value || "6m" : "6m";
+  await loadDashboardData(initialPeriod);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("ShareSync dashboard loaded.");
+  console.log("ShareSync application loaded.");
 
   setupSidebarNavigation();
-
   setupMobileNavigation();
-
   setupLastUpdated();
-
   setupTableHints();
 
-  createPortfolioChart();
-
-  setupChartPeriod();
-
-  setupTransactionForm();
-
-  setupWatchlistForm();
-
-  setupDividendForm();
-
-  setupReports();
-
-  setupTransactionFilters();
-
-  setupWatchlistFilter();
-
-  setupDividendFilter();
-
-  setupPortfolioManagement();
+  if (typeof setupDashboard === "function") setupDashboard();
+  if (typeof setupTransactionForm === "function") setupTransactionForm();
+  if (typeof setupWatchlistForm === "function") setupWatchlistForm();
+  if (typeof setupDividendForm === "function") setupDividendForm();
+  if (typeof setupReports === "function") setupReports();
+  if (typeof setupTransactionFilters === "function") setupTransactionFilters();
+  if (typeof setupWatchlistFilter === "function") setupWatchlistFilter();
+  if (typeof setupDividendFilter === "function") setupDividendFilter();
+  if (typeof setupPortfolioManagement === "function") setupPortfolioManagement();
 });
 
 // =========================================

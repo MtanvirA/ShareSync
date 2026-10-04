@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<IDividendService, DividendService>();
         services.AddScoped<IPortfolioSnapshotService, PortfolioSnapshotService>();
         services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IDashboardService, DashboardService>();
 
         return services;
     }

@@ -1053,10 +1053,10 @@ async function loadDividendSummary() {
     const res = await apiRequest("/dividends/summary");
     const d = res.data;
 
-    if (totalEl) totalEl.textContent = "৳" + d.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (yearEl) yearEl.textContent = "৳" + d.thisYearIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (upcomingEl) upcomingEl.textContent = "৳" + d.upcomingIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (countEl) countEl.textContent = d.companiesCount;
+    if (totalEl) totalEl.textContent = "৳" + Number(d.totalIncome || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (yearEl) yearEl.textContent = "৳" + Number(d.thisYearIncome || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (upcomingEl) upcomingEl.textContent = "৳" + Number(d.upcomingIncome || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (countEl) countEl.textContent = d.companiesCount || 0;
   } catch (err) {
     console.error("Failed to load dividend summary:", err);
   }
@@ -1108,10 +1108,10 @@ async function loadDividendHistory() {
       const logoText = escapeHtml(d.tickerSymbol.slice(0, 2).toUpperCase());
       const declDateStr = d.declarationDate ? new Date(d.declarationDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-";
       const payDateStr = d.paymentDate ? new Date(d.paymentDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-";
-      const formattedPerShare = "৳" + d.dividendPerShare.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const formattedEstimated = "৳" + d.estimatedIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const sharesNote = d.userSharesHeld > 0 
-        ? `<small class="text-muted d-block font-monospace">${d.userSharesHeld.toLocaleString()} shares</small>`
+      const formattedPerShare = "৳" + Number(d.dividendPerShare || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const formattedEstimated = "৳" + Number(d.estimatedIncome || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const sharesNote = (d.userSharesHeld || 0) > 0 
+        ? `<small class="text-muted d-block font-monospace">${Number(d.userSharesHeld).toLocaleString()} shares</small>`
         : `<small class="text-muted d-block">0 shares held</small>`;
 
       return `
@@ -1487,9 +1487,9 @@ async function loadWatchlistDetail(watchlistId) {
       } else {
         tbody.innerHTML = d.items.map(item => {
           const logoText = escapeHtml((item.tickerSymbol || "SS").slice(0, 2).toUpperCase());
-          const currentPriceFormatted = "৳" + item.currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          const targetPriceFormatted = item.targetPrice
-            ? "৳" + item.targetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          const currentPriceFormatted = "৳" + Number(item.currentPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const targetPriceFormatted = (item.targetPrice !== null && item.targetPrice !== undefined)
+            ? "৳" + Number(item.targetPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
             : '<span class="text-muted">Not set</span>';
 
           let distanceHtml = '<span class="text-muted">-</span>';
@@ -1964,8 +1964,11 @@ async function loadTransactionHistory() {
       const dateFormatted = isNaN(d.getTime())
         ? escapeHtml(t.transactionDate)
         : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
-      const priceFormatted = "৳" + t.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const totalFormatted = "৳" + (t.totalAmount || (t.quantity * t.price)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const priceNum = Number(t.pricePerShare ?? t.price ?? 0);
+      const qtyNum = Number(t.quantity ?? 0);
+      const totalNum = Number(t.totalAmount ?? (qtyNum * priceNum));
+      const priceFormatted = "৳" + priceNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const totalFormatted = "৳" + totalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       return `
         <tr>
@@ -1982,7 +1985,7 @@ async function loadTransactionHistory() {
           <td>
             <span class="transaction-badge ${badgeClass}">${escapeHtml(t.transactionType)}</span>
           </td>
-          <td>${t.quantity.toLocaleString()}</td>
+          <td>${qtyNum.toLocaleString()}</td>
           <td>${priceFormatted}</td>
           <td>${totalFormatted}</td>
           <td>${escapeHtml(t.portfolioName || "-")}</td>
@@ -2043,7 +2046,7 @@ window.editTransaction = async function(transactionId) {
     if (portfolioSelect) portfolioSelect.value = t.portfolioId;
     if (companySelect) companySelect.value = t.companyId;
     if (quantityInput) quantityInput.value = t.quantity;
-    if (priceInput) priceInput.value = t.price;
+    if (priceInput) priceInput.value = t.pricePerShare ?? t.price ?? "";
     if (dateInput && t.transactionDate) dateInput.value = t.transactionDate.split("T")[0];
     if (notesInput) notesInput.value = t.notes || "";
 
@@ -2743,13 +2746,13 @@ async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
           </div>
         </td>
         <td><strong>${escapeHtml(r.tickerSymbol)}</strong></td>
-        <td>${r.currentQuantity.toLocaleString()}</td>
-        <td>৳${avgCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td>৳${r.currentMarketPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td>৳${r.investedValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td>৳${r.currentMarketValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td class="${plClass}"><strong>${sign}৳${Math.abs(r.unrealizedProfitLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
-        <td class="${plClass}">${sign}${Math.abs(r.profitLossPercentage).toFixed(2)}%</td>
+        <td>${Number(r.currentQuantity || 0).toLocaleString()}</td>
+        <td>৳${Number(avgCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>৳${Number(r.currentMarketPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>৳${Number(r.investedValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>৳${Number(r.currentMarketValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td class="${plClass}"><strong>${sign}৳${Number(Math.abs(r.unrealizedProfitLoss || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+        <td class="${plClass}">${sign}${Number(Math.abs(r.profitLossPercentage || 0)).toFixed(2)}%</td>
       </tr>
     `;
   }).join("");
@@ -2845,9 +2848,9 @@ async function renderTransactionsReport(portfolioId, period, headEl, bodyEl) {
         <td>${escapeHtml(r.companyName)}</td>
         <td><strong>${escapeHtml(r.tickerSymbol)}</strong></td>
         <td><span class="transaction-badge ${badgeClass}">${escapeHtml(r.transactionType)}</span></td>
-        <td>${r.quantity.toLocaleString()}</td>
-        <td>৳${r.pricePerShare.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td><strong>৳${r.totalTransactionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+        <td>${Number(r.quantity || 0).toLocaleString()}</td>
+        <td>৳${Number(r.pricePerShare || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td><strong>৳${Number(r.totalTransactionValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
       </tr>
     `;
   }).join("");
@@ -3182,11 +3185,11 @@ async function loadPortfolioDetail(portfolioId) {
     if (titleEl) titleEl.textContent = d.portfolioName;
     if (descEl) descEl.textContent = d.description || "Track your holdings and investment performance.";
 
-    const formattedValue = "৳" + d.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const formattedInvested = "৳" + d.totalInvested.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formattedValue = "৳" + Number(d.totalValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formattedInvested = "৳" + Number(d.totalInvested || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const isProfitable = d.unrealizedProfitLoss >= 0;
     const sign = isProfitable ? "+" : "-";
-    const absPL = Math.abs(d.unrealizedProfitLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const absPL = Number(Math.abs(d.unrealizedProfitLoss || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const formattedPL = `${sign}৳${absPL}`;
     const formattedPLPct = `${sign}${Math.abs(d.unrealizedProfitLossPercentage).toFixed(1)}%`;
 
@@ -3243,10 +3246,10 @@ async function loadPortfolioDetail(portfolioId) {
                   </div>
                 </div>
               </td>
-              <td>${h.shares.toLocaleString()}</td>
-              <td>৳${h.averageBuyPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-              <td>৳${h.currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-              <td>৳${h.marketValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td>${Number(h.shares || 0).toLocaleString()}</td>
+              <td>৳${Number(h.averageBuyPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td>৳${Number(h.currentPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td>৳${Number(h.marketValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               <td class="${hProfitable ? 'positive-text' : 'negative-text'}">${hReturnStr}</td>
             </tr>
           `;
@@ -3281,7 +3284,7 @@ async function loadPortfolioDetail(portfolioId) {
           const dateStr = new Date(tx.transactionDate).toLocaleDateString("en-US", {
             month: "short", day: "numeric", year: "numeric"
           });
-          const total = tx.totalAmount || (tx.quantity * tx.price);
+          const total = tx.totalAmount || (Number(tx.quantity ?? 0) * Number(tx.pricePerShare ?? tx.price ?? 0));
           return `
             <div class="activity-item">
               <div class="${iconClass}">

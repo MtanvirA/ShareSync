@@ -239,67 +239,307 @@ document.addEventListener("DOMContentLoaded", () => {
 // DIVIDEND FORM
 // =========================================
 
-function setupDividendForm() {
-  const form = document.getElementById("dividendForm");
+// =========================================
+// DIVIDEND MANAGEMENT
+// =========================================
 
-  if (!form) {
+let dividendCompaniesCache = [];
+
+async function setupDividendForm() {
+  const form = document.getElementById("dividendForm");
+  const tableBody = document.getElementById("dividendTableBody");
+
+  if (!form && !tableBody) {
     return;
   }
 
   const formCard = document.getElementById("dividendFormCard");
-
   const openButton = document.getElementById("openDividendForm");
-
   const closeButton = document.getElementById("closeDividendForm");
-
   const cancelButton = document.getElementById("cancelDividend");
+  const formTitle = document.getElementById("dividendFormTitle");
+  const formSubtitle = document.getElementById("dividendFormSubtitle");
+  const formId = document.getElementById("dividendFormId");
+  const companySelect = document.getElementById("dividendCompany");
+  const perShareInput = document.getElementById("dividendPerShare");
+  const declDateInput = document.getElementById("declarationDate");
+  const payDateInput = document.getElementById("paymentDate");
+  const companyFilter = document.getElementById("dividendCompanyFilter");
+  const periodFilter = document.getElementById("dividendFilter");
 
-  setupInlineValidation(form);
+  if (form) setupInlineValidation(form);
 
-  openButton.addEventListener("click", () => {
-    formCard.classList.remove("form-hidden");
+  // Load companies for the dropdowns
+  try {
+    const res = await apiRequest("/companies");
+    dividendCompaniesCache = res.data || [];
 
-    formCard.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  });
+    if (companySelect) {
+      companySelect.innerHTML = '<option value="">Select company</option>' +
+        dividendCompaniesCache.map(c => `<option value="${c.companyId}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
+    }
 
-  function closeForm() {
-    formCard.classList.add("form-hidden");
+    if (companyFilter) {
+      companyFilter.innerHTML = '<option value="all">All companies</option>' +
+        dividendCompaniesCache.map(c => `<option value="${c.companyId}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
+    }
+  } catch (err) {
+    console.error("Failed to load companies for dividends:", err);
   }
 
-  closeButton.addEventListener("click", closeForm);
+  function openForm(isEdit = false, item = null) {
+    if (!formCard) return;
+    clearFieldError(companySelect);
+    clearFieldError(perShareInput);
+    clearFieldError(declDateInput);
+    clearFieldError(payDateInput);
 
-  cancelButton.addEventListener("click", closeForm);
+    if (isEdit && item) {
+      formTitle.textContent = "Edit dividend record";
+      formSubtitle.textContent = `Update dividend for ${item.companyName}`;
+      formId.value = item.dividendId;
+      companySelect.value = item.companyId;
+      perShareInput.value = item.dividendPerShare;
+      declDateInput.value = item.declarationDate ? item.declarationDate.split("T")[0] : "";
+      payDateInput.value = item.paymentDate ? item.paymentDate.split("T")[0] : "";
+    } else {
+      formTitle.textContent = "Add dividend record";
+      formSubtitle.textContent = "Record a dividend declaration or payment.";
+      formId.value = "";
+      form.reset();
+      const today = new Date().toISOString().split("T")[0];
+      declDateInput.value = today;
+      // Default payment date 14 days later
+      const future = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
+      payDateInput.value = future;
+    }
 
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
+    formCard.classList.remove("form-hidden");
+    formCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    companySelect.focus();
+  }
 
-    if (!validateRequiredFields(form)) {
+  function closeForm() {
+    if (formCard) formCard.classList.add("form-hidden");
+    if (form) form.reset();
+    if (formId) formId.value = "";
+  }
+
+  if (openButton) openButton.addEventListener("click", () => openForm(false));
+  if (closeButton) closeButton.addEventListener("click", closeForm);
+  if (cancelButton) cancelButton.addEventListener("click", closeForm);
+
+  if (form) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!validateRequiredFields(form)) {
+        return;
+      }
+
+      const compId = parseInt(companySelect.value, 10);
+      const amount = parseFloat(perShareInput.value);
+      const declaration = declDateInput.value;
+      const payment = payDateInput.value;
+
+      if (!compId) {
+        setFieldError(companySelect, "Please select a company.");
+        return;
+      }
+
+      if (isNaN(amount) || amount <= 0) {
+        setFieldError(perShareInput, "Dividend per share must be greater than zero.");
+        return;
+      }
+
+      if (payment < declaration) {
+        setFieldError(payDateInput, "Payment date must not be earlier than declaration date.");
+        return;
+      }
+
+      const payload = {
+        companyId: compId,
+        dividendPerShare: amount,
+        declarationDate: declaration,
+        paymentDate: payment
+      };
+
+      const editId = formId.value ? parseInt(formId.value, 10) : null;
+
+      try {
+        if (editId) {
+          await apiRequest(`/dividends/${editId}`, {
+            method: "PUT",
+            body: JSON.stringify(payload)
+          });
+          showToast("Dividend record updated successfully.", "success");
+        } else {
+          await apiRequest("/dividends", {
+            method: "POST",
+            body: JSON.stringify(payload)
+          });
+          showToast("Dividend record created successfully.", "success");
+        }
+
+        closeForm();
+        await loadDividendSummary();
+        await loadDividendHistory();
+      } catch (err) {
+        showToast("Error saving dividend: " + err.message, "danger");
+      }
+    });
+  }
+
+  window.editDividend = async function(dividendId) {
+    try {
+      const res = await apiRequest(`/dividends/${dividendId}`);
+      openForm(true, res.data);
+    } catch (err) {
+      console.error("Failed to load dividend for edit:", err);
+      showToast("Could not load dividend details: " + err.message, "danger");
+    }
+  };
+
+  window.deleteDividend = async function(dividendId) {
+    if (!confirm("Are you sure you want to delete this dividend record?")) {
       return;
     }
 
-    const company = document.getElementById("dividendCompany").value;
+    try {
+      await apiRequest(`/dividends/${dividendId}`, { method: "DELETE" });
+      showToast("Dividend record deleted successfully.", "success");
+      await loadDividendSummary();
+      await loadDividendHistory();
+    } catch (err) {
+      console.error("Failed to delete dividend:", err);
+      showToast("Cannot delete dividend: " + err.message, "danger");
+    }
+  };
 
-    const amount = document.getElementById("dividendPerShare").value;
+  // Filter change events
+  if (companyFilter) companyFilter.addEventListener("change", loadDividendHistory);
+  if (periodFilter) periodFilter.addEventListener("change", loadDividendHistory);
 
-    const declaration = document.getElementById("declarationDate").value;
+  // Initial loads
+  await loadDividendSummary();
+  await loadDividendHistory();
+}
 
-    const payment = document.getElementById("paymentDate").value;
+async function loadDividendSummary() {
+  const totalEl = document.getElementById("summaryTotalIncome");
+  const yearEl = document.getElementById("summaryThisYearIncome");
+  const upcomingEl = document.getElementById("summaryUpcomingIncome");
+  const countEl = document.getElementById("summaryCompaniesCount");
 
-    if (payment < declaration) {
-      setFieldError(document.getElementById("paymentDate"), "Payment date must be after declaration date.");
+  try {
+    const res = await apiRequest("/dividends/summary");
+    const d = res.data;
 
+    if (totalEl) totalEl.textContent = "৳" + d.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (yearEl) yearEl.textContent = "৳" + d.thisYearIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (upcomingEl) upcomingEl.textContent = "৳" + d.upcomingIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (countEl) countEl.textContent = d.companiesCount;
+  } catch (err) {
+    console.error("Failed to load dividend summary:", err);
+  }
+}
+
+async function loadDividendHistory() {
+  const tableBody = document.getElementById("dividendTableBody");
+  const countSubtitle = document.getElementById("dividendCountSubtitle");
+  const companyFilter = document.getElementById("dividendCompanyFilter");
+  const periodFilter = document.getElementById("dividendFilter");
+
+  if (!tableBody) return;
+
+  const params = new URLSearchParams();
+  if (companyFilter && companyFilter.value !== "all") {
+    params.append("companyId", companyFilter.value);
+  }
+  if (periodFilter && periodFilter.value === "current") {
+    params.append("year", new Date().getFullYear());
+  } else if (periodFilter && periodFilter.value === "previous") {
+    params.append("year", new Date().getFullYear() - 1);
+  }
+
+  const queryString = params.toString() ? `?${params.toString()}` : "";
+
+  try {
+    const res = await apiRequest(`/dividends${queryString}`);
+    const items = res.data || [];
+
+    if (countSubtitle) {
+      countSubtitle.textContent = `${items.length} dividend ${items.length === 1 ? 'record' : 'records'} found`;
+    }
+
+    if (items.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center py-4 text-muted">
+            <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+            No dividend records found. Click "Add dividend" to record one.
+          </td>
+        </tr>
+      `;
       return;
     }
 
-    showToast(`${company} dividend recorded successfully.`);
+    tableBody.innerHTML = items.map(d => {
+      const isPaid = d.status === "Paid";
+      const statusClass = isPaid ? "status-paid" : "status-upcoming";
+      const logoText = escapeHtml(d.tickerSymbol.slice(0, 2).toUpperCase());
+      const declDateStr = d.declarationDate ? new Date(d.declarationDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-";
+      const payDateStr = d.paymentDate ? new Date(d.paymentDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-";
+      const formattedPerShare = "৳" + d.dividendPerShare.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const formattedEstimated = "৳" + d.estimatedIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const sharesNote = d.userSharesHeld > 0 
+        ? `<small class="text-muted d-block font-monospace">${d.userSharesHeld.toLocaleString()} shares</small>`
+        : `<small class="text-muted d-block">0 shares held</small>`;
 
-    form.reset();
-
-    closeForm();
-  });
+      return `
+        <tr>
+          <td>
+            <div class="company-cell">
+              <span class="company-logo">${logoText}</span>
+              <div>
+                <strong>${escapeHtml(d.companyName)}</strong>
+                <small>${escapeHtml(d.tickerSymbol)}</small>
+              </div>
+            </div>
+          </td>
+          <td>${formattedPerShare}</td>
+          <td>${declDateStr}</td>
+          <td>${payDateStr}</td>
+          <td>
+            <span class="status-badge ${statusClass}">${escapeHtml(d.status)}</span>
+          </td>
+          <td>
+            <strong>${formattedEstimated}</strong>
+            ${sharesNote}
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <button class="btn btn-sm btn-outline-secondary p-1 px-2" onclick="editDividend(${d.dividendId})" title="Edit dividend">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger p-1 px-2" onclick="deleteDividend(${d.dividendId})" title="Delete dividend">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  } catch (err) {
+    console.error("Failed to load dividend history:", err);
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-4 text-danger">
+          Error loading dividend history: ${escapeHtml(err.message)}
+        </td>
+      </tr>
+    `;
+  }
 }
 
 // =========================================
@@ -1286,30 +1526,7 @@ function setupWatchlistFilter() {
 }
 
 function setupDividendFilter() {
-  const filter = document.getElementById("dividendFilter");
-  const table = document.querySelector(".dividend-table");
-
-  if (!filter || !table) {
-    return;
-  }
-
-  filter.addEventListener("change", () => {
-    const rows = table.querySelectorAll("tbody tr");
-    const currentYear = new Date().getFullYear();
-
-    rows.forEach((row) => {
-      const company = row.querySelector(".company-details strong")?.textContent.trim().toLowerCase();
-      const paymentDate = row.querySelectorAll("td")[3]?.textContent.trim();
-      const paymentYear = new Date(paymentDate).getFullYear();
-      const mode = filter.value;
-      const visible = mode === "all"
-        || (mode === "company" && company)
-        || (mode === "current" && paymentYear === currentYear)
-        || (mode === "previous" && paymentYear === currentYear - 1);
-
-      row.hidden = !visible;
-    });
-  });
+  // Handled dynamically via API in setupDividendForm()
 }
 
 function exportTableCsv(table, filename) {

@@ -13,6 +13,7 @@ public static class DependencyInjection
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddScoped<IWatchlistService, WatchlistService>();
+        services.AddScoped<IDividendService, DividendService>();
 
         return services;
     }

@@ -168,7 +168,7 @@
               <div>
                 <span class="summary-label"> Total income </span>
 
-                <strong class="summary-value"> ৳12,840 </strong>
+                <strong class="summary-value" id="summaryTotalIncome"> ৳0.00 </strong>
               </div>
             </div>
 
@@ -180,7 +180,7 @@
               <div>
                 <span class="summary-label"> This year </span>
 
-                <strong class="summary-value"> ৳8,420 </strong>
+                <strong class="summary-value" id="summaryThisYearIncome"> ৳0.00 </strong>
               </div>
             </div>
 
@@ -192,7 +192,7 @@
               <div>
                 <span class="summary-label"> Upcoming </span>
 
-                <strong class="summary-value"> ৳2,150 </strong>
+                <strong class="summary-value" id="summaryUpcomingIncome"> ৳0.00 </strong>
               </div>
             </div>
 
@@ -204,7 +204,7 @@
               <div>
                 <span class="summary-label"> Companies </span>
 
-                <strong class="summary-value"> 5 </strong>
+                <strong class="summary-value" id="summaryCompaniesCount"> 0 </strong>
               </div>
             </div>
           </section>
@@ -219,9 +219,9 @@
           >
             <div class="card-header">
               <div>
-                <h2>Add dividend record</h2>
+                <h2 id="dividendFormTitle">Add dividend record</h2>
 
-                <p>Record a dividend declaration or payment.</p>
+                <p id="dividendFormSubtitle">Record a dividend declaration or payment.</p>
               </div>
 
               <button class="close-form-button" id="closeDividendForm">
@@ -230,20 +230,14 @@
             </div>
 
             <form id="dividendForm">
+              <input type="hidden" id="dividendFormId" value="" />
+
               <div class="dividend-form-grid">
                 <div class="form-field">
                   <label for="dividendCompany"> Company </label>
 
                   <select id="dividendCompany" required>
                     <option value="">Select company</option>
-
-                    <option value="BEXIMCO">BEXIMCO</option>
-
-                    <option value="GP">Grameenphone</option>
-
-                    <option value="BATBC">BAT Bangladesh</option>
-
-                    <option value="SQURPHARMA">Square Pharmaceuticals</option>
                   </select>
                 </div>
 
@@ -286,8 +280,8 @@
                   Cancel
                 </button>
 
-                <button type="submit" class="primary-button">
-                  <i class="bi bi-plus-lg"></i>
+                <button type="submit" class="primary-button" id="saveDividendBtn">
+                  <i class="bi bi-check2"></i>
 
                   Save dividend
                 </button>
@@ -304,16 +298,22 @@
               <div>
                 <h2>Dividend history</h2>
 
-                <p>Declared and paid dividends across your tracked companies</p>
+                <p id="dividendCountSubtitle">Declared and paid dividends across your tracked companies</p>
               </div>
 
-              <select class="filter-select" id="dividendFilter" aria-label="Filter dividend history">
-                <option value="all">All companies</option>
+              <div class="d-flex align-items-center gap-2">
+                <select class="filter-select" id="dividendCompanyFilter" aria-label="Filter by company">
+                  <option value="all">All companies</option>
+                </select>
 
-                <option value="current">This year</option>
+                <select class="filter-select" id="dividendFilter" aria-label="Filter dividend period">
+                  <option value="all">All periods</option>
 
-                <option value="previous">Previous year</option>
-              </select>
+                  <option value="current">This year</option>
+
+                  <option value="previous">Previous year</option>
+                </select>
+              </div>
             </div>
 
             <div class="table-responsive">
@@ -331,114 +331,17 @@
                     <th>Status</th>
 
                     <th>Estimated income</th>
+
+                    <th>Actions</th>
                   </tr>
                 </thead>
 
-                <tbody>
+                <tbody id="dividendTableBody">
                   <tr>
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> GP </span>
-
-                        <div class="company-details">
-                          <strong> GP </strong>
-
-                          <small> Grameenphone Ltd. </small>
-                        </div>
-                      </div>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                      <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                      Loading dividend history...
                     </td>
-
-                    <td>৳12.00</td>
-
-                    <td>Aug 15, 2026</td>
-
-                    <td>Sep 05, 2026</td>
-
-                    <td>
-                      <span class="status-badge status-paid"> Paid </span>
-                    </td>
-
-                    <td>৳2,400</td>
-                  </tr>
-
-                  <tr>
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> SQ </span>
-
-                        <div class="company-details">
-                          <strong> SQURPHARMA </strong>
-
-                          <small> Square Pharmaceuticals </small>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>৳8.00</td>
-
-                    <td>Jul 20, 2026</td>
-
-                    <td>Aug 25, 2026</td>
-
-                    <td>
-                      <span class="status-badge status-paid"> Paid </span>
-                    </td>
-
-                    <td>৳1,600</td>
-                  </tr>
-
-                  <tr>
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> BT </span>
-
-                        <div class="company-details">
-                          <strong> BATBC </strong>
-
-                          <small> BAT Bangladesh</small>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>৳15.00</td>
-
-                    <td>Sep 10, 2026</td>
-
-                    <td>Oct 10, 2026</td>
-
-                    <td>
-                      <span class="status-badge status-upcoming">
-                        Upcoming
-                      </span>
-                    </td>
-
-                    <td>৳3,000</td>
-                  </tr>
-
-                  <tr>
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> BX </span>
-
-                        <div class="company-details">
-                          <strong> BEXIMCO </strong>
-
-                          <small> Beximco Limited </small>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>৳5.00</td>
-
-                    <td>Jun 12, 2026</td>
-
-                    <td>Jul 15, 2026</td>
-
-                    <td>
-                      <span class="status-badge status-paid"> Paid </span>
-                    </td>
-
-                    <td>৳1,000</td>
                   </tr>
                 </tbody>
               </table>

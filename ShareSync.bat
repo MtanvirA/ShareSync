@@ -30,6 +30,17 @@ if not defined DOTNET (
     exit /b 1
 )
 
+:: -- Check if already running ------------------------------------------------
+echo  [1/3] Checking if ShareSync server is already running...
+powershell -Command "try { `$r = Invoke-WebRequest -Uri 'http://localhost:5000/api/health' -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo  [OK] ShareSync is already running on http://localhost:5000
+    goto OPEN_BROWSER
+)
+
+:: -- Clean up any stale locked process ---------------------------------------
+taskkill /F /IM ShareSync.Web.exe >nul 2>&1
+
 :: -- Start the API server ----------------------------------------------------
 echo  [1/3] Starting backend API on http://localhost:5000 ...
 echo.
@@ -64,7 +75,13 @@ start "" "http://localhost:5000"
 
 echo  ============================================
 echo   ShareSync is running at http://localhost:5000
-echo   Close the API window or press Ctrl+C to stop.
+echo  --------------------------------------------
+echo   DEMO LOGIN CREDENTIALS:
+echo     Email:    tanvir@sharesync.com
+echo     Password: Password123#
+echo  --------------------------------------------
+echo   Or register a new account at:
+echo     http://localhost:5000/register.html
 echo  ============================================
 echo.
 pause

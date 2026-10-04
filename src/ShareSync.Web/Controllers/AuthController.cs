@@ -68,6 +68,50 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPut("profile")]
+    [Authorize]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequestDto request, CancellationToken cancellationToken)
+    {
+        if (!_currentUserService.UserId.HasValue)
+        {
+            throw new UnauthorizedException();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+            return BadRequest(ApiResponse.Fail("Validation failed.", errors));
+        }
+
+        var result = await _authService.UpdateProfileAsync(_currentUserService.UserId.Value, request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPut("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDto request, CancellationToken cancellationToken)
+    {
+        if (!_currentUserService.UserId.HasValue)
+        {
+            throw new UnauthorizedException();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+            return BadRequest(ApiResponse.Fail("Validation failed.", errors));
+        }
+
+        var result = await _authService.ChangePasswordAsync(_currentUserService.UserId.Value, request, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost("logout")]
     [Authorize]
     public IActionResult Logout()

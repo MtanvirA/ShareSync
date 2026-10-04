@@ -300,4 +300,95 @@ public class AuthenticationTests
         Assert.Equal("tokentester@example.com", jwt.Claims.First(c => c.Type == ClaimTypes.Email || c.Type == "email").Value);
         Assert.Equal("INVESTOR", jwt.Claims.First(c => c.Type == ClaimTypes.Role || c.Type == "role").Value);
     }
+
+    [Fact]
+    public async Task UpdateProfile_WithValidName_UpdatesAndReturnsNewUserDto()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var config = CreateTestConfiguration();
+        var tokenGenerator = new JwtTokenGenerator(config);
+        var authService = new AuthService(context, _passwordHasher, tokenGenerator);
+
+        var user = new AppUser
+        {
+            UserId = 10,
+            Name = "Initial Name",
+            Email = "user10@example.com",
+            PasswordHash = _passwordHasher.HashPassword("InitialPass123!"),
+            Role = "INVESTOR"
+        };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        // Act
+        var result = await authService.UpdateProfileAsync(10, new UpdateProfileRequestDto { Name = "Updated Investor Name" });
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("Updated Investor Name", result.Data.Name);
+        var dbUser = await context.Users.FindAsync(10);
+        Assert.Equal("Updated Investor Name", dbUser!.Name);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WithCorrectCurrentPassword_UpdatesPasswordHash()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var config = CreateTestConfiguration();
+        var tokenGenerator = new JwtTokenGenerator(config);
+        var authService = new AuthService(context, _passwordHasher, tokenGenerator);
+
+        var user = new AppUser
+        {
+            UserId = 20,
+            Name = "Password User",
+            Email = "pwduser@example.com",
+            PasswordHash = _passwordHasher.HashPassword("OldSecret123!"),
+            Role = "INVESTOR"
+        };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        // Act
+        var result = await authService.ChangePasswordAsync(20, new ChangePasswordRequestDto
+        {
+            CurrentPassword = "OldSecret123!",
+            NewPassword = "BrandNewSecret456!"
+        });
+
+        // Assert
+        Assert.True(result.Success);
+        var dbUser = await context.Users.FindAsync(20);
+        Assert.True(_passwordHasher.VerifyPassword("BrandNewSecret456!", dbUser!.PasswordHash));
+    }
+
+    [Fact]
+    public async Task ChangePassword_WithIncorrectCurrentPassword_ThrowsAppException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var config = CreateTestConfiguration();
+        var tokenGenerator = new JwtTokenGenerator(config);
+        var authService = new AuthService(context, _passwordHasher, tokenGenerator);
+
+        var user = new AppUser
+        {
+            UserId = 30,
+            Name = "Password User 2",
+            Email = "pwduser2@example.com",
+            PasswordHash = _passwordHasher.HashPassword("CorrectOld123!"),
+            Role = "INVESTOR"
+        };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<AppException>(() => authService.ChangePasswordAsync(30, new ChangePasswordRequestDto
+        {
+            CurrentPassword = "WrongPassword999!",
+            NewPassword = "BrandNewSecret456!"
+        }));
+    }
 }

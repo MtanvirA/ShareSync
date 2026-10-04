@@ -126,4 +126,50 @@ public class AuthService : IAuthService
 
         return ApiResponse<UserDto>.Ok(userDto);
     }
+
+    public async Task<ApiResponse<UserDto>> UpdateProfileAsync(int userId, UpdateProfileRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var user = await _context.Users
+            .SingleOrDefaultAsync(u => u.UserId == userId, cancellationToken);
+
+        if (user == null)
+        {
+            throw new NotFoundException("User", userId);
+        }
+
+        user.Name = request.Name.Trim();
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var userDto = new UserDto
+        {
+            UserId = user.UserId,
+            Name = user.Name,
+            Email = user.Email,
+            Role = user.Role,
+            CreatedAt = user.CreatedAt
+        };
+
+        return ApiResponse<UserDto>.Ok(userDto, "Profile updated successfully.");
+    }
+
+    public async Task<ApiResponse> ChangePasswordAsync(int userId, ChangePasswordRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var user = await _context.Users
+            .SingleOrDefaultAsync(u => u.UserId == userId, cancellationToken);
+
+        if (user == null)
+        {
+            throw new NotFoundException("User", userId);
+        }
+
+        if (!_passwordHasher.VerifyPassword(request.CurrentPassword, user.PasswordHash))
+        {
+            throw new AppException("Current password is incorrect.", 400);
+        }
+
+        user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return ApiResponse.Ok("Password changed successfully.");
+    }
 }

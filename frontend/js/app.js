@@ -440,10 +440,18 @@ function setupTableHints() {
 
 function setupSidebarNavigation() {
   const sidebarLinks = document.querySelectorAll(".sidebar-link");
+  const currentPath = (window.location.pathname || "").toLowerCase().split("/").pop() || "index.html";
 
   sidebarLinks.forEach((link) => {
+    const href = (link.getAttribute("href") || "").toLowerCase().split("/").pop();
     const text = (link.textContent || "").trim().toLowerCase();
     const hasLogoutIcon = !!link.querySelector(".bi-box-arrow-right");
+
+    if (href && (href === currentPath || (currentPath === "" && href === "index.html"))) {
+      link.classList.add("active");
+    } else if (href && href !== "#") {
+      link.classList.remove("active");
+    }
 
     if (text === "log out" || hasLogoutIcon) {
       link.addEventListener("click", async (e) => {
@@ -457,13 +465,6 @@ function setupSidebarNavigation() {
           localStorage.removeItem("sharesync_user");
           window.location.href = "login.html";
         }
-      });
-    } else {
-      link.addEventListener("click", () => {
-        sidebarLinks.forEach((item) => {
-          item.classList.remove("active");
-        });
-        link.classList.add("active");
       });
     }
   });
@@ -885,7 +886,345 @@ function setupDseSync() {
   });
 }
 
+// =========================================
+// THEME MANAGEMENT (LIGHT / DARK / SYSTEM)
+// =========================================
+
+function getSystemTheme() {
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function getStoredThemePreference() {
+  return localStorage.getItem("sharesync_theme") || "system";
+}
+
+function updateChartsForTheme(theme) {
+  const isDark = theme === "dark";
+  const gridColor = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)";
+  const textColor = isDark ? "#94A3B8" : "#6B7280";
+
+  if (typeof Chart !== "undefined") {
+    Chart.defaults.color = textColor;
+    Chart.defaults.borderColor = gridColor;
+  }
+
+  const chartsToUpdate = [
+    typeof portfolioChart !== "undefined" ? portfolioChart : null,
+    typeof reportValueChartInstance !== "undefined" ? reportValueChartInstance : null,
+    typeof reportActivityChartInstance !== "undefined" ? reportActivityChartInstance : null
+  ].filter(Boolean);
+
+  chartsToUpdate.forEach((chart) => {
+    try {
+      if (chart.options?.scales?.x) {
+        if (chart.options.scales.x.ticks) chart.options.scales.x.ticks.color = textColor;
+        if (chart.options.scales.x.grid) chart.options.scales.x.grid.color = gridColor;
+      }
+      if (chart.options?.scales?.y) {
+        if (chart.options.scales.y.ticks) chart.options.scales.y.ticks.color = textColor;
+        if (chart.options.scales.y.grid) chart.options.scales.y.grid.color = gridColor;
+      }
+      chart.update();
+    } catch (_) {}
+  });
+}
+
+function applyTheme(themeChoice) {
+  const effectiveTheme = themeChoice === "system" ? getSystemTheme() : themeChoice;
+  document.documentElement.setAttribute("data-theme", effectiveTheme);
+
+  const toggleBtns = document.querySelectorAll(".theme-toggle-btn, #themeToggleBtn");
+  toggleBtns.forEach((btn) => {
+    const icon = btn.querySelector("i");
+    if (icon) {
+      if (effectiveTheme === "dark") {
+        icon.className = "bi bi-sun";
+        btn.setAttribute("title", "Switch to Light Mode");
+      } else {
+        icon.className = "bi bi-moon-stars";
+        btn.setAttribute("title", "Switch to Dark Mode");
+      }
+    }
+  });
+
+  const themeCards = document.querySelectorAll(".theme-card");
+  themeCards.forEach((card) => {
+    const cardTheme = card.dataset.theme;
+    const badge = card.querySelector(".theme-card-badge");
+    if (cardTheme === themeChoice) {
+      card.classList.add("active");
+      if (badge) badge.textContent = "Active";
+    } else {
+      card.classList.remove("active");
+      if (badge) badge.textContent = "Select";
+    }
+  });
+
+  updateChartsForTheme(effectiveTheme);
+}
+
+function setThemePreference(newChoice) {
+  localStorage.setItem("sharesync_theme", newChoice);
+  applyTheme(newChoice);
+}
+
+function initThemeSystem() {
+  const currentPref = getStoredThemePreference();
+  applyTheme(currentPref);
+
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      if (getStoredThemePreference() === "system") {
+        applyTheme("system");
+      }
+    });
+  }
+
+  document.querySelectorAll(".theme-toggle-btn, #themeToggleBtn").forEach((btn) => {
+    if (btn.dataset.initialized) return;
+    btn.dataset.initialized = "true";
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const current = document.documentElement.getAttribute("data-theme") || "light";
+      const next = current === "dark" ? "light" : "dark";
+      setThemePreference(next);
+      showToast(`Switched to ${next === "dark" ? "Dark" : "Light"} mode`, "info");
+    });
+  });
+}
+
+// =========================================
+// SETTINGS PAGE
+// =========================================
+
+async function setupSettingsPage() {
+  const settingsContainer = document.getElementById("settingsTabs");
+  if (!settingsContainer) {
+    return;
+  }
+
+  // 1. Theme Selection Cards
+  const themeCards = document.querySelectorAll(".theme-card");
+  const storedTheme = getStoredThemePreference();
+
+  themeCards.forEach((card) => {
+    const theme = card.dataset.theme;
+    if (theme === storedTheme) {
+      card.classList.add("active");
+      const badge = card.querySelector(".theme-card-badge");
+      if (badge) badge.textContent = "Active";
+    }
+
+    card.addEventListener("click", () => {
+      setThemePreference(theme);
+      showToast(`Theme changed to ${theme.toUpperCase()}`, "success");
+    });
+  });
+
+  // 2. Load User Profile from Oracle via /api/auth/me
+  try {
+    const meRes = await apiRequest("/auth/me");
+    if (meRes?.data) {
+      const u = meRes.data;
+      const fullNameInput = document.getElementById("profileFullName");
+      const emailInput = document.getElementById("profileEmail");
+      const roleInput = document.getElementById("profileRole");
+      const memberSinceInput = document.getElementById("profileMemberSince");
+
+      if (fullNameInput) fullNameInput.value = u.name || "";
+      if (emailInput) emailInput.value = u.email || "";
+      if (roleInput) roleInput.value = u.role || "INVESTOR";
+      if (memberSinceInput && u.createdAt) {
+        const date = new Date(u.createdAt);
+        memberSinceInput.value = date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      }
+    }
+  } catch (err) {
+    console.warn("Could not load /api/auth/me:", err);
+  }
+
+  // 3. Profile Form Submit (PUT /api/auth/profile)
+  const profileForm = document.getElementById("profileForm");
+  if (profileForm) {
+    profileForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById("saveProfileBtn");
+      const originalText = saveBtn.innerHTML;
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Saving...';
+
+      try {
+        const nameVal = document.getElementById("profileFullName")?.value?.trim();
+        if (!nameVal || nameVal.length < 2) {
+          throw new Error("Please enter a valid full name (minimum 2 characters).");
+        }
+
+        const res = await apiRequest("/auth/profile", {
+          method: "PUT",
+          body: JSON.stringify({ name: nameVal })
+        });
+
+        const cachedUser = getCurrentUser() || {};
+        cachedUser.name = nameVal;
+        localStorage.setItem("sharesync_user", JSON.stringify(cachedUser));
+        setupUserHeader();
+
+        showToast(res?.message || "Profile updated successfully.", "success");
+      } catch (err) {
+        showToast(err.message || "Failed to update profile.", "danger");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+      }
+    });
+  }
+
+  // 4. Market & Currency Preferences Form
+  const marketForm = document.getElementById("marketPreferencesForm");
+  if (marketForm) {
+    const curSelect = document.getElementById("prefCurrency");
+    const numSelect = document.getElementById("prefNumberFormat");
+    const refSelect = document.getElementById("prefDseRefresh");
+    const alertSelect = document.getElementById("prefAlertThreshold");
+
+    if (curSelect) curSelect.value = localStorage.getItem("sharesync_currency") || "BDT";
+    if (numSelect) numSelect.value = localStorage.getItem("sharesync_number_format") || "BD";
+    if (refSelect) refSelect.value = localStorage.getItem("sharesync_dse_refresh") || "10";
+    if (alertSelect) alertSelect.value = localStorage.getItem("sharesync_alert_buffer") || "5";
+
+    marketForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (curSelect) localStorage.setItem("sharesync_currency", curSelect.value);
+      if (numSelect) localStorage.setItem("sharesync_number_format", numSelect.value);
+      if (refSelect) localStorage.setItem("sharesync_dse_refresh", refSelect.value);
+      if (alertSelect) localStorage.setItem("sharesync_alert_buffer", alertSelect.value);
+
+      showToast("Market and currency preferences saved successfully.", "success");
+    });
+  }
+
+  // 5. Change Password Form (PUT /api/auth/change-password)
+  const passwordForm = document.getElementById("changePasswordForm");
+  if (passwordForm) {
+    passwordForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const currentPw = document.getElementById("currentPassword")?.value || "";
+      const newPw = document.getElementById("newPassword")?.value || "";
+      const confirmPw = document.getElementById("confirmNewPassword")?.value || "";
+
+      if (newPw.length < 6) {
+        showToast("New password must be at least 6 characters.", "danger");
+        return;
+      }
+      if (newPw !== confirmPw) {
+        showToast("New password and confirm password do not match.", "danger");
+        return;
+      }
+
+      const updateBtn = document.getElementById("updatePasswordBtn");
+      const originalText = updateBtn.innerHTML;
+      updateBtn.disabled = true;
+      updateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Updating...';
+
+      try {
+        const res = await apiRequest("/auth/change-password", {
+          method: "PUT",
+          body: JSON.stringify({
+            currentPassword: currentPw,
+            newPassword: newPw
+          })
+        });
+
+        showToast(res?.message || "Password changed successfully!", "success");
+        passwordForm.reset();
+      } catch (err) {
+        showToast(err.message || "Failed to change password.", "danger");
+      } finally {
+        updateBtn.disabled = false;
+        updateBtn.innerHTML = originalText;
+      }
+    });
+  }
+
+  // 6. Data & Export Handlers
+  const exportCsvBtn = document.getElementById("exportTransactionsCsvBtn");
+  if (exportCsvBtn) {
+    exportCsvBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        const res = await apiRequest("/transactions");
+        const txs = res?.data || [];
+        if (!txs.length) {
+          showToast("No transactions found to export.", "info");
+          return;
+        }
+
+        const headers = ["TransactionId", "PortfolioId", "Ticker", "Type", "Quantity", "Price", "TotalAmount", "Date"];
+        const rows = txs.map(t => [
+          t.transactionId,
+          t.portfolioId,
+          `"${t.tickerSymbol || ""}"`,
+          t.transactionType,
+          t.quantity,
+          t.pricePerShare,
+          t.totalAmount,
+          `"${new Date(t.transactionDate).toISOString()}"`
+        ]);
+
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `ShareSync_Transactions_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("Transactions exported successfully as CSV.", "success");
+      } catch (err) {
+        showToast("Export failed: " + err.message, "danger");
+      }
+    });
+  }
+
+  const exportJsonBtn = document.getElementById("exportPortfolioJsonBtn");
+  if (exportJsonBtn) {
+    exportJsonBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        const res = await apiRequest("/portfolios");
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res?.data || [], null, 2));
+        const link = document.createElement("a");
+        link.setAttribute("href", dataStr);
+        link.setAttribute("download", `ShareSync_Portfolios_${new Date().toISOString().slice(0, 10)}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("Portfolio snapshot exported successfully as JSON.", "success");
+      } catch (err) {
+        showToast("Export failed: " + err.message, "danger");
+      }
+    });
+  }
+
+  const clearCacheBtn = document.getElementById("clearCacheBtn");
+  if (clearCacheBtn) {
+    clearCacheBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (confirm("Reset local preferences and cache? (Your account and database transactions are safe)")) {
+        localStorage.removeItem("sharesync_theme");
+        localStorage.removeItem("sharesync_currency");
+        localStorage.removeItem("sharesync_number_format");
+        localStorage.removeItem("sharesync_dse_refresh");
+        localStorage.removeItem("sharesync_alert_buffer");
+        showToast("Preferences reset. Reloading...", "info");
+        setTimeout(() => window.location.reload(), 800);
+      }
+    });
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  initThemeSystem();
   checkAuthProtection();
   console.log("ShareSync application loaded.");
 
@@ -907,6 +1246,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (typeof setupDividendFilter === "function") setupDividendFilter();
   if (typeof setupPortfolioManagement === "function") setupPortfolioManagement();
   if (typeof setupDseSync === "function") setupDseSync();
+  if (typeof setupSettingsPage === "function") setupSettingsPage();
 });
 
 // =========================================

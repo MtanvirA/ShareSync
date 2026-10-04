@@ -6,6 +6,16 @@
     <meta name="description" content="ShareSync - Sign in to your investment portfolio" />
     <title>ShareSync | Sign In</title>
 
+    <!-- Theme initialization -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem("sharesync_theme");
+        var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
     <!-- Bootstrap CSS -->
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"

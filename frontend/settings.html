@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ShareSync - Settings and Preferences" />
+    <title>ShareSync | Settings</title>
+
+    <!-- Theme initialization (prevents flash of white in dark mode) -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem("sharesync_theme");
+        var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
+    <!-- Bootstrap 5 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+
+    <!-- ShareSync CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body>
+    <!-- =========================
+         TOP BAR
+    ========================== -->
+    <header class="topbar">
+      <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <!-- Brand -->
+          <a href="index.html" class="brand text-decoration-none">
+            <span class="brand-mark">S</span>
+            <span class="brand-name">Share<span>Sync</span></span>
+          </a>
+
+          <!-- Controls & Profile -->
+          <div class="d-flex align-items-center gap-2">
+            <button
+              class="icon-button theme-toggle-btn"
+              id="themeToggleBtn"
+              title="Toggle Light / Dark Mode"
+              aria-label="Toggle theme"
+            >
+              <i class="bi bi-moon-stars"></i>
+            </button>
+
+            <button class="icon-button" title="Notifications" aria-label="Notifications">
+              <i class="bi bi-bell"></i>
+            </button>
+
+            <div class="profile ms-2">
+              <div class="profile-avatar" id="headerAvatar">T</div>
+              <div class="profile-info d-none d-md-block">
+                <span class="profile-name" id="headerUserName">Investor</span>
+                <span class="profile-role">Investor</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- =========================
+         APPLICATION LAYOUT
+    ========================== -->
+    <div class="app-layout">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <p class="sidebar-label">Workspace</p>
+
+          <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">
+              <i class="bi bi-grid-1x2-fill"></i>
+              <span>Dashboard</span>
+            </a>
+
+            <a href="portfolio.html" class="sidebar-link">
+              <i class="bi bi-briefcase"></i>
+              <span>Portfolio</span>
+            </a>
+
+            <a href="transactions.html" class="sidebar-link">
+              <i class="bi bi-arrow-left-right"></i>
+              <span>Transactions</span>
+            </a>
+
+            <a href="watchlist.html" class="sidebar-link">
+              <i class="bi bi-bookmark"></i>
+              <span>Watchlist</span>
+            </a>
+
+            <a href="dividends.html" class="sidebar-link">
+              <i class="bi bi-cash-stack"></i>
+              <span>Dividends</span>
+            </a>
+
+            <a href="reports.html" class="sidebar-link">
+              <i class="bi bi-bar-chart-line"></i>
+              <span>Reports</span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="sidebar-section sidebar-bottom">
+          <p class="sidebar-label">Account</p>
+
+          <nav class="sidebar-nav">
+            <a href="settings.html" class="sidebar-link active">
+              <i class="bi bi-gear"></i>
+              <span>Settings</span>
+            </a>
+
+            <a href="#" class="sidebar-link">
+              <i class="bi bi-box-arrow-right"></i>
+              <span>Log out</span>
+            </a>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <!-- PAGE HEADER -->
+          <section class="page-header">
+            <div>
+              <p class="eyebrow">SYSTEM &amp; PREFERENCES</p>
+              <h1>Settings</h1>
+              <p class="page-description">
+                Customize appearance themes, your profile, currency display, market sync frequencies, and security.
+              </p>
+            </div>
+          </section>
+
+          <!-- SETTINGS NAV PILLS / TABS -->
+          <ul class="nav nav-pills settings-tabs mb-4" id="settingsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link active"
+                id="tab-appearance-btn"
+                data-bs-toggle="pill"
+                data-bs-target="#tab-appearance"
+                type="button"
+                role="tab"
+              >
+                <i class="bi bi-palette me-1"></i> Appearance
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="tab-profile-btn"
+                data-bs-toggle="pill"
+                data-bs-target="#tab-profile"
+                type="button"
+                role="tab"
+              >
+                <i class="bi bi-person me-1"></i> Profile
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="tab-market-btn"
+                data-bs-toggle="pill"
+                data-bs-target="#tab-market"
+                type="button"
+                role="tab"
+              >
+                <i class="bi bi-graph-up-arrow me-1"></i> Market &amp; Currency
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="tab-security-btn"
+                data-bs-toggle="pill"
+                data-bs-target="#tab-security"
+                type="button"
+                role="tab"
+              >
+                <i class="bi bi-shield-lock me-1"></i> Security
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="tab-data-btn"
+                data-bs-toggle="pill"
+                data-bs-target="#tab-data"
+                type="button"
+                role="tab"
+              >
+                <i class="bi bi-database-down me-1"></i> Data &amp; Export
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="settingsTabContent">
+            <!-- =========================================
+                 1. APPEARANCE & THEME TAB
+            ========================================= -->
+            <div class="tab-pane fade show active" id="tab-appearance" role="tabpanel">
+              <article class="dashboard-card mb-4">
+                <div class="card-header pb-2">
+                  <div>
+                    <h2>Theme &amp; Visual Style</h2>
+                    <p>Select your interface theme. Your preference is automatically remembered on this device.</p>
+                  </div>
+                </div>
+
+                <div class="theme-card-grid mt-3">
+                  <!-- Light Mode Card -->
+                  <div class="theme-card" data-theme="light" role="button" tabindex="0">
+                    <div class="theme-card-preview preview-light">
+                      <div class="preview-sidebar"></div>
+                      <div class="preview-content">
+                        <div class="preview-bar"></div>
+                        <div class="preview-grid">
+                          <div class="preview-box"></div>
+                          <div class="preview-box"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="theme-card-info">
+                      <div class="theme-card-header">
+                        <strong class="theme-card-title">
+                          <i class="bi bi-sun me-1 text-warning"></i> Light Mode
+                        </strong>
+                        <span class="theme-card-badge">Select</span>
+                      </div>
+                      <p class="theme-card-desc">
+                        Crisp, clean daytime theme with high contrast and readable typography.
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Dark Mode Card -->
+                  <div class="theme-card" data-theme="dark" role="button" tabindex="0">
+                    <div class="theme-card-preview preview-dark">
+                      <div class="preview-sidebar"></div>
+                      <div class="preview-content">
+                        <div class="preview-bar"></div>
+                        <div class="preview-grid">
+                          <div class="preview-box"></div>
+                          <div class="preview-box"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="theme-card-info">
+                      <div class="theme-card-header">
+                        <strong class="theme-card-title">
+                          <i class="bi bi-moon-stars me-1 text-primary"></i> Dark Mode
+                        </strong>
+                        <span class="theme-card-badge">Select</span>
+                      </div>
+                      <p class="theme-card-desc">
+                        Professional obsidian &amp; midnight slate theme engineered for reduced eye strain and elegant night trading.
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- System Auto Card -->
+                  <div class="theme-card" data-theme="system" role="button" tabindex="0">
+                    <div class="theme-card-preview preview-system">
+                      <div class="preview-half light-half"></div>
+                      <div class="preview-half dark-half"></div>
+                    </div>
+                    <div class="theme-card-info">
+                      <div class="theme-card-header">
+                        <strong class="theme-card-title">
+                          <i class="bi bi-display me-1 text-info"></i> System Sync
+                        </strong>
+                        <span class="theme-card-badge">Select</span>
+                      </div>
+                      <p class="theme-card-desc">
+                        Automatically matches your device operating system display preferences.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="border-top mt-4 pt-3">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                      <strong>Smooth Chart Animations</strong>
+                      <div class="text-muted small">Animate portfolio curves and charts dynamically when period changes.</div>
+                    </div>
+                    <div class="form-check form-switch m-0">
+                      <input class="form-check-input" type="checkbox" id="settingChartAnim" checked />
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <!-- =========================================
+                 2. PROFILE TAB
+            ========================================= -->
+            <div class="tab-pane fade" id="tab-profile" role="tabpanel">
+              <article class="dashboard-card mb-4">
+                <div class="card-header pb-2">
+                  <div>
+                    <h2>Investor Profile</h2>
+                    <p>Manage your display name and view your account credentials.</p>
+                  </div>
+                </div>
+
+                <form id="profileForm" class="mt-3" style="max-width: 580px;">
+                  <div class="form-field mb-3">
+                    <label for="profileFullName">Full Name <span>*</span></label>
+                    <input
+                      type="text"
+                      id="profileFullName"
+                      name="name"
+                      required
+                      minlength="2"
+                      maxlength="100"
+                      placeholder="e.g. Tanvir Ahmed"
+                    />
+                  </div>
+
+                  <div class="form-field mb-3">
+                    <label for="profileEmail">Email Address <span>(Read-only)</span></label>
+                    <input
+                      type="email"
+                      id="profileEmail"
+                      name="email"
+                      disabled
+                      class="bg-opacity-50"
+                      placeholder="user@sharesync.com"
+                    />
+                    <small class="text-muted mt-1 d-block">
+                      Email address is linked to your Oracle database user credentials.
+                    </small>
+                  </div>
+
+                  <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                      <div class="form-field">
+                        <label>Account Role</label>
+                        <input type="text" id="profileRole" disabled value="INVESTOR" />
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="form-field">
+                        <label>Member Since</label>
+                        <input type="text" id="profileMemberSince" disabled value="Loading..." />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-actions mt-4">
+                    <button type="submit" id="saveProfileBtn" class="primary-button">
+                      <i class="bi bi-check-lg me-1"></i> Save Changes
+                    </button>
+                  </div>
+                </form>
+              </article>
+            </div>
+
+            <!-- =========================================
+                 3. MARKET & CURRENCY TAB
+            ========================================= -->
+            <div class="tab-pane fade" id="tab-market" role="tabpanel">
+              <article class="dashboard-card mb-4">
+                <div class="card-header pb-2">
+                  <div>
+                    <h2>Currency &amp; DSE Market Data</h2>
+                    <p>Configure how stock prices and portfolio valuations are displayed.</p>
+                  </div>
+                </div>
+
+                <form id="marketPreferencesForm" class="mt-3" style="max-width: 580px;">
+                  <div class="form-field mb-3">
+                    <label for="prefCurrency">Base Currency</label>
+                    <select id="prefCurrency" class="form-select">
+                      <option value="BDT" selected>৳ BDT - Bangladeshi Taka (Default)</option>
+                      <option value="USD">$ USD - United States Dollar</option>
+                      <option value="EUR">€ EUR - Euro</option>
+                    </select>
+                  </div>
+
+                  <div class="form-field mb-3">
+                    <label for="prefNumberFormat">Number Formatting</label>
+                    <select id="prefNumberFormat" class="form-select">
+                      <option value="BD" selected>Bangladeshi Standard (৳1,50,000.00)</option>
+                      <option value="INT">International Standard (৳150,000.00)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-field mb-3">
+                    <label for="prefDseRefresh">DSE Background Price Refresh</label>
+                    <select id="prefDseRefresh" class="form-select">
+                      <option value="10" selected>Every 10 minutes (Active Background Service)</option>
+                      <option value="5">Every 5 minutes (Frequent Trading)</option>
+                      <option value="manual">Manual On-Demand Sync Only</option>
+                    </select>
+                    <small class="text-muted mt-1 d-block">
+                      Prices are pulled live from Dhaka Stock Exchange via the automated background worker.
+                    </small>
+                  </div>
+
+                  <div class="form-field mb-3">
+                    <label for="prefAlertThreshold">Watchlist Target Alert Buffer</label>
+                    <select id="prefAlertThreshold" class="form-select">
+                      <option value="2">Within 2% of Target Price</option>
+                      <option value="5" selected>Within 5% of Target Price</option>
+                      <option value="10">Within 10% of Target Price</option>
+                    </select>
+                  </div>
+
+                  <div class="form-actions mt-4">
+                    <button type="submit" id="saveMarketPrefBtn" class="primary-button">
+                      <i class="bi bi-save me-1"></i> Save Preferences
+                    </button>
+                  </div>
+                </form>
+              </article>
+            </div>
+
+            <!-- =========================================
+                 4. SECURITY TAB
+            ========================================= -->
+            <div class="tab-pane fade" id="tab-security" role="tabpanel">
+              <article class="dashboard-card mb-4">
+                <div class="card-header pb-2">
+                  <div>
+                    <h2>Security &amp; Password</h2>
+                    <p>Keep your portfolio account secure by using a strong password.</p>
+                  </div>
+                </div>
+
+                <form id="changePasswordForm" class="mt-3" style="max-width: 580px;">
+                  <div class="form-field mb-3">
+                    <label for="currentPassword">Current Password <span>*</span></label>
+                    <div class="input-with-prefix">
+                      <span><i class="bi bi-lock"></i></span>
+                      <input
+                        type="password"
+                        id="currentPassword"
+                        name="currentPassword"
+                        required
+                        placeholder="Enter your existing password"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-field mb-3">
+                    <label for="newPassword">New Password <span>* (Min 6 characters)</span></label>
+                    <div class="input-with-prefix">
+                      <span><i class="bi bi-key"></i></span>
+                      <input
+                        type="password"
+                        id="newPassword"
+                        name="newPassword"
+                        required
+                        minlength="6"
+                        placeholder="Enter your new password"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-field mb-3">
+                    <label for="confirmNewPassword">Confirm New Password <span>*</span></label>
+                    <div class="input-with-prefix">
+                      <span><i class="bi bi-shield-check"></i></span>
+                      <input
+                        type="password"
+                        id="confirmNewPassword"
+                        name="confirmNewPassword"
+                        required
+                        minlength="6"
+                        placeholder="Re-enter your new password"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-actions mt-4">
+                    <button type="submit" id="updatePasswordBtn" class="primary-button">
+                      <i class="bi bi-shield-lock me-1"></i> Update Password
+                    </button>
+                  </div>
+                </form>
+              </article>
+            </div>
+
+            <!-- =========================================
+                 5. DATA & EXPORT TAB
+            ========================================= -->
+            <div class="tab-pane fade" id="tab-data" role="tabpanel">
+              <article class="dashboard-card mb-4">
+                <div class="card-header pb-2">
+                  <div>
+                    <h2>Data Backup &amp; Storage Management</h2>
+                    <p>Export your investment activity or reset local client state.</p>
+                  </div>
+                </div>
+
+                <div class="row g-3 mt-2" style="max-width: 720px;">
+                  <div class="col-md-6">
+                    <div class="p-3 border rounded h-100 d-flex flex-column justify-content-between" style="border-color: var(--color-border) !important; background: var(--color-surface-soft);">
+                      <div>
+                        <h6><i class="bi bi-filetype-csv text-success me-2"></i> Export Transactions</h6>
+                        <p class="text-muted small mb-3">
+                          Download a CSV file of all your historical BUY and SELL transactions with prices, fees, and dates.
+                        </p>
+                      </div>
+                      <button id="exportTransactionsCsvBtn" class="secondary-button w-100 justify-content-center">
+                        <i class="bi bi-download me-1"></i> Download CSV
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="p-3 border rounded h-100 d-flex flex-column justify-content-between" style="border-color: var(--color-border) !important; background: var(--color-surface-soft);">
+                      <div>
+                        <h6><i class="bi bi-filetype-json text-primary me-2"></i> Portfolio Snapshot</h6>
+                        <p class="text-muted small mb-3">
+                          Export complete JSON data for your active portfolio holdings, total profit/loss, and cost basis.
+                        </p>
+                      </div>
+                      <button id="exportPortfolioJsonBtn" class="secondary-button w-100 justify-content-center">
+                        <i class="bi bi-download me-1"></i> Download JSON
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="col-12 mt-3">
+                    <div class="p-3 border rounded d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-color: var(--color-border) !important;">
+                      <div>
+                        <strong class="text-danger"><i class="bi bi-arrow-counterclockwise me-1"></i> Reset Cached Settings</strong>
+                        <div class="text-muted small">Clears local theme and filter caches. Your database portfolio data remains safe.</div>
+                      </div>
+                      <button id="clearCacheBtn" class="secondary-button text-danger">
+                        <i class="bi bi-trash me-1"></i> Clear Local Cache
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- ShareSync Application JavaScript -->
+    <script src="js/app.js"></script>
+  </body>
+</html>

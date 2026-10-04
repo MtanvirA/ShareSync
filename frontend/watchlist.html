@@ -9,6 +9,16 @@
 
     <title>ShareSync | Watchlist</title>
 
+    <!-- Theme initialization -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem("sharesync_theme");
+        var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
     <!-- Bootstrap -->
 
     <link
@@ -42,7 +52,16 @@
             <span class="brand-name"> Share<span>Sync</span> </span>
           </a>
 
-          <div class="d-flex align-items-center gap-3">
+          <div class="d-flex align-items-center gap-2">
+            <button
+              class="icon-button theme-toggle-btn"
+              id="themeToggleBtn"
+              title="Toggle Light / Dark Mode"
+              aria-label="Toggle theme"
+            >
+              <i class="bi bi-moon-stars"></i>
+            </button>
+
             <button class="icon-button" title="Notifications">
               <i class="bi bi-bell"></i>
             </button>
@@ -117,7 +136,7 @@
           <p class="sidebar-label">Account</p>
 
           <nav class="sidebar-nav">
-            <a href="#" class="sidebar-link">
+            <a href="settings.html" class="sidebar-link">
               <i class="bi bi-gear"></i>
 
               <span> Settings </span>

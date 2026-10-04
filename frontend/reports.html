@@ -13,6 +13,15 @@
 
     <title>ShareSync | Reports</title>
 
+    <!-- Theme initialization -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem("sharesync_theme");
+        var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
 
     <!-- Bootstrap -->
 
@@ -64,7 +73,13 @@
                 </a>
 
 
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="icon-button theme-toggle-btn"
+                            id="themeToggleBtn"
+                            title="Toggle Light / Dark Mode"
+                            aria-label="Toggle theme">
+                        <i class="bi bi-moon-stars"></i>
+                    </button>
 
                     <button class="icon-button"
                             title="Notifications">
@@ -212,7 +227,7 @@
 
                 <nav class="sidebar-nav">
 
-                    <a href="#"
+                    <a href="settings.html"
                        class="sidebar-link">
 
                         <i class="bi bi-gear"></i>

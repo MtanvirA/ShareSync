@@ -56,15 +56,140 @@
               <i class="bi bi-moon-stars"></i>
             </button>
 
-            <button class="icon-button" title="Notifications" aria-label="Notifications">
-              <i class="bi bi-bell"></i>
-            </button>
+            <!-- Notifications Center -->
+            <div class="header-dropdown-wrapper position-relative">
+              <button
+                class="icon-button position-relative"
+                id="notificationBtn"
+                title="Notifications"
+                aria-label="Notifications"
+                aria-expanded="false"
+              >
+                <i class="bi bi-bell"></i>
+                <span class="notification-badge" id="notificationBadge"></span>
+              </button>
 
-            <div class="profile ms-2">
-              <div class="profile-avatar" id="headerAvatar">T</div>
-              <div class="profile-info d-none d-md-block">
-                <span class="profile-name" id="headerUserName">Investor</span>
-                <span class="profile-role">Investor</span>
+              <div class="header-dropdown notification-dropdown" id="notificationDropdown">
+                <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center gap-2">
+                    <h6 class="mb-0 fw-semibold" style="font-size: 14px;">Notifications</h6>
+                    <span class="badge bg-primary rounded-pill px-2 py-1" id="notificationCountBadge" style="font-size: 11px;">3 new</span>
+                  </div>
+                  <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" id="markAllNotificationsReadBtn" style="font-size: 12px;">
+                    Mark all as read
+                  </button>
+                </div>
+
+                <div class="notification-list" id="notificationList" style="max-height: 340px; overflow-y: auto;">
+                  <div class="notification-item unread p-3 border-bottom d-flex gap-3 align-items-start" data-notif-id="1">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 34px; height: 34px; background: rgba(16, 185, 129, 0.15); color: #10B981;">
+                      <i class="bi bi-arrow-up-right"></i>
+                    </div>
+                    <div class="flex-grow-1" style="min-width: 0;">
+                      <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="fw-semibold text-truncate" style="font-size: 13px;">Price Target Reached</span>
+                        <span class="text-muted" style="font-size: 11px;">10m ago</span>
+                      </div>
+                      <p class="mb-0 text-muted" style="font-size: 12px; line-height: 1.4;">BEXIMCO touched your target price of ৳115.50 (+3.2% today).</p>
+                    </div>
+                    <div class="unread-dot rounded-circle bg-primary flex-shrink-0 mt-1"></div>
+                  </div>
+
+                  <div class="notification-item unread p-3 border-bottom d-flex gap-3 align-items-start" data-notif-id="2">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 34px; height: 34px; background: rgba(59, 130, 246, 0.15); color: #3B82F6;">
+                      <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <div class="flex-grow-1" style="min-width: 0;">
+                      <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="fw-semibold text-truncate" style="font-size: 13px;">Dividend Announcement</span>
+                        <span class="text-muted" style="font-size: 11px;">2h ago</span>
+                      </div>
+                      <p class="mb-0 text-muted" style="font-size: 12px; line-height: 1.4;">GP declared cash dividend of ৳12.50 per share. Record date upcoming.</p>
+                    </div>
+                    <div class="unread-dot rounded-circle bg-primary flex-shrink-0 mt-1"></div>
+                  </div>
+
+                  <div class="notification-item unread p-3 border-bottom d-flex gap-3 align-items-start" data-notif-id="3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 34px; height: 34px; background: rgba(245, 158, 11, 0.15); color: #F59E0B;">
+                      <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <div class="flex-grow-1" style="min-width: 0;">
+                      <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="fw-semibold text-truncate" style="font-size: 13px;">DSE Market Live Sync</span>
+                        <span class="text-muted" style="font-size: 11px;">1d ago</span>
+                      </div>
+                      <p class="mb-0 text-muted" style="font-size: 12px; line-height: 1.4;">Automated daily price updates synchronized successfully with DSE.</p>
+                    </div>
+                    <div class="unread-dot rounded-circle bg-primary flex-shrink-0 mt-1"></div>
+                  </div>
+                </div>
+
+                <div class="p-2 text-center border-top">
+                  <a href="watchlist.html" class="text-decoration-none fw-medium" style="font-size: 12px; color: var(--color-accent);">View Watchlist Alerts &rarr;</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Profile Menu -->
+            <div class="header-dropdown-wrapper position-relative ms-2">
+              <div class="profile" id="headerProfileBtn" role="button" tabindex="0" aria-expanded="false" title="Account Menu">
+                <div class="profile-avatar" id="headerAvatar">T</div>
+
+                <div class="profile-info d-none d-md-block">
+                  <span class="profile-name" id="headerUserName"> Investor </span>
+
+                  <span class="profile-role"> Investor </span>
+                </div>
+
+                <i class="bi bi-chevron-down profile-arrow"></i>
+              </div>
+
+              <div class="header-dropdown profile-dropdown" id="profileDropdown">
+                <div class="p-3 border-bottom">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="profile-avatar flex-shrink-0" id="dropdownAvatar" style="width: 42px; height: 42px; font-size: 17px;">T</div>
+                    <div style="min-width: 0;">
+                      <div class="fw-semibold text-truncate" id="dropdownUserName" style="font-size: 14px;">Investor</div>
+                      <div class="text-muted text-truncate" id="dropdownUserEmail" style="font-size: 12px;">investor@sharesync.com</div>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-0" style="font-size: 11px;" id="dropdownUserRole">INVESTOR</span>
+                  </div>
+                </div>
+
+                <div class="py-2 border-bottom">
+                  <a href="settings.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-person"></i>
+                    <span>My Profile & Settings</span>
+                  </a>
+                  <a href="portfolio.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-pie-chart"></i>
+                    <span>My Portfolios</span>
+                  </a>
+                  <a href="transactions.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-receipt"></i>
+                    <span>Transaction History</span>
+                  </a>
+                </div>
+
+                <div class="p-2 border-bottom">
+                  <div class="d-flex align-items-center justify-content-between px-2 py-1">
+                    <span class="text-muted d-flex align-items-center gap-2" style="font-size: 13px;">
+                      <i class="bi bi-moon-stars" style="font-size: 14px;"></i> Dark Mode
+                    </span>
+                    <div class="form-check form-switch m-0 p-0" style="min-height: auto;">
+                      <input class="form-check-input ms-0" type="checkbox" role="switch" id="dropdownThemeSwitch" style="cursor: pointer;">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-2">
+                  <button class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2 w-100 border-0 bg-transparent text-danger" id="dropdownLogoutBtn">
+                    <i class="bi bi-box-arrow-right text-danger"></i>
+                    <span>Sign Out</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

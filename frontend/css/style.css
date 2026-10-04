@@ -86,76 +86,76 @@
 }
 
 /* =========================================
-   DARK THEME (PROFESSIONAL FINTECH OBSIDIAN)
+   DARK THEME (PROFESSIONAL HARMONIOUS GRAPHITE SLATE)
 ========================================= */
 [data-theme="dark"] {
-    /* Brand */
-    --color-primary: #38BDF8;
-    --color-primary-dark: #0284C7;
-    --color-primary-soft: rgba(56, 189, 248, 0.14);
+    /* Cohesive Brand Accent: Refined Sapphire Blue */
+    --color-primary: #3B82F6;
+    --color-primary-dark: #2563EB;
+    --color-primary-soft: rgba(59, 130, 246, 0.12);
     --color-accent: #3B82F6;
-    --color-accent-soft: rgba(59, 130, 246, 0.18);
-    --color-chart-purple: #A78BFA;
-    --color-chart-amber: #FBBF24;
+    --color-accent-soft: rgba(59, 130, 246, 0.12);
+    --color-chart-purple: #8B5CF6;
+    --color-chart-amber: #F59E0B;
 
-    /* Backgrounds */
-    --color-background: #0B0F19;        /* Deep obsidian midnight base */
-    --color-surface: #131B2E;           /* Refined slate navy card surface */
-    --color-surface-soft: #1A243B;      /* Elevated component surface */
+    /* Seamless Slate/Charcoal Canvas (Warm dark gray, no stark contrast) */
+    --color-background: #0B0E14;        /* Deep natural midnight canvas */
+    --color-surface: #121722;           /* Soft elevated card/table surface */
+    --color-surface-soft: #181F2E;      /* Secondary surface / hovers */
 
-    /* Borders */
-    --color-border: #202D45;           /* Subtle dark slate border */
-    --color-border-dark: #2A3B59;
+    /* Soft, balanced borders that melt naturally into the dark background */
+    --color-border: #222938;           /* Muted subtle border */
+    --color-border-dark: #2D3749;
 
-    /* Typography */
-    --color-text: #F1F5F9;             /* Crisp off-white */
-    --color-text-secondary: #94A3B8;   /* Balanced slate for comfortable reading */
-    --color-text-muted: #64748B;       /* Low-contrast metadata */
+    /* Natural, glare-free typography */
+    --color-text: #E6EDF5;             /* Soft crisp text (reduces eye strain) */
+    --color-text-secondary: #8B949E;   /* Balanced neutral slate */
+    --color-text-muted: #5B6575;       /* Subdued metadata */
 
-    /* Sidebar */
-    --color-sidebar: #080C14;          /* Slightly deeper than content */
-    --color-sidebar-text: #F8FAFC;
-    --color-sidebar-link: #94A3B8;
-    --color-sidebar-muted: #64748B;
-    --color-sidebar-hover: rgba(255, 255, 255, 0.05);
-    --color-sidebar-active-bg: rgba(59, 130, 246, 0.18);
+    /* Unified Sidebar */
+    --color-sidebar: #0D111A;          /* Perfectly blends with topbar & canvas */
+    --color-sidebar-text: #E6EDF5;
+    --color-sidebar-link: #8B949E;
+    --color-sidebar-muted: #5B6575;
+    --color-sidebar-hover: rgba(255, 255, 255, 0.04);
+    --color-sidebar-active-bg: rgba(59, 130, 246, 0.12);
 
-    /* Financial states */
-    --color-positive: #34D399;         /* High-visibility vibrant emerald */
-    --color-positive-soft: rgba(52, 211, 153, 0.15);
+    /* Balanced Financial States */
+    --color-positive: #10B981;         /* Natural emerald profit */
+    --color-positive-soft: rgba(16, 185, 129, 0.12);
 
-    --color-negative: #F87171;         /* Bright coral rose */
-    --color-negative-soft: rgba(248, 113, 113, 0.15);
+    --color-negative: #F43F5E;         /* Natural rose crimson loss */
+    --color-negative-soft: rgba(244, 63, 94, 0.12);
 
-    --color-warning: #FBBF24;          /* Warm gold */
-    --color-warning-soft: rgba(251, 191, 36, 0.15);
+    --color-warning: #F59E0B;          /* Warm golden amber */
+    --color-warning-soft: rgba(245, 158, 11, 0.12);
 
     /* Button Colors */
-    --color-btn-primary-bg: #2563EB;
-    --color-btn-primary-hover: #1D4ED8;
+    --color-btn-primary-bg: #3B82F6;
+    --color-btn-primary-hover: #2563EB;
     --color-btn-primary-text: #FFFFFF;
 
     /* Card & Table Hovers */
-    --color-card-hover-bg: #172138;
-    --color-card-hover-border: #2E4061;
-    --color-table-row-hover: #18233A;
+    --color-card-hover-bg: #151B27;
+    --color-card-hover-border: #2D3749;
+    --color-table-row-hover: #151B27;
 
     /* Inputs */
-    --color-input-bg: #0F1626;
-    --color-input-border: #23314B;
-    --color-input-focus-border: #38BDF8;
-    --color-input-focus-ring: rgba(56, 189, 248, 0.22);
+    --color-input-bg: #0D111A;
+    --color-input-border: #222938;
+    --color-input-focus-border: #3B82F6;
+    --color-input-focus-ring: rgba(59, 130, 246, 0.2);
 
     /* Topbar */
-    --color-topbar-bg: rgba(14, 20, 34, 0.96);
-    --color-topbar-border: #1C273C;
+    --color-topbar-bg: rgba(13, 17, 26, 0.95);
+    --color-topbar-border: #1F2636;
 
     /* Effects */
     --shadow-card:
-        0 1px 0 rgba(0, 0, 0, 0.4),
-        0 8px 24px rgba(0, 0, 0, 0.35);
+        0 1px 0 rgba(0, 0, 0, 0.25),
+        0 8px 24px rgba(0, 0, 0, 0.25);
     --shadow-dropdown:
-        0 10px 30px rgba(0, 0, 0, 0.5);
+        0 12px 36px rgba(0, 0, 0, 0.45);
 }
 
 /* =========================================
@@ -344,8 +344,12 @@ select {
 
 .profile-arrow {
   font-size: 11px;
-
   color: var(--color-text-muted);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.profile.active .profile-arrow {
+  transform: rotate(180deg);
 }
 
 .icon-button {
@@ -2908,6 +2912,159 @@ input:focus-visible {
 [data-theme="dark"] hr,
 [data-theme="dark"] .border,
 [data-theme="dark"] .border-top,
-[data-theme="dark"] .border-bottom {
+[data-theme="dark"] .border-bottom,
+[data-theme="dark"] .border-start,
+[data-theme="dark"] .border-end {
   border-color: var(--color-border) !important;
-}
+}
+
+[data-theme="dark"] .bg-secondary-subtle {
+  background-color: var(--color-surface-soft) !important;
+  color: var(--color-text-secondary) !important;
+  border-color: var(--color-border) !important;
+}
+
+[data-theme="dark"] .badge.bg-primary {
+  background-color: var(--color-accent) !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .badge.bg-secondary {
+  background-color: var(--color-surface-soft) !important;
+  color: var(--color-text-secondary) !important;
+  border: 1px solid var(--color-border);
+}
+
+[data-theme="dark"] .modal-content {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+  border-color: var(--color-border) !important;
+}
+
+[data-theme="dark"] .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* =========================================
+   HEADER DROPDOWNS (PROFILE & NOTIFICATIONS)
+========================================= */
+
+.header-dropdown-wrapper {
+  position: relative;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 4px 10px 4px 4px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.profile:hover,
+.profile.active {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+}
+
+.profile:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  background: #EF4444;
+  border-radius: 50%;
+  border: 2px solid var(--color-surface);
+  box-sizing: content-box;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.notification-badge.d-none {
+  display: none !important;
+}
+
+.header-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-dropdown);
+  z-index: 1060;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.97);
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.18s;
+  pointer-events: none;
+}
+
+.header-dropdown.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.profile-dropdown {
+  min-width: 270px;
+}
+
+.notification-dropdown {
+  width: 360px;
+  max-width: calc(100vw - 32px);
+}
+
+.dropdown-item-link {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dropdown-item-link:hover {
+  background: var(--color-surface-soft);
+  color: var(--color-text);
+}
+
+.dropdown-item-link i {
+  font-size: 15px;
+  width: 20px;
+  text-align: center;
+}
+
+.notification-item {
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+
+.notification-item:hover {
+  background: var(--color-surface-soft) !important;
+}
+
+.notification-item.unread {
+  background: var(--color-primary-soft);
+}
+
+.unread-dot {
+  width: 6px;
+  height: 6px;
+}
+

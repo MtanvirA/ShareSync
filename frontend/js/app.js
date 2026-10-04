@@ -129,18 +129,43 @@ async function apiRequest(endpoint, options = {}) {
   return data;
 }
 
-function setupUserHeader() {
-  const user = getCurrentUser();
+async function setupUserHeader() {
+  let user = getCurrentUser();
   if (!user) return;
 
   const headerUserName = document.getElementById("headerUserName");
   const headerAvatar = document.getElementById("headerAvatar");
+  const dropdownUserName = document.getElementById("dropdownUserName");
+  const dropdownUserEmail = document.getElementById("dropdownUserEmail");
+  const dropdownAvatar = document.getElementById("dropdownAvatar");
+  const dropdownUserRole = document.getElementById("dropdownUserRole");
 
-  const displayName = user.name || user.email || "Investor";
-  const firstName = displayName.trim().split(" ")[0];
+  const updateUI = (u) => {
+    const displayName = (u.name || u.email || "Investor").trim();
+    const firstName = displayName.split(" ")[0];
 
-  if (headerUserName) headerUserName.textContent = firstName;
-  if (headerAvatar) headerAvatar.textContent = firstName.charAt(0).toUpperCase();
+    if (headerUserName) headerUserName.textContent = firstName;
+    if (headerAvatar) headerAvatar.textContent = firstName.charAt(0).toUpperCase();
+
+    if (dropdownUserName) dropdownUserName.textContent = displayName;
+    if (dropdownUserEmail) dropdownUserEmail.textContent = u.email || "investor@sharesync.com";
+    if (dropdownAvatar) dropdownAvatar.textContent = firstName.charAt(0).toUpperCase();
+    if (dropdownUserRole) dropdownUserRole.textContent = (u.role || "INVESTOR").toUpperCase();
+  };
+
+  updateUI(user);
+
+  // If email or role is missing from local cache, fetch from /api/auth/me
+  if (!user.email || !user.role) {
+    try {
+      const meRes = await apiRequest("/auth/me");
+      if (meRes?.data) {
+        user = { ...user, ...meRes.data };
+        localStorage.setItem("sharesync_user", JSON.stringify(user));
+        updateUI(user);
+      }
+    } catch (_) {}
+  }
 }
 
 function setupLoginForm() {
@@ -468,6 +493,185 @@ function setupSidebarNavigation() {
       });
     }
   });
+}
+
+function setupHeaderDropdowns() {
+  const profileBtn = document.getElementById("headerProfileBtn");
+  const profileDropdown = document.getElementById("profileDropdown");
+  const notificationBtn = document.getElementById("notificationBtn");
+  const notificationDropdown = document.getElementById("notificationDropdown");
+  const notificationBadge = document.getElementById("notificationBadge");
+  const markAllReadBtn = document.getElementById("markAllNotificationsReadBtn");
+  const notifCountBadge = document.getElementById("notificationCountBadge");
+  const themeSwitch = document.getElementById("dropdownThemeSwitch");
+  const logoutBtn = document.getElementById("dropdownLogoutBtn");
+
+  const closeAllDropdowns = () => {
+    if (profileDropdown) profileDropdown.classList.remove("show");
+    if (notificationDropdown) notificationDropdown.classList.remove("show");
+    if (profileBtn) {
+      profileBtn.classList.remove("active");
+      profileBtn.setAttribute("aria-expanded", "false");
+    }
+    if (notificationBtn) {
+      notificationBtn.classList.remove("active");
+      notificationBtn.setAttribute("aria-expanded", "false");
+    }
+  };
+
+  // Profile dropdown toggle
+  if (profileBtn && profileDropdown) {
+    profileBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = profileDropdown.classList.contains("show");
+      closeAllDropdowns();
+      if (!isOpen) {
+        profileDropdown.classList.add("show");
+        profileBtn.classList.add("active");
+        profileBtn.setAttribute("aria-expanded", "true");
+      }
+    });
+
+    profileBtn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        profileBtn.click();
+      }
+    });
+  }
+
+  // Notification dropdown toggle
+  if (notificationBtn && notificationDropdown) {
+    notificationBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = notificationDropdown.classList.contains("show");
+      closeAllDropdowns();
+      if (!isOpen) {
+        notificationDropdown.classList.add("show");
+        notificationBtn.classList.add("active");
+        notificationBtn.setAttribute("aria-expanded", "true");
+      }
+    });
+  }
+
+  // Prevent dropdown interior clicks from closing unless clicking action links
+  if (profileDropdown) {
+    profileDropdown.addEventListener("click", (e) => {
+      if (!e.target.closest("a, button")) {
+        e.stopPropagation();
+      }
+    });
+  }
+
+  if (notificationDropdown) {
+    notificationDropdown.addEventListener("click", (e) => {
+      if (!e.target.closest("a, #markAllNotificationsReadBtn")) {
+        e.stopPropagation();
+      }
+    });
+  }
+
+  // Close on outside click
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".header-dropdown-wrapper")) {
+      closeAllDropdowns();
+    }
+  });
+
+  // Close on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeAllDropdowns();
+    }
+  });
+
+  // Notification read persistence & interactions
+  const isRead = localStorage.getItem("sharesync_notifications_read") === "true";
+  if (isRead) {
+    if (notificationBadge) notificationBadge.classList.add("d-none");
+    if (notifCountBadge) {
+      notifCountBadge.textContent = "0 new";
+      notifCountBadge.className = "badge bg-secondary rounded-pill px-2 py-1";
+    }
+    document.querySelectorAll(".notification-item.unread").forEach((item) => {
+      item.classList.remove("unread");
+      const dot = item.querySelector(".unread-dot");
+      if (dot) dot.remove();
+    });
+  }
+
+  if (markAllReadBtn) {
+    markAllReadBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      localStorage.setItem("sharesync_notifications_read", "true");
+      if (notificationBadge) notificationBadge.classList.add("d-none");
+      if (notifCountBadge) {
+        notifCountBadge.textContent = "0 new";
+        notifCountBadge.className = "badge bg-secondary rounded-pill px-2 py-1";
+      }
+      document.querySelectorAll(".notification-item.unread").forEach((item) => {
+        item.classList.remove("unread");
+        const dot = item.querySelector(".unread-dot");
+        if (dot) dot.remove();
+      });
+      if (typeof showToast === "function") {
+        showToast("All notifications marked as read", "info");
+      }
+    });
+  }
+
+  // Individual notification item clicks
+  document.querySelectorAll(".notification-item").forEach((item) => {
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (item.classList.contains("unread")) {
+        item.classList.remove("unread");
+        const dot = item.querySelector(".unread-dot");
+        if (dot) dot.remove();
+
+        const remainingUnread = document.querySelectorAll(".notification-item.unread").length;
+        if (remainingUnread === 0) {
+          localStorage.setItem("sharesync_notifications_read", "true");
+          if (notificationBadge) notificationBadge.classList.add("d-none");
+          if (notifCountBadge) {
+            notifCountBadge.textContent = "0 new";
+            notifCountBadge.className = "badge bg-secondary rounded-pill px-2 py-1";
+          }
+        } else if (notifCountBadge) {
+          notifCountBadge.textContent = `${remainingUnread} new`;
+        }
+      }
+    });
+  });
+
+  // Dropdown Theme Switch
+  if (themeSwitch) {
+    const isDark = (document.documentElement.getAttribute("data-theme") || getStoredThemePreference()) === "dark";
+    themeSwitch.checked = isDark;
+    themeSwitch.addEventListener("change", () => {
+      const next = themeSwitch.checked ? "dark" : "light";
+      setThemePreference(next);
+      if (typeof showToast === "function") {
+        showToast(`Switched to ${next === "dark" ? "Dark" : "Light"} mode`, "info");
+      }
+    });
+  }
+
+  // Dropdown Sign Out button
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        await apiRequest("/auth/logout", { method: "POST" });
+      } catch {
+        // ignore logout network errors
+      } finally {
+        localStorage.removeItem("sharesync_token");
+        localStorage.removeItem("sharesync_user");
+        window.location.href = "login.html";
+      }
+    });
+  }
 }
 
 // =========================================
@@ -960,6 +1164,11 @@ function applyTheme(themeChoice) {
     }
   });
 
+  const themeSwitch = document.getElementById("dropdownThemeSwitch");
+  if (themeSwitch) {
+    themeSwitch.checked = (effectiveTheme === "dark");
+  }
+
   updateChartsForTheme(effectiveTheme);
 }
 
@@ -1233,6 +1442,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupLastUpdated();
   setupTableHints();
   setupUserHeader();
+  setupHeaderDropdowns();
 
   if (typeof setupLoginForm === "function") setupLoginForm();
   if (typeof setupRegisterForm === "function") setupRegisterForm();

@@ -19,55 +19,290 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
-async function ensureAuthenticated() {
-  let token = localStorage.getItem("sharesync_token");
-  if (token) return token;
+function getAuthToken() {
+  return localStorage.getItem("sharesync_token");
+}
 
+function getCurrentUser() {
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: "tanvir@sharesync.com",
-        password: "Password123#"
-      })
-    });
-    const json = await res.json();
-    if (json.success && json.data?.token) {
-      localStorage.setItem("sharesync_token", json.data.token);
-      localStorage.setItem("sharesync_user", JSON.stringify(json.data));
-      return json.data.token;
+    const raw = localStorage.getItem("sharesync_user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function isAuthPage() {
+  const path = (window.location.pathname || "").toLowerCase();
+  return path.endsWith("login.html") || path.endsWith("register.html");
+}
+
+function checkAuthProtection() {
+  const token = getAuthToken();
+  if (isAuthPage()) {
+    if (token) {
+      window.location.href = "index.html";
     }
-  } catch (err) {
-    console.error("Auto-authentication notice:", err);
+  } else {
+    if (!token) {
+      window.location.href = "login.html";
+    }
+  }
+}
+
+async function ensureAuthenticated() {
+  const token = getAuthToken();
+  if (token) return token;
+  if (!isAuthPage()) {
+    window.location.href = "login.html";
   }
   return null;
 }
 
+function sanitizeErrorMessage(msg, status) {
+  if (!msg || typeof msg !== "string") {
+    if (status === 401) return "Session expired or invalid. Please sign in again.";
+    if (status === 403) return "You do not have permission to access this resource.";
+    if (status === 404) return "The requested record was not found.";
+    if (status === 409) return "A record with this identifier already exists.";
+    return "An unexpected error occurred. Please try again.";
+  }
+  const lower = msg.toLowerCase();
+  if (
+    lower.includes("ora-") ||
+    lower.includes("oracle") ||
+    lower.includes("exception") ||
+    lower.includes("stack trace") ||
+    lower.includes("connection string") ||
+    lower.includes("data source") ||
+    lower.includes("internal server error")
+  ) {
+    return "A server processing error occurred. Please try again later.";
+  }
+  return msg;
+}
+
 async function apiRequest(endpoint, options = {}) {
-  const token = await ensureAuthenticated();
+  const token = getAuthToken();
+  const isAuthReq = endpoint.startsWith("/auth/login") || endpoint.startsWith("/auth/register");
+  if (!token && !isAuthReq && !isAuthPage()) {
+    window.location.href = "login.html";
+    throw new Error("Authentication required.");
+  }
+
   const headers = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers
+    });
+  } catch (netErr) {
+    const error = new Error("Network error. Unable to reach ShareSync API server. Ensure the backend is active.");
+    error.status = 0;
+    throw error;
+  }
 
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const errorMsg = data?.message || (data?.errors ? data.errors.join(", ") : "An error occurred.");
-    const error = new Error(errorMsg);
+    if ((response.status === 401 || response.status === 403) && !isAuthReq) {
+      localStorage.removeItem("sharesync_token");
+      localStorage.removeItem("sharesync_user");
+      if (!isAuthPage()) {
+        window.location.href = "login.html";
+      }
+    }
+    const rawMsg = data?.message || (data?.errors ? (Array.isArray(data.errors) ? data.errors.join(", ") : String(data.errors)) : "An error occurred.");
+    const safeMsg = sanitizeErrorMessage(rawMsg, response.status);
+    const error = new Error(safeMsg);
     error.status = response.status;
     error.data = data;
     throw error;
   }
 
   return data;
+}
+
+function setupUserHeader() {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const headerUserName = document.getElementById("headerUserName");
+  const headerAvatar = document.getElementById("headerAvatar");
+
+  const displayName = user.name || user.email || "Investor";
+  const firstName = displayName.trim().split(" ")[0];
+
+  if (headerUserName) headerUserName.textContent = firstName;
+  if (headerAvatar) headerAvatar.textContent = firstName.charAt(0).toUpperCase();
+}
+
+function setupLoginForm() {
+  const form = document.getElementById("loginForm");
+  if (!form) return;
+
+  const emailInput = document.getElementById("loginEmail");
+  const passwordInput = document.getElementById("loginPassword");
+  const submitBtn = document.getElementById("loginBtn");
+  const alertEl = document.getElementById("authAlert");
+  const alertText = document.getElementById("authAlertText");
+
+  const showAlert = (message, tone = "danger") => {
+    if (!alertEl || !alertText) return;
+    alertEl.className = `auth-alert auth-alert-${tone} show`;
+    alertText.textContent = message;
+  };
+
+  const hideAlert = () => {
+    if (!alertEl) return;
+    alertEl.className = "auth-alert";
+  };
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    hideAlert();
+
+    const email = (emailInput?.value || "").trim();
+    const password = (passwordInput?.value || "");
+
+    if (!email) {
+      showAlert("Please enter your email address.");
+      emailInput?.focus();
+      return;
+    }
+    if (!password) {
+      showAlert("Please enter your password.");
+      passwordInput?.focus();
+      return;
+    }
+
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Signing in...';
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        const errorMsg = data?.message || (data?.errors ? (Array.isArray(data.errors) ? data.errors.join(", ") : String(data.errors)) : "Invalid email or password.");
+        showAlert(sanitizeErrorMessage(errorMsg, res.status), "danger");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
+        return;
+      }
+
+      localStorage.setItem("sharesync_token", data.data.token);
+      localStorage.setItem("sharesync_user", JSON.stringify(data.data));
+
+      showAlert("Sign in successful! Redirecting...", "success");
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 300);
+    } catch (err) {
+      showAlert("Unable to connect to the backend server. Please check your connection.", "danger");
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
+  });
+}
+
+function setupRegisterForm() {
+  const form = document.getElementById("registerForm");
+  if (!form) return;
+
+  const nameInput = document.getElementById("registerName");
+  const emailInput = document.getElementById("registerEmail");
+  const passwordInput = document.getElementById("registerPassword");
+  const confirmPasswordInput = document.getElementById("registerConfirmPassword");
+  const submitBtn = document.getElementById("registerBtn");
+  const alertEl = document.getElementById("authAlert");
+  const alertText = document.getElementById("authAlertText");
+
+  const showAlert = (message, tone = "danger") => {
+    if (!alertEl || !alertText) return;
+    alertEl.className = `auth-alert auth-alert-${tone} show`;
+    alertText.textContent = message;
+  };
+
+  const hideAlert = () => {
+    if (!alertEl) return;
+    alertEl.className = "auth-alert";
+  };
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    hideAlert();
+
+    const name = (nameInput?.value || "").trim();
+    const email = (emailInput?.value || "").trim();
+    const password = (passwordInput?.value || "");
+    const confirmPassword = (confirmPasswordInput?.value || "");
+
+    if (!name || name.length < 2) {
+      showAlert("Full name must be at least 2 characters.");
+      nameInput?.focus();
+      return;
+    }
+    if (!email || !email.includes("@")) {
+      showAlert("Please enter a valid email address.");
+      emailInput?.focus();
+      return;
+    }
+    if (!password || password.length < 6) {
+      showAlert("Password must be at least 6 characters long.");
+      passwordInput?.focus();
+      return;
+    }
+    if (password !== confirmPassword) {
+      showAlert("Passwords do not match.");
+      confirmPasswordInput?.focus();
+      return;
+    }
+
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Creating account...';
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        const errorMsg = data?.message || (data?.errors ? (Array.isArray(data.errors) ? data.errors.join(", ") : String(data.errors)) : "Registration failed.");
+        showAlert(sanitizeErrorMessage(errorMsg, res.status), "danger");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
+        return;
+      }
+
+      localStorage.setItem("sharesync_token", data.data.token);
+      localStorage.setItem("sharesync_user", JSON.stringify(data.data));
+
+      showAlert("Account created successfully! Redirecting...", "success");
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 500);
+    } catch (err) {
+      showAlert("Unable to connect to the backend server. Please check your connection.", "danger");
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
+  });
 }
 
 function showToast(message, tone = "success") {
@@ -204,14 +439,31 @@ function setupTableHints() {
 }
 
 function setupSidebarNavigation() {
-  document.querySelectorAll(".sidebar-link").forEach(link => {
+  const sidebarLinks = document.querySelectorAll(".sidebar-link");
+
+  sidebarLinks.forEach((link) => {
     const text = (link.textContent || "").trim().toLowerCase();
-    if (text === "log out") {
-      link.addEventListener("click", (e) => {
+    const hasLogoutIcon = !!link.querySelector(".bi-box-arrow-right");
+
+    if (text === "log out" || hasLogoutIcon) {
+      link.addEventListener("click", async (e) => {
         e.preventDefault();
-        localStorage.removeItem("sharesync_token");
-        localStorage.removeItem("sharesync_user");
-        window.location.href = "login.html";
+        try {
+          await apiRequest("/auth/logout", { method: "POST" });
+        } catch {
+          // ignore logout network errors
+        } finally {
+          localStorage.removeItem("sharesync_token");
+          localStorage.removeItem("sharesync_user");
+          window.location.href = "login.html";
+        }
+      });
+    } else {
+      link.addEventListener("click", () => {
+        sidebarLinks.forEach((item) => {
+          item.classList.remove("active");
+        });
+        link.classList.add("active");
       });
     }
   });
@@ -579,13 +831,17 @@ async function setupDashboard() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  checkAuthProtection();
   console.log("ShareSync application loaded.");
 
   setupSidebarNavigation();
   setupMobileNavigation();
   setupLastUpdated();
   setupTableHints();
+  setupUserHeader();
 
+  if (typeof setupLoginForm === "function") setupLoginForm();
+  if (typeof setupRegisterForm === "function") setupRegisterForm();
   if (typeof setupDashboard === "function") setupDashboard();
   if (typeof setupTransactionForm === "function") setupTransactionForm();
   if (typeof setupWatchlistForm === "function") setupWatchlistForm();
@@ -1569,7 +1825,8 @@ async function setupTransactionForm() {
         companyId,
         transactionType,
         quantity,
-        price,
+        pricePerShare: price,
+        price: price,
         transactionDate,
         notes
       };
@@ -1911,19 +2168,7 @@ function exportTableCsv(table, filename) {
 
 // }
 
-function setupSidebarNavigation() {
-  const sidebarLinks = document.querySelectorAll(".sidebar-link");
-
-  sidebarLinks.forEach((link) => {
-    link.addEventListener("click", () => {
-      sidebarLinks.forEach((item) => {
-        item.classList.remove("active");
-      });
-
-      link.classList.add("active");
-    });
-  });
-}
+// Sidebar navigation active state and logout are handled in primary setupSidebarNavigation
 
 // =========================================
 // PORTFOLIO PERFORMANCE CHART

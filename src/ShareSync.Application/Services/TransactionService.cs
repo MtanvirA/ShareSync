@@ -193,7 +193,7 @@ public class TransactionService : ITransactionService
 
         // Date validation
         var txDate = request.TransactionDate ?? DateTime.UtcNow;
-        if (txDate > DateTime.UtcNow.AddMinutes(5))
+        if (txDate.Date > DateTime.UtcNow.Date.AddDays(1))
         {
             throw new AppException("Transaction date cannot be in the future.", 400);
         }
@@ -294,7 +294,7 @@ public class TransactionService : ITransactionService
             throw new AppException("Price per share must be greater than zero.", 400);
         }
 
-        if (request.TransactionDate.HasValue && request.TransactionDate.Value > DateTime.UtcNow.AddMinutes(5))
+        if (request.TransactionDate.HasValue && request.TransactionDate.Value.Date > DateTime.UtcNow.Date.AddDays(1))
         {
             throw new AppException("Transaction date cannot be in the future.", 400);
         }

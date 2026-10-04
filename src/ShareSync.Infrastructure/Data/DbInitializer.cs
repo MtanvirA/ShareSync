@@ -17,6 +17,9 @@ public static class DbInitializer
             // Create view if it does not exist
             await EnsureViewsAsync(context, logger, cancellationToken);
 
+            // Ensure relational check constraints exist
+            await EnsureConstraintsAsync(context, logger, cancellationToken);
+
             // Ensure reporting analytical indexes exist
             await EnsureIndexesAsync(context, logger, cancellationToken);
 
@@ -81,6 +84,33 @@ HAVING SUM(CASE WHEN t.transaction_type = 'BUY' THEN t.quantity WHEN t.transacti
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Could not ensure VW_PORTFOLIO_HOLDINGS view. Continuing...");
+        }
+    }
+
+    private static async Task EnsureConstraintsAsync(ShareSyncDbContext context, ILogger logger, CancellationToken cancellationToken)
+    {
+        var constraintSqls = new[]
+        {
+            "ALTER TABLE transactions ADD CONSTRAINT ck_transactions_type CHECK (transaction_type IN ('BUY', 'SELL'))",
+            "ALTER TABLE transactions ADD CONSTRAINT ck_transactions_quantity CHECK (quantity > 0)",
+            "ALTER TABLE transactions ADD CONSTRAINT ck_transactions_price CHECK (price_per_share > 0)",
+            "ALTER TABLE dividends ADD CONSTRAINT ck_dividends_amount CHECK (dividend_per_share > 0)",
+            "ALTER TABLE dividends ADD CONSTRAINT ck_dividends_dates CHECK (payment_date >= declaration_date)",
+            "ALTER TABLE companies ADD CONSTRAINT ck_companies_price CHECK (current_price > 0)",
+            "ALTER TABLE portfolio_snapshots ADD CONSTRAINT ck_portfolio_snapshot_value CHECK (total_value >= 0)",
+            "ALTER TABLE watchlist_items ADD CONSTRAINT ck_watchlist_items_target CHECK (target_price IS NULL OR target_price > 0)"
+        };
+
+        foreach (var sql in constraintSqls)
+        {
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            }
+            catch
+            {
+                // Constraint already exists or table not ready
+            }
         }
     }
 

@@ -91,7 +91,10 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
         // 3. COMPANIES
         modelBuilder.Entity<Company>(entity =>
         {
-            entity.ToTable("COMPANIES");
+            entity.ToTable("COMPANIES", t =>
+            {
+                t.HasCheckConstraint("CK_COMPANIES_PRICE", "CURRENT_PRICE > 0");
+            });
             entity.HasKey(e => e.CompanyId).HasName("PK_COMPANIES");
 
             entity.Property(e => e.CompanyId)
@@ -243,7 +246,12 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
         // 7. TRANSACTIONS
         modelBuilder.Entity<Transaction>(entity =>
         {
-            entity.ToTable("TRANSACTIONS");
+            entity.ToTable("TRANSACTIONS", t =>
+            {
+                t.HasCheckConstraint("CK_TRANSACTIONS_TYPE", "TRANSACTION_TYPE IN ('BUY', 'SELL')");
+                t.HasCheckConstraint("CK_TRANSACTIONS_QUANTITY", "QUANTITY > 0");
+                t.HasCheckConstraint("CK_TRANSACTIONS_PRICE", "PRICE_PER_SHARE > 0");
+            });
             entity.HasKey(e => e.TransactionId).HasName("PK_TRANSACTIONS");
 
             entity.Property(e => e.TransactionId)
@@ -294,7 +302,11 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
         // 8. DIVIDENDS
         modelBuilder.Entity<Dividend>(entity =>
         {
-            entity.ToTable("DIVIDENDS");
+            entity.ToTable("DIVIDENDS", t =>
+            {
+                t.HasCheckConstraint("CK_DIVIDENDS_AMOUNT", "DIVIDEND_PER_SHARE > 0");
+                t.HasCheckConstraint("CK_DIVIDENDS_DATES", "PAYMENT_DATE >= DECLARATION_DATE");
+            });
             entity.HasKey(e => e.DividendId).HasName("PK_DIVIDENDS");
 
             entity.Property(e => e.DividendId)
@@ -368,7 +380,10 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
         // 10. PORTFOLIO_SNAPSHOTS
         modelBuilder.Entity<PortfolioSnapshot>(entity =>
         {
-            entity.ToTable("PORTFOLIO_SNAPSHOTS");
+            entity.ToTable("PORTFOLIO_SNAPSHOTS", t =>
+            {
+                t.HasCheckConstraint("CK_PORTFOLIO_SNAPSHOT_VALUE", "TOTAL_VALUE >= 0");
+            });
             entity.HasKey(e => e.SnapshotId).HasName("PK_PORTFOLIO_SNAPSHOTS");
 
             entity.Property(e => e.SnapshotId)

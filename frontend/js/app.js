@@ -830,14 +830,16 @@ async function setupDashboard() {
         const labels = perf.labels && perf.labels.length > 0 ? perf.labels : ["Current"];
         const values = perf.values && perf.values.length > 0 ? perf.values : [summary.totalPortfolioValue || 0];
 
+        const isDark = document.documentElement.getAttribute("data-theme") === "dark";
         const isUp = (perf.netChange || 0) >= 0;
-        const strokeColor = isUp ? "#10b981" : "#ef4444";
-        const bgGradColor = isUp ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)";
+        const strokeColor = isUp ? (isDark ? "#10B981" : "#16A34A") : (isDark ? "#F43F5E" : "#DC2626");
+        const gradTop = isUp ? (isDark ? "rgba(16, 185, 129, 0.22)" : "rgba(22, 163, 74, 0.16)") : (isDark ? "rgba(244, 63, 94, 0.22)" : "rgba(220, 38, 38, 0.16)");
+        const gradBottom = isUp ? "rgba(16, 185, 129, 0.0)" : "rgba(244, 63, 94, 0.0)";
 
         const ctx = canvas.getContext("2d");
-        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-        gradient.addColorStop(0, bgGradColor);
-        gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+        const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+        gradient.addColorStop(0, gradTop);
+        gradient.addColorStop(1, gradBottom);
 
         portfolioChart = new Chart(ctx, {
           type: "line",
@@ -851,10 +853,10 @@ async function setupDashboard() {
               backgroundColor: gradient,
               fill: true,
               tension: 0.35,
-              pointRadius: values.length > 30 ? 0 : 3,
+              pointRadius: values.length > 30 ? 0 : 3.5,
               pointHoverRadius: 6,
               pointBackgroundColor: strokeColor,
-              pointBorderColor: "#ffffff",
+              pointBorderColor: isDark ? "#111726" : "#ffffff",
               pointBorderWidth: 2
             }]
           },
@@ -868,11 +870,15 @@ async function setupDashboard() {
             plugins: {
               legend: { display: false },
               tooltip: {
-                backgroundColor: "#0f172a",
-                titleFont: { size: 12 },
+                backgroundColor: isDark ? "rgba(17, 23, 38, 0.95)" : "rgba(15, 23, 42, 0.95)",
+                titleColor: isDark ? "#F8FAFC" : "#FFFFFF",
+                bodyColor: isDark ? "#E2E8F0" : "#FFFFFF",
+                borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "transparent",
+                borderWidth: isDark ? 1 : 0,
+                titleFont: { size: 12, weight: "600" },
                 bodyFont: { size: 12 },
                 padding: 10,
-                cornerRadius: 6,
+                cornerRadius: 8,
                 displayColors: false,
                 callbacks: {
                   label: context => "Value: ৳" + Number(context.parsed.y).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -884,15 +890,18 @@ async function setupDashboard() {
                 grid: { display: false },
                 ticks: {
                   font: { size: 11 },
-                  color: "#64748b",
+                  color: isDark ? "#94A3B8" : "#64748b",
                   maxTicksLimit: 7
                 }
               },
               y: {
-                grid: { color: "rgba(226, 232, 240, 0.7)" },
+                grid: {
+                  color: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(226, 232, 240, 0.7)",
+                  drawBorder: false
+                },
                 ticks: {
                   font: { size: 11 },
-                  color: "#64748b",
+                  color: isDark ? "#94A3B8" : "#64748b",
                   callback: value => "৳" + (value >= 1000 ? (value / 1000).toFixed(0) + "k" : value)
                 }
               }
@@ -1104,33 +1113,122 @@ function getStoredThemePreference() {
 
 function updateChartsForTheme(theme) {
   const isDark = theme === "dark";
-  const gridColor = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)";
-  const textColor = isDark ? "#94A3B8" : "#6B7280";
+  const gridColor = isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(226, 232, 240, 0.7)";
+  const textColor = isDark ? "#94A3B8" : "#64748B";
 
   if (typeof Chart !== "undefined") {
     Chart.defaults.color = textColor;
     Chart.defaults.borderColor = gridColor;
   }
 
-  const chartsToUpdate = [
-    typeof portfolioChart !== "undefined" ? portfolioChart : null,
-    typeof reportValueChartInstance !== "undefined" ? reportValueChartInstance : null,
-    typeof reportActivityChartInstance !== "undefined" ? reportActivityChartInstance : null
-  ].filter(Boolean);
-
-  chartsToUpdate.forEach((chart) => {
+  // 1. Dashboard Portfolio Chart
+  if (typeof portfolioChart !== "undefined" && portfolioChart && portfolioChart.ctx) {
     try {
-      if (chart.options?.scales?.x) {
-        if (chart.options.scales.x.ticks) chart.options.scales.x.ticks.color = textColor;
-        if (chart.options.scales.x.grid) chart.options.scales.x.grid.color = gridColor;
+      const ds = portfolioChart.data.datasets[0];
+      if (ds && ds.data && ds.data.length > 0) {
+        const firstVal = ds.data[0] || 0;
+        const lastVal = ds.data[ds.data.length - 1] || 0;
+        const isUp = lastVal >= firstVal;
+
+        const strokeColor = isUp ? (isDark ? "#10B981" : "#16A34A") : (isDark ? "#F43F5E" : "#DC2626");
+        const gradTop = isUp ? (isDark ? "rgba(16, 185, 129, 0.22)" : "rgba(22, 163, 74, 0.16)") : (isDark ? "rgba(244, 63, 94, 0.22)" : "rgba(220, 38, 38, 0.16)");
+        const gradBottom = isUp ? "rgba(16, 185, 129, 0.0)" : "rgba(244, 63, 94, 0.0)";
+
+        const gradient = portfolioChart.ctx.createLinearGradient(0, 0, 0, 220);
+        gradient.addColorStop(0, gradTop);
+        gradient.addColorStop(1, gradBottom);
+
+        ds.borderColor = strokeColor;
+        ds.backgroundColor = gradient;
+        ds.pointBackgroundColor = strokeColor;
+        ds.pointBorderColor = isDark ? "#111726" : "#ffffff";
       }
-      if (chart.options?.scales?.y) {
-        if (chart.options.scales.y.ticks) chart.options.scales.y.ticks.color = textColor;
-        if (chart.options.scales.y.grid) chart.options.scales.y.grid.color = gridColor;
+      if (portfolioChart.options?.scales?.x) {
+        if (portfolioChart.options.scales.x.ticks) portfolioChart.options.scales.x.ticks.color = textColor;
       }
-      chart.update();
+      if (portfolioChart.options?.scales?.y) {
+        if (portfolioChart.options.scales.y.ticks) portfolioChart.options.scales.y.ticks.color = textColor;
+        if (portfolioChart.options.scales.y.grid) portfolioChart.options.scales.y.grid.color = gridColor;
+      }
+      if (portfolioChart.options?.plugins?.tooltip) {
+        portfolioChart.options.plugins.tooltip.backgroundColor = isDark ? "rgba(17, 23, 38, 0.95)" : "rgba(15, 23, 42, 0.95)";
+        portfolioChart.options.plugins.tooltip.borderColor = isDark ? "rgba(255, 255, 255, 0.12)" : "transparent";
+        portfolioChart.options.plugins.tooltip.borderWidth = isDark ? 1 : 0;
+      }
+      portfolioChart.update();
     } catch (_) {}
-  });
+  }
+
+  // 2. Report Value Chart on Reports Page
+  if (typeof reportValueChartInstance !== "undefined" && reportValueChartInstance && reportValueChartInstance.ctx) {
+    try {
+      const ds = reportValueChartInstance.data.datasets[0];
+      if (ds) {
+        const strokeColor = isDark ? "#38BDF8" : "#1D4ED8";
+        const gradTop = isDark ? "rgba(56, 189, 248, 0.2)" : "rgba(29, 78, 216, 0.12)";
+        const gradBottom = isDark ? "rgba(56, 189, 248, 0.0)" : "rgba(29, 78, 216, 0.0)";
+
+        const gradient = reportValueChartInstance.ctx.createLinearGradient(0, 0, 0, 260);
+        gradient.addColorStop(0, gradTop);
+        gradient.addColorStop(1, gradBottom);
+
+        ds.borderColor = strokeColor;
+        ds.backgroundColor = gradient;
+        ds.pointBackgroundColor = strokeColor;
+        ds.pointBorderColor = isDark ? "#111726" : "#ffffff";
+      }
+      if (reportValueChartInstance.options?.scales?.x) {
+        if (reportValueChartInstance.options.scales.x.ticks) reportValueChartInstance.options.scales.x.ticks.color = textColor;
+      }
+      if (reportValueChartInstance.options?.scales?.y) {
+        if (reportValueChartInstance.options.scales.y.ticks) reportValueChartInstance.options.scales.y.ticks.color = textColor;
+        if (reportValueChartInstance.options.scales.y.grid) reportValueChartInstance.options.scales.y.grid.color = gridColor;
+      }
+      if (reportValueChartInstance.options?.plugins?.tooltip) {
+        reportValueChartInstance.options.plugins.tooltip.backgroundColor = isDark ? "rgba(17, 23, 38, 0.95)" : "rgba(15, 23, 42, 0.95)";
+      }
+      reportValueChartInstance.update();
+    } catch (_) {}
+  }
+
+  // 3. Report Allocation Donut
+  if (typeof reportAllocationChartInstance !== "undefined" && reportAllocationChartInstance) {
+    try {
+      const ds = reportAllocationChartInstance.data.datasets[0];
+      if (ds && ds.data && ds.data.length > 0) {
+        const lightPalette = ["#1D4ED8", "#10B981", "#F59E0B", "#8B5CF6", "#06B6D4", "#EC4899", "#64748B"];
+        const darkPalette = ["#3B82F6", "#10B981", "#F59E0B", "#A855F7", "#22D3EE", "#F43F5E", "#94A3B8"];
+        const colors = isDark ? darkPalette : lightPalette;
+        ds.backgroundColor = ds.data.map((_, i) => colors[i % colors.length]);
+        ds.borderColor = isDark ? "#111726" : "#ffffff";
+        ds.borderWidth = 2;
+      }
+      reportAllocationChartInstance.update();
+    } catch (_) {}
+  }
+
+  // 4. Report Activity Bar Chart
+  if (typeof reportActivityChartInstance !== "undefined" && reportActivityChartInstance) {
+    try {
+      if (reportActivityChartInstance.data.datasets[0]) {
+        reportActivityChartInstance.data.datasets[0].backgroundColor = isDark ? "#10B981" : "#059669";
+      }
+      if (reportActivityChartInstance.data.datasets[1]) {
+        reportActivityChartInstance.data.datasets[1].backgroundColor = isDark ? "#F59E0B" : "#D97706";
+      }
+      if (reportActivityChartInstance.options?.scales?.x) {
+        if (reportActivityChartInstance.options.scales.x.ticks) reportActivityChartInstance.options.scales.x.ticks.color = textColor;
+      }
+      if (reportActivityChartInstance.options?.scales?.y) {
+        if (reportActivityChartInstance.options.scales.y.ticks) reportActivityChartInstance.options.scales.y.ticks.color = textColor;
+        if (reportActivityChartInstance.options.scales.y.grid) reportActivityChartInstance.options.scales.y.grid.color = gridColor;
+      }
+      if (reportActivityChartInstance.options?.plugins?.legend?.labels) {
+        reportActivityChartInstance.options.plugins.legend.labels.color = textColor;
+      }
+      reportActivityChartInstance.update();
+    } catch (_) {}
+  }
 }
 
 function applyTheme(themeChoice) {
@@ -2837,6 +2935,15 @@ function createPortfolioChart() {
 
   Chart.defaults.font.family = "Inter, Segoe UI, sans-serif";
 
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  const strokeColor = isDark ? "#10B981" : "#16A34A";
+  const gradTop = isDark ? "rgba(16, 185, 129, 0.22)" : "rgba(22, 163, 74, 0.16)";
+  const gradBottom = isDark ? "rgba(16, 185, 129, 0.0)" : "rgba(22, 163, 74, 0.0)";
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+  gradient.addColorStop(0, gradTop);
+  gradient.addColorStop(1, gradBottom);
+
   portfolioChart = new Chart(ctx, {
     type: "line",
 
@@ -2849,15 +2956,15 @@ function createPortfolioChart() {
 
           data: [],
 
-          borderColor: "#0F172A",
-          backgroundColor: "rgba(15, 23, 42, 0.035)",
-          borderWidth: 2,
-          pointRadius: 2,
-          pointHoverRadius: 4,
-          pointBackgroundColor: "#0F172A",
-          pointBorderColor: "#0F172A",
-          pointBorderWidth: 1,
-          tension: 0.28,
+          borderColor: strokeColor,
+          backgroundColor: gradient,
+          borderWidth: 2.5,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: strokeColor,
+          pointBorderColor: isDark ? "#111726" : "#ffffff",
+          pointBorderWidth: 2,
+          tension: 0.3,
           fill: true,
         },
       ],
@@ -2879,12 +2986,14 @@ function createPortfolioChart() {
         },
 
         tooltip: {
-          backgroundColor: "rgba(15, 23, 42, 0.96)",
+          backgroundColor: isDark ? "rgba(17, 23, 38, 0.95)" : "rgba(15, 23, 42, 0.95)",
           titleColor: "#F8FAFC",
           bodyColor: "#F8FAFC",
+          borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "transparent",
+          borderWidth: isDark ? 1 : 0,
           padding: 10,
+          cornerRadius: 8,
           displayColors: false,
-          borderWidth: 0,
           callbacks: {
             label: function (context) {
               return "৳" + Number(context.raw).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -2902,9 +3011,9 @@ function createPortfolioChart() {
             display: false,
           },
           ticks: {
-            color: "#64748B",
+            color: isDark ? "#94A3B8" : "#64748B",
             font: {
-              size: 10,
+              size: 11,
             },
           },
         },
@@ -2915,12 +3024,12 @@ function createPortfolioChart() {
             display: false,
           },
           grid: {
-            color: "rgba(148, 163, 184, 0.18)",
+            color: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(226, 232, 240, 0.7)",
           },
           ticks: {
-            color: "#64748B",
+            color: isDark ? "#94A3B8" : "#64748B",
             font: {
-              size: 10,
+              size: 11,
             },
             callback: function (value) {
               return "৳" + Number(value / 1000).toFixed(0) + "k";
@@ -3045,6 +3154,13 @@ async function loadReportCharts(portfolioId, period) {
       });
       const data = res.data?.chartValues?.length ? res.data.chartValues : snapshots.map(s => s.portfolioValue);
 
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      const strokeColor = isDark ? "#38BDF8" : "#1D4ED8";
+      const ctx = perfCanvas.getContext("2d");
+      const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+      gradient.addColorStop(0, isDark ? "rgba(56, 189, 248, 0.2)" : "rgba(29, 78, 216, 0.12)");
+      gradient.addColorStop(1, isDark ? "rgba(56, 189, 248, 0.0)" : "rgba(29, 78, 216, 0.0)");
+
       if (reportValueChartInstance) {
         reportValueChartInstance.destroy();
       }
@@ -3056,12 +3172,15 @@ async function loadReportCharts(portfolioId, period) {
           datasets: [{
             label: "Portfolio Value",
             data: data.length ? data : [0],
-            borderColor: "#0F172A",
-            backgroundColor: "rgba(15, 23, 42, 0.04)",
-            borderWidth: 2,
-            pointRadius: data.length > 20 ? 1 : 3,
-            pointHoverRadius: 5,
-            tension: 0.25,
+            borderColor: strokeColor,
+            backgroundColor: gradient,
+            borderWidth: 2.5,
+            pointRadius: data.length > 20 ? 1 : 3.5,
+            pointHoverRadius: 6,
+            pointBackgroundColor: strokeColor,
+            pointBorderColor: isDark ? "#111726" : "#ffffff",
+            pointBorderWidth: 2,
+            tension: 0.28,
             fill: true
           }]
         },
@@ -3072,9 +3191,13 @@ async function loadReportCharts(portfolioId, period) {
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: "rgba(15, 23, 42, 0.95)",
+              backgroundColor: isDark ? "rgba(17, 23, 38, 0.95)" : "rgba(15, 23, 42, 0.95)",
               titleColor: "#F8FAFC",
               bodyColor: "#F8FAFC",
+              borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "transparent",
+              borderWidth: isDark ? 1 : 0,
+              padding: 10,
+              cornerRadius: 8,
               callbacks: {
                 label: (ctx) => "৳" + Number(ctx.raw).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
               }
@@ -3083,15 +3206,15 @@ async function loadReportCharts(portfolioId, period) {
           scales: {
             y: {
               beginAtZero: false,
-              grid: { color: "rgba(148, 163, 184, 0.15)" },
+              grid: { color: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(148, 163, 184, 0.15)" },
               ticks: {
-                color: "#64748B",
+                color: isDark ? "#94A3B8" : "#64748B",
                 callback: (val) => "৳" + (val >= 1000 ? (val / 1000).toFixed(0) + "k" : val)
               }
             },
             x: {
               grid: { display: false },
-              ticks: { color: "#64748B" }
+              ticks: { color: isDark ? "#94A3B8" : "#64748B" }
             }
           }
         }
@@ -3110,7 +3233,10 @@ async function loadReportCharts(portfolioId, period) {
       const res = await apiRequest(url);
       const sectors = res.data?.sectors || [];
 
-      const colors = ["#0F172A", "#334155", "#475569", "#64748B", "#94A3B8", "#CBD5E1", "#E2E8F0"];
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      const lightPalette = ["#1D4ED8", "#10B981", "#F59E0B", "#8B5CF6", "#06B6D4", "#EC4899", "#64748B"];
+      const darkPalette = ["#3B82F6", "#10B981", "#F59E0B", "#A855F7", "#22D3EE", "#F43F5E", "#94A3B8"];
+      const colors = isDark ? darkPalette : lightPalette;
       const labels = sectors.map(s => s.sectorName);
       const data = sectors.map(s => s.currentMarketValue);
       const bgColors = sectors.map((_, i) => colors[i % colors.length]);
@@ -3125,9 +3251,10 @@ async function loadReportCharts(portfolioId, period) {
           labels: labels.length ? labels : ["No Holdings"],
           datasets: [{
             data: data.length ? data : [1],
-            backgroundColor: data.length ? bgColors : ["#E2E8F0"],
-            borderWidth: 0,
-            hoverOffset: 3
+            backgroundColor: data.length ? bgColors : [isDark ? "#1E293B" : "#E2E8F0"],
+            borderColor: isDark ? "#111726" : "#ffffff",
+            borderWidth: 2,
+            hoverOffset: 4
           }]
         },
         options: {
@@ -3137,7 +3264,13 @@ async function loadReportCharts(portfolioId, period) {
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: "rgba(15, 23, 42, 0.95)",
+              backgroundColor: isDark ? "rgba(17, 23, 38, 0.95)" : "rgba(15, 23, 42, 0.95)",
+              titleColor: "#F8FAFC",
+              bodyColor: "#F8FAFC",
+              borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "transparent",
+              borderWidth: isDark ? 1 : 0,
+              padding: 10,
+              cornerRadius: 8,
               callbacks: {
                 label: (ctx) => {
                   const val = Number(ctx.raw);
@@ -3202,6 +3335,7 @@ async function loadReportCharts(portfolioId, period) {
         reportActivityChartInstance.destroy();
       }
 
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
       reportActivityChartInstance = new Chart(txCanvas, {
         type: "bar",
         data: {
@@ -3210,15 +3344,15 @@ async function loadReportCharts(portfolioId, period) {
             {
               label: "BUY",
               data: buyCounts.length ? buyCounts : [0],
-              backgroundColor: "#0F172A",
-              borderRadius: 3,
+              backgroundColor: isDark ? "#10B981" : "#059669",
+              borderRadius: 4,
               borderSkipped: false
             },
             {
               label: "SELL",
               data: sellCounts.length ? sellCounts : [0],
-              backgroundColor: "#CBD5E1",
-              borderRadius: 3,
+              backgroundColor: isDark ? "#F59E0B" : "#D97706",
+              borderRadius: 4,
               borderSkipped: false
             }
           ]
@@ -3229,18 +3363,31 @@ async function loadReportCharts(portfolioId, period) {
           plugins: {
             legend: {
               position: "bottom",
-              labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 8 }
+              labels: {
+                usePointStyle: true,
+                pointStyle: "circle",
+                boxWidth: 8,
+                color: isDark ? "#94A3B8" : "#475569",
+                font: { size: 12, weight: "500" }
+              }
+            },
+            tooltip: {
+              backgroundColor: isDark ? "rgba(17, 23, 38, 0.95)" : "rgba(15, 23, 42, 0.95)",
+              borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "transparent",
+              borderWidth: isDark ? 1 : 0,
+              padding: 10,
+              cornerRadius: 8
             }
           },
           scales: {
             y: {
               beginAtZero: true,
-              grid: { color: "rgba(148, 163, 184, 0.15)" },
-              ticks: { stepSize: 1, color: "#64748B" }
+              grid: { color: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(148, 163, 184, 0.15)" },
+              ticks: { stepSize: 1, color: isDark ? "#94A3B8" : "#64748B" }
             },
             x: {
               grid: { display: false },
-              ticks: { color: "#64748B" }
+              ticks: { color: isDark ? "#94A3B8" : "#64748B" }
             }
           }
         }

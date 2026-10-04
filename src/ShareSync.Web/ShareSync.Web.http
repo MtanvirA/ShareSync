@@ -1,0 +1,6 @@
+@ShareSync.Web_HostAddress = http://localhost:5133
+
+GET {{ShareSync.Web_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

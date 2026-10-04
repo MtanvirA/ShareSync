@@ -5,6 +5,71 @@
 
 let portfolioChart;
 
+const API_BASE_URL = window.location.origin.includes(":5000")
+  ? "/api"
+  : "http://localhost:5000/api";
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function ensureAuthenticated() {
+  let token = localStorage.getItem("sharesync_token");
+  if (token) return token;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "tanvir@sharesync.com",
+        password: "Password123#"
+      })
+    });
+    const json = await res.json();
+    if (json.success && json.data?.token) {
+      localStorage.setItem("sharesync_token", json.data.token);
+      localStorage.setItem("sharesync_user", JSON.stringify(json.data));
+      return json.data.token;
+    }
+  } catch (err) {
+    console.error("Auto-authentication notice:", err);
+  }
+  return null;
+}
+
+async function apiRequest(endpoint, options = {}) {
+  const token = await ensureAuthenticated();
+  const headers = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {})
+  };
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const errorMsg = data?.message || (data?.errors ? data.errors.join(", ") : "An error occurred.");
+    const error = new Error(errorMsg);
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+
+  return data;
+}
+
 function showToast(message, tone = "success") {
   let toast = document.querySelector(".app-toast");
 
@@ -166,6 +231,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupWatchlistFilter();
 
   setupDividendFilter();
+
+  setupPortfolioManagement();
 });
 
 // =========================================
@@ -969,3 +1036,292 @@ function setupReports() {
     });
   }
 }
+
+// =========================================
+// PORTFOLIO MANAGEMENT
+// =========================================
+
+let currentPortfolioId = null;
+let userPortfolios = [];
+
+async function setupPortfolioManagement() {
+  const holdingsBody = document.getElementById("portfolioHoldingsBody");
+  if (!holdingsBody) {
+    // Not on portfolio page
+    return;
+  }
+
+  const portfolioSelect = document.getElementById("portfolioSelect");
+  const openCreateBtn = document.getElementById("openCreatePortfolioForm");
+  const openEditBtn = document.getElementById("openEditPortfolioForm");
+  const deleteBtn = document.getElementById("deletePortfolioBtn");
+  const formCard = document.getElementById("portfolioFormCard");
+  const closeFormBtn = document.getElementById("closePortfolioForm");
+  const cancelFormBtn = document.getElementById("cancelPortfolioForm");
+  const form = document.getElementById("portfolioForm");
+  const formTitle = document.getElementById("portfolioFormTitle");
+  const formSubtitle = document.getElementById("portfolioFormSubtitle");
+  const formId = document.getElementById("portfolioFormId");
+  const formName = document.getElementById("portfolioFormName");
+  const formDesc = document.getElementById("portfolioFormDesc");
+
+  setupInlineValidation(form);
+
+  function openForm(isEdit = false) {
+    clearFieldError(formName);
+    if (isEdit) {
+      const active = userPortfolios.find(p => p.portfolioId === currentPortfolioId);
+      formTitle.textContent = "Edit portfolio";
+      formSubtitle.textContent = "Update portfolio name and description";
+      formId.value = currentPortfolioId;
+      formName.value = active ? active.portfolioName : "";
+      formDesc.value = active ? (active.description || "") : "";
+    } else {
+      formTitle.textContent = "Create portfolio";
+      formSubtitle.textContent = "Add a new portfolio to your account";
+      formId.value = "";
+      formName.value = "";
+      formDesc.value = "";
+    }
+    formCard.classList.remove("form-hidden");
+    formCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    formName.focus();
+  }
+
+  function closeForm() {
+    formCard.classList.add("form-hidden");
+    form.reset();
+  }
+
+  if (openCreateBtn) openCreateBtn.addEventListener("click", () => openForm(false));
+  if (openEditBtn) openEditBtn.addEventListener("click", () => openForm(true));
+  if (closeFormBtn) closeFormBtn.addEventListener("click", closeForm);
+  if (cancelFormBtn) cancelFormBtn.addEventListener("click", closeForm);
+
+  if (portfolioSelect) {
+    portfolioSelect.addEventListener("change", (e) => {
+      const selectedId = parseInt(e.target.value, 10);
+      if (selectedId && selectedId !== currentPortfolioId) {
+        currentPortfolioId = selectedId;
+        loadPortfolioDetail(currentPortfolioId);
+      }
+    });
+  }
+
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async () => {
+      if (!currentPortfolioId) return;
+      const active = userPortfolios.find(p => p.portfolioId === currentPortfolioId);
+      const name = active ? active.portfolioName : "this portfolio";
+
+      if (!confirm(`Are you sure you want to delete portfolio "${name}"?`)) {
+        return;
+      }
+
+      try {
+        await apiRequest(`/portfolios/${currentPortfolioId}`, { method: "DELETE" });
+        showToast(`Portfolio "${name}" deleted successfully.`, "success");
+        currentPortfolioId = null;
+        await loadUserPortfolios();
+      } catch (err) {
+        showToast(err.message, "danger");
+      }
+    });
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!validateRequiredFields(form)) return;
+
+      const idVal = formId.value;
+      const payload = {
+        portfolioName: formName.value.trim(),
+        description: formDesc.value.trim() || null
+      };
+
+      try {
+        if (idVal) {
+          // Update
+          const res = await apiRequest(`/portfolios/${idVal}`, {
+            method: "PUT",
+            body: JSON.stringify(payload)
+          });
+          showToast(`Portfolio "${res.data.portfolioName}" updated successfully.`, "success");
+          closeForm();
+          await loadUserPortfolios(parseInt(idVal, 10));
+        } else {
+          // Create
+          const res = await apiRequest("/portfolios", {
+            method: "POST",
+            body: JSON.stringify(payload)
+          });
+          showToast(`Portfolio "${res.data.portfolioName}" created successfully.`, "success");
+          closeForm();
+          await loadUserPortfolios(res.data.portfolioId);
+        }
+      } catch (err) {
+        showToast(err.message, "danger");
+      }
+    });
+  }
+
+  await loadUserPortfolios();
+}
+
+async function loadUserPortfolios(selectId = null) {
+  const portfolioSelect = document.getElementById("portfolioSelect");
+  try {
+    const res = await apiRequest("/portfolios");
+    userPortfolios = res.data || [];
+
+    if (portfolioSelect) {
+      portfolioSelect.innerHTML = "";
+      userPortfolios.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.portfolioId;
+        opt.textContent = p.portfolioName;
+        portfolioSelect.appendChild(opt);
+      });
+
+      if (userPortfolios.length > 1) {
+        portfolioSelect.classList.remove("d-none");
+      } else {
+        portfolioSelect.classList.add("d-none");
+      }
+    }
+
+    if (userPortfolios.length > 0) {
+      if (selectId && userPortfolios.some(p => p.portfolioId === selectId)) {
+        currentPortfolioId = selectId;
+      } else if (!currentPortfolioId || !userPortfolios.some(p => p.portfolioId === currentPortfolioId)) {
+        currentPortfolioId = userPortfolios[0].portfolioId;
+      }
+      if (portfolioSelect) portfolioSelect.value = currentPortfolioId;
+      await loadPortfolioDetail(currentPortfolioId);
+    } else {
+      renderEmptyPortfolioState();
+    }
+  } catch (err) {
+    console.error("Failed to load user portfolios:", err);
+    showToast("Could not load portfolios: " + err.message, "danger");
+  }
+}
+
+async function loadPortfolioDetail(portfolioId) {
+  const titleEl = document.getElementById("portfolioTitle");
+  const descEl = document.getElementById("portfolioDescription");
+  const totalValEl = document.getElementById("portfolioTotalValue");
+  const profitLossEl = document.getElementById("portfolioProfitLoss");
+  const profitLossPctEl = document.getElementById("portfolioProfitLossPct");
+  const totalInvestedEl = document.getElementById("portfolioTotalInvested");
+  const holdingsCountEl = document.getElementById("portfolioHoldingsCount");
+  const holdingsBody = document.getElementById("portfolioHoldingsBody");
+
+  const metricTotalBuyCost = document.getElementById("metricTotalBuyCost");
+  const metricMarketValue = document.getElementById("metricMarketValue");
+  const metricUnrealizedProfit = document.getElementById("metricUnrealizedProfit");
+  const metricReturnPercentage = document.getElementById("metricReturnPercentage");
+
+  try {
+    const res = await apiRequest(`/portfolios/${portfolioId}`);
+    const d = res.data;
+
+    if (titleEl) titleEl.textContent = d.portfolioName;
+    if (descEl) descEl.textContent = d.description || "Track your holdings and investment performance.";
+
+    const formattedValue = "৳" + d.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formattedInvested = "৳" + d.totalInvested.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const isProfitable = d.unrealizedProfitLoss >= 0;
+    const sign = isProfitable ? "+" : "-";
+    const absPL = Math.abs(d.unrealizedProfitLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formattedPL = `${sign}৳${absPL}`;
+    const formattedPLPct = `${sign}${Math.abs(d.unrealizedProfitLossPercentage).toFixed(1)}%`;
+
+    if (totalValEl) totalValEl.textContent = formattedValue;
+    if (profitLossEl) {
+      profitLossEl.textContent = formattedPL;
+      profitLossEl.className = isProfitable ? "positive-text" : "negative-text";
+    }
+    if (profitLossPctEl) {
+      profitLossPctEl.textContent = formattedPLPct;
+      profitLossPctEl.className = isProfitable ? "positive-text" : "negative-text";
+    }
+    if (totalInvestedEl) totalInvestedEl.textContent = formattedInvested;
+    if (holdingsCountEl) holdingsCountEl.textContent = d.holdingsCount;
+
+    // Bottom metrics
+    if (metricTotalBuyCost) metricTotalBuyCost.textContent = formattedInvested;
+    if (metricMarketValue) metricMarketValue.textContent = formattedValue;
+    if (metricUnrealizedProfit) {
+      metricUnrealizedProfit.textContent = formattedPL;
+      metricUnrealizedProfit.className = isProfitable ? "positive-text" : "negative-text";
+    }
+    if (metricReturnPercentage) {
+      metricReturnPercentage.textContent = formattedPLPct;
+      metricReturnPercentage.className = isProfitable ? "positive-text" : "negative-text";
+    }
+
+    // Holdings Table
+    if (holdingsBody) {
+      if (!d.holdings || d.holdings.length === 0) {
+        holdingsBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-4 text-muted">
+              <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+              No stock holdings in this portfolio yet.
+            </td>
+          </tr>
+        `;
+      } else {
+        holdingsBody.innerHTML = d.holdings.map(h => {
+          const hProfitable = h.unrealizedProfitLoss >= 0;
+          const hSign = hProfitable ? "+" : "-";
+          const hReturnStr = `${hSign}${Math.abs(h.returnPercentage).toFixed(1)}%`;
+          const logoText = escapeHtml(h.tickerSymbol.slice(0, 2).toUpperCase());
+
+          return `
+            <tr>
+              <td>
+                <div class="company-cell">
+                  <span class="company-logo">${logoText}</span>
+                  <div>
+                    <strong>${escapeHtml(h.tickerSymbol)}</strong>
+                    <small>${escapeHtml(h.companyName)}</small>
+                  </div>
+                </div>
+              </td>
+              <td>${h.shares.toLocaleString()}</td>
+              <td>৳${h.averageBuyPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td>৳${h.currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td>৳${h.marketValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td class="${hProfitable ? 'positive-text' : 'negative-text'}">${hReturnStr}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load portfolio detail:", err);
+    showToast("Error loading portfolio details: " + err.message, "danger");
+  }
+}
+
+function renderEmptyPortfolioState() {
+  const titleEl = document.getElementById("portfolioTitle");
+  const totalValEl = document.getElementById("portfolioTotalValue");
+  const holdingsBody = document.getElementById("portfolioHoldingsBody");
+  if (titleEl) titleEl.textContent = "No Portfolios";
+  if (totalValEl) totalValEl.textContent = "৳0.00";
+  if (holdingsBody) {
+    holdingsBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center py-4 text-muted">
+          <i class="bi bi-folder-plus fs-4 d-block mb-2"></i>
+          You have no portfolios yet. Click "New portfolio" above to get started.
+        </td>
+      </tr>
+    `;
+  }
+}
+

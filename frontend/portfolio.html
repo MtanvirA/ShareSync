@@ -149,18 +149,106 @@
             <div>
               <p class="eyebrow">PORTFOLIO</p>
 
-              <h1>Main Portfolio</h1>
+              <div class="d-flex align-items-center gap-3">
+                <h1 id="portfolioTitle">Main Portfolio</h1>
+                <select id="portfolioSelect" class="form-select form-select-sm d-none" style="width: auto; max-width: 220px; font-weight: 600;"></select>
+              </div>
 
-              <p class="page-description">
+              <p class="page-description" id="portfolioDescription">
                 Track your holdings and investment performance.
               </p>
             </div>
 
-            <a href="transactions.html" class="primary-button text-decoration-none">
-              <i class="bi bi-plus-lg"></i>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <button id="openCreatePortfolioForm" class="secondary-button" title="Create New Portfolio">
+                <i class="bi bi-folder-plus"></i>
+                New portfolio
+              </button>
 
-              Add transaction
-            </a>
+              <button id="openEditPortfolioForm" class="secondary-button" title="Edit Current Portfolio">
+                <i class="bi bi-pencil"></i>
+                Edit
+              </button>
+
+              <button id="deletePortfolioBtn" class="secondary-button text-danger" title="Delete Portfolio">
+                <i class="bi bi-trash"></i>
+                Delete
+              </button>
+
+              <a href="transactions.html" class="primary-button text-decoration-none">
+                <i class="bi bi-plus-lg"></i>
+                Add transaction
+              </a>
+            </div>
+          </section>
+
+          <!-- =========================
+                     PORTFOLIO FORM
+                ========================== -->
+
+          <section
+            class="dashboard-card form-hidden"
+            id="portfolioFormCard"
+            style="margin-bottom: 24px;"
+          >
+            <div class="card-header">
+              <div>
+                <h2 id="portfolioFormTitle">Create portfolio</h2>
+                <p id="portfolioFormSubtitle">Add a new portfolio to your account</p>
+              </div>
+
+              <button
+                class="close-form-button"
+                id="closePortfolioForm"
+                title="Close form"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <form id="portfolioForm">
+              <input type="hidden" id="portfolioFormId" value="" />
+
+              <div class="transaction-form-grid">
+                <div class="form-field">
+                  <label for="portfolioFormName"> Portfolio Name </label>
+                  <input
+                    type="text"
+                    id="portfolioFormName"
+                    maxlength="100"
+                    placeholder="e.g. Growth Portfolio"
+                    required
+                  />
+                </div>
+
+                <div class="form-field">
+                  <label for="portfolioFormDesc">
+                    Description <span>(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="portfolioFormDesc"
+                    maxlength="255"
+                    placeholder="e.g. High growth and dividend investments"
+                  />
+                </div>
+              </div>
+
+              <div class="form-actions mt-3">
+                <button
+                  type="button"
+                  class="secondary-button"
+                  id="cancelPortfolioForm"
+                >
+                  Cancel
+                </button>
+
+                <button type="submit" class="primary-button" id="savePortfolioBtn">
+                  <i class="bi bi-check2"></i>
+                  Save portfolio
+                </button>
+              </div>
+            </form>
           </section>
 
           <!-- =========================
@@ -171,12 +259,12 @@
             <div class="portfolio-value-card">
               <div class="portfolio-value-label">Current portfolio value</div>
 
-              <div class="portfolio-value">৳125,400</div>
+              <div class="portfolio-value" id="portfolioTotalValue">৳0.00</div>
 
-              <div class="portfolio-return">
-                <span> +৳15,400 </span>
+              <div class="portfolio-return" id="portfolioReturnContainer">
+                <span id="portfolioProfitLoss"> ৳0.00 </span>
 
-                <span> +14.0% </span>
+                <span id="portfolioProfitLossPct"> 0.0% </span>
 
                 <small> Unrealized return </small>
               </div>
@@ -185,19 +273,19 @@
             <div class="portfolio-stat">
               <span> Total invested </span>
 
-              <strong> ৳110,000 </strong>
+              <strong id="portfolioTotalInvested"> ৳0.00 </strong>
             </div>
 
             <div class="portfolio-stat">
               <span> Holdings </span>
 
-              <strong> 3 </strong>
+              <strong id="portfolioHoldingsCount"> 0 </strong>
             </div>
 
             <div class="portfolio-stat">
               <span> Dividend income </span>
 
-              <strong> ৳8,450 </strong>
+              <strong id="portfolioDividendIncome"> ৳8,450 </strong>
             </div>
           </section>
 
@@ -240,83 +328,12 @@
                   </tr>
                 </thead>
 
-                <tbody>
-                  <!-- BEXIMCO -->
-
+                <tbody id="portfolioHoldingsBody">
                   <tr>
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> BX </span>
-
-                        <div>
-                          <strong> BEXIMCO </strong>
-
-                          <small> Beximco Pharmaceuticals </small>
-                        </div>
-                      </div>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                      <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                      Loading portfolio holdings...
                     </td>
-
-                    <td>100</td>
-
-                    <td>৳120.00</td>
-
-                    <td>৳135.00</td>
-
-                    <td>৳13,500</td>
-
-                    <td class="positive-text">+12.5%</td>
-                  </tr>
-
-                  <!-- GP -->
-
-                  <tr>
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> GP </span>
-
-                        <div>
-                          <strong> GP </strong>
-
-                          <small> Grameenphone </small>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>200</td>
-
-                    <td>৳280.00</td>
-
-                    <td>৳295.00</td>
-
-                    <td>৳59,000</td>
-
-                    <td class="positive-text">+5.4%</td>
-                  </tr>
-
-                  <!-- BATBC -->
-
-                  <tr>
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> BT </span>
-
-                        <div>
-                          <strong> BATBC </strong>
-
-                          <small> British American Tobacco </small>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>50</td>
-
-                    <td>৳450.00</td>
-
-                    <td>৳470.00</td>
-
-                    <td>৳23,500</td>
-
-                    <td class="positive-text">+4.4%</td>
                   </tr>
                 </tbody>
               </table>
@@ -343,25 +360,25 @@
                 <div class="metric-row">
                   <span> Total buy cost </span>
 
-                  <strong> ৳110,000 </strong>
+                  <strong id="metricTotalBuyCost"> ৳0.00 </strong>
                 </div>
 
                 <div class="metric-row">
                   <span> Current market value </span>
 
-                  <strong> ৳125,400 </strong>
+                  <strong id="metricMarketValue"> ৳0.00 </strong>
                 </div>
 
                 <div class="metric-row">
                   <span> Unrealized profit </span>
 
-                  <strong class="positive-text"> +৳15,400 </strong>
+                  <strong class="positive-text" id="metricUnrealizedProfit"> ৳0.00 </strong>
                 </div>
 
                 <div class="metric-row">
                   <span> Return </span>
 
-                  <strong class="positive-text"> +14.0% </strong>
+                  <strong class="positive-text" id="metricReturnPercentage"> 0.0% </strong>
                 </div>
               </div>
             </article>

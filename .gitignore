@@ -1,0 +1,29 @@
+## .NET / C#
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.pidb
+*.booproj
+
+## IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+
+## OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## Scratch / Temporary test files
+scratch/
+*.tmp

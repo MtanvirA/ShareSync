@@ -1842,20 +1842,194 @@ select {
   color: var(--color-negative);
 }
 
+/* =========================================
+   TRANSACTION TABLE
+========================================= */
+
+.transaction-table th {
+  padding: 12px 10px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
+}
+
 .transaction-table td {
+  padding: 14px 10px;
   vertical-align: middle;
 }
 
-.transaction-table td:first-child {
+.transaction-table th:nth-child(1),
+.transaction-table td:nth-child(1) {
+  text-align: left;
+  padding-left: 16px;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  width: 120px;
 }
 
-.transaction-table td:nth-child(4),
-.transaction-table td:nth-child(5),
-.transaction-table td:nth-child(6) {
+.transaction-table th:nth-child(2),
+.transaction-table td:nth-child(2) {
+  text-align: left;
+  padding-left: 10px;
+}
+
+.transaction-table th:nth-child(3),
+.transaction-table td:nth-child(3) {
+  text-align: center;
+  width: 90px;
+}
+
+.transaction-table th:nth-child(4),
+.transaction-table td:nth-child(4) {
+  text-align: right;
   font-variant-numeric: tabular-nums;
+  width: 100px;
+}
+
+.transaction-table th:nth-child(5),
+.transaction-table td:nth-child(5) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  width: 110px;
+}
+
+.transaction-table th:nth-child(6),
+.transaction-table td:nth-child(6) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  width: 125px;
+}
+
+.transaction-table th:nth-child(7),
+.transaction-table td:nth-child(7) {
+  text-align: left;
+  padding-left: 16px;
+}
+
+.transaction-table th:nth-child(8),
+.transaction-table td:nth-child(8) {
+  text-align: right;
+  padding-right: 16px;
+  white-space: nowrap;
+  width: 130px;
+}
+
+/* =========================================
+   DIVIDEND TABLE
+========================================= */
+
+.dividend-table th {
+  padding: 12px 10px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.dividend-table td {
+  padding: 14px 10px;
+  vertical-align: middle;
+}
+
+.dividend-table th:nth-child(1),
+.dividend-table td:nth-child(1) {
+  text-align: left;
+  padding-left: 16px;
+}
+
+.dividend-table th:nth-child(2),
+.dividend-table td:nth-child(2) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dividend-table th:nth-child(3),
+.dividend-table td:nth-child(3) {
+  text-align: left;
+  padding-left: 14px;
+}
+
+.dividend-table th:nth-child(4),
+.dividend-table td:nth-child(4) {
+  text-align: left;
+  padding-left: 14px;
+}
+
+.dividend-table th:nth-child(5),
+.dividend-table td:nth-child(5) {
+  text-align: center;
+}
+
+.dividend-table th:nth-child(6),
+.dividend-table td:nth-child(6) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dividend-table th:nth-child(7),
+.dividend-table td:nth-child(7) {
+  text-align: right;
+  padding-right: 16px;
+}
+
+/* =========================================
+   WATCHLIST TABLE
+========================================= */
+
+.watchlist-table th {
+  padding: 12px 10px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.watchlist-table td {
+  padding: 14px 10px;
+  vertical-align: middle;
+}
+
+.watchlist-table th:nth-child(1),
+.watchlist-table td:nth-child(1) {
+  text-align: left;
+  padding-left: 16px;
+}
+
+.watchlist-table th:nth-child(2),
+.watchlist-table td:nth-child(2) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.watchlist-table th:nth-child(3),
+.watchlist-table td:nth-child(3) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.watchlist-table th:nth-child(4),
+.watchlist-table td:nth-child(4) {
+  text-align: center;
+}
+
+.watchlist-table th:nth-child(5),
+.watchlist-table td:nth-child(5) {
+  text-align: right;
+}
+
+.watchlist-table th:nth-child(6),
+.watchlist-table td:nth-child(6) {
+  text-align: left;
+  padding-left: 14px;
+}
+
+.watchlist-table th:nth-child(7),
+.watchlist-table td:nth-child(7) {
+  text-align: right;
+  padding-right: 16px;
 }
 
 .transaction-list-card .table-responsive {

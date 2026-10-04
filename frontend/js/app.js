@@ -3012,6 +3012,63 @@ async function loadPortfolioDetail(portfolioId) {
     console.error("Failed to load portfolio detail:", err);
     showToast("Error loading portfolio details: " + err.message, "danger");
   }
+
+  // Populate recent portfolio transactions (activity list)
+  const activityList = document.getElementById("portfolioActivityList");
+  if (activityList) {
+    try {
+      const txRes = await apiRequest(`/transactions?portfolioId=${portfolioId}`);
+      const txs = (txRes.data || []).slice(0, 5);
+      if (txs.length === 0) {
+        activityList.innerHTML = `
+          <div class="text-center py-4 text-muted">
+            <i class="bi bi-clock-history fs-4 d-block mb-1"></i>
+            No transactions in this portfolio yet.
+          </div>
+        `;
+      } else {
+        activityList.innerHTML = txs.map(tx => {
+          const isBuy = (tx.transactionType || "").toUpperCase() === "BUY";
+          const icon = isBuy ? "bi-arrow-down-left" : "bi-arrow-up-right";
+          const iconClass = isBuy ? "activity-icon buy" : "activity-icon sell";
+          const amountClass = isBuy ? "activity-amount" : "activity-amount positive-text";
+          const sign = isBuy ? "-৳" : "+৳";
+          const dateStr = new Date(tx.transactionDate).toLocaleDateString("en-US", {
+            month: "short", day: "numeric", year: "numeric"
+          });
+          const total = tx.totalAmount || (tx.quantity * tx.price);
+          return `
+            <div class="activity-item">
+              <div class="${iconClass}">
+                <i class="bi ${icon}"></i>
+              </div>
+              <div class="activity-info">
+                <strong>${isBuy ? 'Bought' : 'Sold'} ${escapeHtml(tx.tickerSymbol)}</strong>
+                <span>${Number(tx.quantity).toLocaleString()} shares · ${dateStr}</span>
+              </div>
+              <strong class="${amountClass}">${sign}${Number(total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            </div>
+          `;
+        }).join("");
+      }
+    } catch (err) {
+      console.error("Failed to load portfolio activity:", err);
+      activityList.innerHTML = `<div class="text-center py-3 text-muted">Could not load recent transactions.</div>`;
+    }
+  }
+
+  // Populate dividend income for the portfolio
+  const divIncomeEl = document.getElementById("portfolioDividendIncome");
+  if (divIncomeEl) {
+    try {
+      const divRes = await apiRequest("/dividends/summary");
+      const divIncome = divRes.data?.totalIncome || 0;
+      divIncomeEl.textContent = "৳" + Number(divIncome).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    } catch (err) {
+      console.warn("Could not load dividend income for portfolio page:", err);
+      divIncomeEl.textContent = "৳0.00";
+    }
+  }
 }
 
 function renderEmptyPortfolioState() {

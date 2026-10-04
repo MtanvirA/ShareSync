@@ -396,62 +396,113 @@ function setupWatchlistForm() {
 // TRANSACTION FORM
 // =========================================
 
-function setupTransactionForm() {
-  const form = document.getElementById("transactionForm");
+let userPortfoliosCache = [];
+let allCompaniesCache = [];
 
-  if (!form) {
-    return;
+async function updateAvailableShares() {
+  const typeInput = document.getElementById("transactionType");
+  const portfolioSelect = document.getElementById("portfolio");
+  const companySelect = document.getElementById("company");
+  const availableHint = document.getElementById("availableSharesHint");
+  const availableVal = document.getElementById("availableSharesVal");
+
+  if (!availableHint || !availableVal) return;
+
+  if (typeInput?.value === "SELL" && portfolioSelect?.value && companySelect?.value) {
+    try {
+      const res = await apiRequest(`/transactions/available-shares?portfolioId=${portfolioSelect.value}&companyId=${companySelect.value}`);
+      const shares = res.data?.availableShares || 0;
+      availableVal.textContent = shares.toLocaleString();
+      availableHint.classList.remove("d-none");
+    } catch {
+      availableHint.classList.add("d-none");
+    }
+  } else {
+    availableHint.classList.add("d-none");
   }
+}
+
+async function setupTransactionForm() {
+  const form = document.getElementById("transactionForm");
+  if (!form) return;
 
   const formCard = document.getElementById("transactionFormCard");
-
   const openButton = document.getElementById("openTransactionForm");
-
   const closeButton = document.getElementById("closeTransactionForm");
-
   const cancelButton = document.getElementById("cancelTransaction");
+  const titleEl = document.getElementById("transactionFormTitle");
+  const subtitleEl = document.getElementById("transactionFormSubtitle");
+  const idInput = document.getElementById("transactionFormId");
+  const typeInput = document.getElementById("transactionType");
+  const typeButtons = document.querySelectorAll(".type-button");
+  const portfolioSelect = document.getElementById("portfolio");
+  const companySelect = document.getElementById("company");
+  const quantityInput = document.getElementById("quantity");
+  const priceInput = document.getElementById("price");
+  const dateInput = document.getElementById("transactionDate");
+  const notesInput = document.getElementById("notes");
 
   setupInlineValidation(form);
 
-  // -----------------------------------------
-  // Open form
-  // -----------------------------------------
+  // Set default date to today
+  if (dateInput && !dateInput.value) {
+    dateInput.value = new Date().toISOString().split("T")[0];
+  }
 
-  if (openButton) {
-    openButton.addEventListener("click", () => {
-      formCard.classList.remove("form-hidden");
+  // Load portfolios for dropdowns
+  try {
+    const res = await apiRequest("/portfolios");
+    userPortfoliosCache = res.data || [];
+    if (portfolioSelect) {
+      portfolioSelect.innerHTML = '<option value="">Select portfolio</option>' +
+        userPortfoliosCache.map(p => `<option value="${p.portfolioId}">${escapeHtml(p.portfolioName)}</option>`).join("");
+    }
 
-      formCard.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+    const portfolioFilter = document.getElementById("transactionPortfolioFilter");
+    if (portfolioFilter) {
+      portfolioFilter.innerHTML = '<option value="all">All portfolios</option>' +
+        userPortfoliosCache.map(p => `<option value="${p.portfolioId}">${escapeHtml(p.portfolioName)}</option>`).join("");
+    }
+  } catch (err) {
+    console.error("Failed to load portfolios for transactions:", err);
+  }
+
+  // Load companies for dropdowns
+  try {
+    const res = await apiRequest("/companies");
+    allCompaniesCache = res.data || [];
+    if (companySelect) {
+      companySelect.innerHTML = '<option value="">Select company</option>' +
+        allCompaniesCache.map(c => `<option value="${c.companyId}" data-price="${c.currentPrice}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
+    }
+
+    const companyFilter = document.getElementById("transactionCompanyFilter");
+    if (companyFilter) {
+      companyFilter.innerHTML = '<option value="all">All companies</option>' +
+        allCompaniesCache.map(c => `<option value="${c.companyId}">${escapeHtml(c.tickerSymbol)}</option>`).join("");
+    }
+  } catch (err) {
+    console.error("Failed to load companies for transactions:", err);
+  }
+
+  // Auto-fill price & check available shares on company change
+  if (companySelect) {
+    companySelect.addEventListener("change", () => {
+      const selected = companySelect.options[companySelect.selectedIndex];
+      if (selected && selected.dataset.price && (!idInput.value || !priceInput.value)) {
+        priceInput.value = selected.dataset.price;
+      }
+      updateAvailableShares();
     });
   }
 
-  // -----------------------------------------
-  // Close form
-  // -----------------------------------------
-
-  function closeForm() {
-    formCard.classList.add("form-hidden");
+  if (portfolioSelect) {
+    portfolioSelect.addEventListener("change", () => {
+      updateAvailableShares();
+    });
   }
 
-  if (closeButton) {
-    closeButton.addEventListener("click", closeForm);
-  }
-
-  if (cancelButton) {
-    cancelButton.addEventListener("click", closeForm);
-  }
-
-  // -----------------------------------------
-  // Buy / Sell buttons
-  // -----------------------------------------
-
-  const typeButtons = document.querySelectorAll(".type-button");
-
-  const typeInput = document.getElementById("transactionType");
-
+  // Toggle BUY / SELL buttons
   typeButtons.forEach((button) => {
     button.addEventListener("click", () => {
       typeButtons.forEach((item) => {
@@ -461,47 +512,133 @@ function setupTransactionForm() {
 
       button.classList.add("active");
       button.setAttribute("aria-pressed", "true");
-
       typeInput.value = button.dataset.type;
 
-      console.log("Transaction type:", typeInput.value);
+      updateAvailableShares();
     });
   });
 
-  // -----------------------------------------
-  // Form submission
-  // -----------------------------------------
+  function resetTransactionForm() {
+    form.reset();
+    if (idInput) idInput.value = "";
+    if (titleEl) titleEl.textContent = "Add transaction";
+    if (subtitleEl) subtitleEl.textContent = "Record a BUY or SELL transaction.";
+    if (typeInput) typeInput.value = "BUY";
 
-  form.addEventListener("submit", (event) => {
+    typeButtons.forEach((button) => {
+      const isBuy = button.dataset.type === "BUY";
+      button.classList.toggle("active", isBuy);
+      button.setAttribute("aria-pressed", isBuy ? "true" : "false");
+    });
+
+    if (dateInput) {
+      dateInput.value = new Date().toISOString().split("T")[0];
+    }
+
+    const hint = document.getElementById("availableSharesHint");
+    if (hint) hint.classList.add("d-none");
+  }
+
+  function closeForm() {
+    if (formCard) formCard.classList.add("form-hidden");
+    resetTransactionForm();
+  }
+
+  if (openButton) {
+    openButton.addEventListener("click", () => {
+      resetTransactionForm();
+      if (formCard) {
+        formCard.classList.remove("form-hidden");
+        formCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
+
+  if (closeButton) closeButton.addEventListener("click", closeForm);
+  if (cancelButton) cancelButton.addEventListener("click", closeForm);
+
+  // Form submission
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     if (!validateRequiredFields(form)) {
       return;
     }
 
+    const transactionId = idInput?.value;
+    const portfolioId = parseInt(portfolioSelect.value, 10);
+    const companyId = parseInt(companySelect.value, 10);
     const transactionType = typeInput.value;
+    const quantity = parseFloat(quantityInput.value);
+    const price = parseFloat(priceInput.value);
+    const transactionDate = dateInput.value;
+    const notes = notesInput?.value ? notesInput.value.trim() : null;
 
-    const company = document.getElementById("company").value;
+    if (!portfolioId || isNaN(portfolioId)) {
+      setFieldError(portfolioSelect, "Please select a valid portfolio.");
+      return;
+    }
 
-    const quantity = document.getElementById("quantity").value;
+    if (!companyId || isNaN(companyId)) {
+      setFieldError(companySelect, "Please select a valid company.");
+      return;
+    }
 
-    const price = document.getElementById("price").value;
+    if (isNaN(quantity) || quantity <= 0) {
+      setFieldError(quantityInput, "Quantity must be greater than zero.");
+      return;
+    }
 
-    const total = Number(quantity) * Number(price);
+    if (isNaN(price) || price <= 0) {
+      setFieldError(priceInput, "Price must be greater than zero.");
+      return;
+    }
 
-    showToast(`${transactionType} transaction saved. Total ৳${total.toLocaleString()}.`);
+    const submitBtn = form.querySelector("button[type='submit']");
+    const originalBtnText = submitBtn ? submitBtn.innerHTML : "Save transaction";
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Saving...';
+    }
 
-    form.reset();
+    try {
+      const payload = {
+        portfolioId,
+        companyId,
+        transactionType,
+        quantity,
+        price,
+        transactionDate,
+        notes
+      };
 
-    typeInput.value = "BUY";
+      if (transactionId) {
+        await apiRequest(`/transactions/${transactionId}`, {
+          method: "PUT",
+          body: JSON.stringify(payload)
+        });
+        showToast("Transaction updated successfully.", "success");
+      } else {
+        await apiRequest("/transactions", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        showToast(`${transactionType} transaction for ${quantity.toLocaleString()} shares saved.`, "success");
+      }
 
-    typeButtons.forEach((button) => {
-      button.classList.remove("active");
-      button.setAttribute("aria-pressed", "false");
-    });
-
-    typeButtons[0].classList.add("active");
-    typeButtons[0].setAttribute("aria-pressed", "true");
+      closeForm();
+      if (typeof loadTransactionHistory === "function") {
+        await loadTransactionHistory();
+      }
+    } catch (err) {
+      console.error("Transaction save failed:", err);
+      showToast(err.message, "danger");
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+      }
+    }
   });
 }
 
@@ -543,60 +680,227 @@ function setupChartPeriod() {
   });
 }
 
+function exportTableCsv(table, filename = "sharesync-transactions.csv") {
+  if (!table) return;
+  const rows = [...table.querySelectorAll("tr")];
+  const csvContent = rows
+    .map((row) => {
+      const cells = [...row.querySelectorAll("th, td")];
+      const exportCells = cells.slice(0, cells.length > 7 ? 7 : cells.length);
+      return exportCells
+        .map((cell) => {
+          let text = cell.innerText.replace(/"/g, '""').trim();
+          return `"${text}"`;
+        })
+        .join(",");
+    })
+    .join("\r\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+async function loadTransactionHistory() {
+  const table = document.querySelector(".transaction-table");
+  const tbody = document.getElementById("transactionTableBody");
+  if (!table || !tbody) return;
+
+  const typeFilter = document.getElementById("transactionTypeFilter");
+  const companyFilter = document.getElementById("transactionCompanyFilter");
+  const portfolioFilter = document.getElementById("transactionPortfolioFilter");
+  const countLabel = document.getElementById("transactionCountSubtitle");
+  const paginationText = document.querySelector(".pagination-row span");
+
+  const params = new URLSearchParams();
+  if (portfolioFilter && portfolioFilter.value && portfolioFilter.value !== "all") {
+    params.append("portfolioId", portfolioFilter.value);
+  }
+  if (typeFilter && typeFilter.value && typeFilter.value !== "all") {
+    params.append("transactionType", typeFilter.value);
+  }
+  if (companyFilter && companyFilter.value && companyFilter.value !== "all") {
+    params.append("companyId", companyFilter.value);
+  }
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="8" class="text-center py-4 text-muted">
+        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+        Loading transaction records...
+      </td>
+    </tr>
+  `;
+
+  try {
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+    const res = await apiRequest(`/transactions${queryString}`);
+    const transactions = res.data || [];
+
+    if (!transactions.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center py-4 text-muted">
+            <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+            No transactions found matching your criteria.
+          </td>
+        </tr>
+      `;
+      if (countLabel) countLabel.textContent = "0 transactions recorded";
+      if (paginationText) paginationText.textContent = "Showing 0 of 0 transactions";
+      return;
+    }
+
+    tbody.innerHTML = transactions.map((t) => {
+      const isBuy = t.transactionType === "BUY";
+      const badgeClass = isBuy ? "buy-badge" : "sell-badge";
+      const logoText = escapeHtml((t.tickerSymbol || "SS").slice(0, 2).toUpperCase());
+      const d = new Date(t.transactionDate);
+      const dateFormatted = isNaN(d.getTime())
+        ? escapeHtml(t.transactionDate)
+        : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+      const priceFormatted = "৳" + t.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const totalFormatted = "৳" + (t.totalAmount || (t.quantity * t.price)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      return `
+        <tr>
+          <td>${dateFormatted}</td>
+          <td>
+            <div class="company-cell">
+              <span class="company-logo">${logoText}</span>
+              <div>
+                <strong>${escapeHtml(t.tickerSymbol)}</strong>
+                <small>${escapeHtml(t.companyName)}</small>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="transaction-badge ${badgeClass}">${escapeHtml(t.transactionType)}</span>
+          </td>
+          <td>${t.quantity.toLocaleString()}</td>
+          <td>${priceFormatted}</td>
+          <td>${totalFormatted}</td>
+          <td>${escapeHtml(t.portfolioName || "-")}</td>
+          <td>
+            <button type="button" class="btn btn-sm btn-link p-0 text-primary text-decoration-none me-2" onclick="editTransaction(${t.transactionId})" title="Edit transaction">
+              <i class="bi bi-pencil"></i> Edit
+            </button>
+            <button type="button" class="btn btn-sm btn-link p-0 text-danger text-decoration-none" onclick="deleteTransaction(${t.transactionId})" title="Delete transaction">
+              <i class="bi bi-trash"></i> Delete
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    if (countLabel) {
+      countLabel.textContent = `${transactions.length} transaction${transactions.length === 1 ? "" : "s"} recorded`;
+    }
+    if (paginationText) {
+      paginationText.textContent = `Showing 1–${transactions.length} of ${transactions.length} transactions`;
+    }
+  } catch (err) {
+    console.error("Failed to load transactions:", err);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center py-4 text-danger">
+          <i class="bi bi-exclamation-triangle fs-4 d-block mb-1"></i>
+          Error loading transactions: ${escapeHtml(err.message)}
+        </td>
+      </tr>
+    `;
+    if (countLabel) countLabel.textContent = "Error loading records";
+  }
+}
+
+window.editTransaction = async function(transactionId) {
+  try {
+    const res = await apiRequest(`/transactions/${transactionId}`);
+    const t = res.data;
+    if (!t) return;
+
+    const formCard = document.getElementById("transactionFormCard");
+    const titleEl = document.getElementById("transactionFormTitle");
+    const subtitleEl = document.getElementById("transactionFormSubtitle");
+    const idInput = document.getElementById("transactionFormId");
+    const typeInput = document.getElementById("transactionType");
+    const typeButtons = document.querySelectorAll(".type-button");
+    const portfolioSelect = document.getElementById("portfolio");
+    const companySelect = document.getElementById("company");
+    const quantityInput = document.getElementById("quantity");
+    const priceInput = document.getElementById("price");
+    const dateInput = document.getElementById("transactionDate");
+    const notesInput = document.getElementById("notes");
+
+    if (idInput) idInput.value = t.transactionId;
+    if (titleEl) titleEl.textContent = "Edit transaction";
+    if (subtitleEl) subtitleEl.textContent = `Update transaction #${t.transactionId}`;
+    if (portfolioSelect) portfolioSelect.value = t.portfolioId;
+    if (companySelect) companySelect.value = t.companyId;
+    if (quantityInput) quantityInput.value = t.quantity;
+    if (priceInput) priceInput.value = t.price;
+    if (dateInput && t.transactionDate) dateInput.value = t.transactionDate.split("T")[0];
+    if (notesInput) notesInput.value = t.notes || "";
+
+    if (typeInput) typeInput.value = t.transactionType;
+    typeButtons.forEach((button) => {
+      const isType = button.dataset.type === t.transactionType;
+      button.classList.toggle("active", isType);
+      button.setAttribute("aria-pressed", isType ? "true" : "false");
+    });
+
+    if (typeof updateAvailableShares === "function") {
+      updateAvailableShares();
+    }
+
+    if (formCard) {
+      formCard.classList.remove("form-hidden");
+      formCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  } catch (err) {
+    console.error("Failed to load transaction for edit:", err);
+    showToast("Could not load transaction details: " + err.message, "danger");
+  }
+};
+
+window.deleteTransaction = async function(transactionId) {
+  const confirmed = confirm("Are you sure you want to delete this transaction? This action will adjust portfolio holdings.");
+  if (!confirmed) return;
+
+  try {
+    const res = await apiRequest(`/transactions/${transactionId}`, { method: "DELETE" });
+    showToast(res.message || "Transaction deleted successfully.", "success");
+    await loadTransactionHistory();
+  } catch (err) {
+    console.error("Failed to delete transaction:", err);
+    showToast("Cannot delete transaction: " + err.message, "danger");
+  }
+};
+
 function setupTransactionFilters() {
   const table = document.querySelector(".transaction-table");
-
   if (!table) {
     return;
   }
 
   const typeFilter = document.getElementById("transactionTypeFilter");
   const companyFilter = document.getElementById("transactionCompanyFilter");
+  const portfolioFilter = document.getElementById("transactionPortfolioFilter");
   const exportButton = document.getElementById("exportTransactions");
-  const rows = [...table.querySelectorAll("tbody tr")];
-  const countLabel = document.querySelector(".transaction-toolbar p");
-  const tableWrapper = table.closest(".table-responsive");
 
-  function filterRows() {
-    const type = typeFilter?.value || "all";
-    const company = companyFilter?.value || "all";
-    let visibleRows = 0;
-
-    rows.forEach((row) => {
-      const rowType = row.querySelector(".transaction-badge")?.textContent.trim().toLowerCase();
-      const rowCompany = row.querySelector(".company-cell strong")?.textContent.trim().toLowerCase();
-      const matchesType = type === "all" || rowType === type;
-      const matchesCompany = company === "all" || rowCompany === company;
-      const visible = matchesType && matchesCompany;
-
-      row.hidden = !visible;
-      visibleRows += visible ? 1 : 0;
-    });
-
-    if (countLabel) {
-      countLabel.textContent = visibleRows
-        ? `${visibleRows} transaction${visibleRows === 1 ? "" : "s"} shown`
-        : "No transactions match these filters";
-    }
-
-    let emptyState = tableWrapper?.querySelector(".table-empty-state");
-
-    if (!visibleRows && tableWrapper) {
-      if (!emptyState) {
-        emptyState = document.createElement("div");
-        emptyState.className = "table-empty-state";
-        tableWrapper.appendChild(emptyState);
-      }
-
-      emptyState.textContent = "No transactions match these filters.";
-    } else if (emptyState) {
-      emptyState.remove();
-    }
-  }
-
-  typeFilter?.addEventListener("change", filterRows);
-  companyFilter?.addEventListener("change", filterRows);
+  typeFilter?.addEventListener("change", loadTransactionHistory);
+  companyFilter?.addEventListener("change", loadTransactionHistory);
+  portfolioFilter?.addEventListener("change", loadTransactionHistory);
   exportButton?.addEventListener("click", () => exportTableCsv(table, "sharesync-transactions.csv"));
+
+  // Initial load
+  loadTransactionHistory();
 }
 
 function setupWatchlistFilter() {

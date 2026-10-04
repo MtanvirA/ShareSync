@@ -17,5 +17,7 @@ public interface IApplicationDbContext
     DbSet<PortfolioSnapshot> PortfolioSnapshots { get; }
     DbSet<PortfolioHoldingView> PortfolioHoldings { get; }
 
+    Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade Database { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

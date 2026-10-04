@@ -168,9 +168,9 @@
           >
             <div class="card-header">
               <div>
-                <h2>Add transaction</h2>
+                <h2 id="transactionFormTitle">Add transaction</h2>
 
-                <p>Record a BUY or SELL transaction.</p>
+                <p id="transactionFormSubtitle">Record a BUY or SELL transaction.</p>
               </div>
 
               <button
@@ -183,6 +183,8 @@
             </div>
 
             <form id="transactionForm">
+              <input type="hidden" id="transactionFormId" value="" />
+
               <!-- Transaction type -->
 
               <div class="transaction-type">
@@ -220,8 +222,6 @@
 
                   <select id="portfolio" required>
                     <option value="">Select portfolio</option>
-
-                    <option value="main">Main Portfolio</option>
                   </select>
                 </div>
 
@@ -232,12 +232,6 @@
 
                   <select id="company" required>
                     <option value="">Select company</option>
-
-                    <option value="BEXIMCO">BEXIMCO</option>
-
-                    <option value="GP">GP</option>
-
-                    <option value="BATBC">BATBC</option>
                   </select>
                 </div>
 
@@ -254,6 +248,7 @@
                     placeholder="e.g. 100"
                     required
                   />
+                  <small id="availableSharesHint" class="text-muted d-none mt-1">Available to sell: <strong id="availableSharesVal" class="text-primary">0</strong> shares</small>
                 </div>
 
                 <!-- Price -->
@@ -324,26 +319,22 @@
               <div>
                 <h2>All transactions</h2>
 
-                <p>12 transactions recorded</p>
+                <p id="transactionCountSubtitle">Loading transactions...</p>
               </div>
 
               <div class="transaction-filters">
+                <select class="filter-select" id="transactionPortfolioFilter" aria-label="Filter transactions by portfolio">
+                  <option value="all">All portfolios</option>
+                </select>
+
                 <select class="filter-select" id="transactionTypeFilter" aria-label="Filter transactions by type">
                   <option value="all">All types</option>
-
-                  <option value="buy">Buy</option>
-
-                  <option value="sell">Sell</option>
+                  <option value="BUY">Buy</option>
+                  <option value="SELL">Sell</option>
                 </select>
 
                 <select class="filter-select" id="transactionCompanyFilter" aria-label="Filter transactions by company">
                   <option value="all">All companies</option>
-
-                  <option value="beximco">BEXIMCO</option>
-
-                  <option value="gp">GP</option>
-
-                  <option value="batbc">BATBC</option>
                 </select>
 
                 <button class="secondary-button" id="exportTransactions" type="button">
@@ -361,124 +352,22 @@
                 <thead>
                   <tr>
                     <th>Date</th>
-
                     <th>Company</th>
-
                     <th>Type</th>
-
                     <th>Quantity</th>
-
                     <th>Price</th>
-
                     <th>Total</th>
-
                     <th>Portfolio</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
 
-                <tbody>
-                  <!-- Transaction 1 -->
-
+                <tbody id="transactionTableBody">
                   <tr>
-                    <td>Sep 08, 2026</td>
-
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> BX </span>
-
-                        <strong> BEXIMCO </strong>
-                      </div>
+                    <td colspan="8" class="text-center py-4 text-muted">
+                      <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                      Loading transaction records...
                     </td>
-
-                    <td>
-                      <span class="transaction-badge buy-badge"> BUY </span>
-                    </td>
-
-                    <td>100</td>
-
-                    <td>৳120.00</td>
-
-                    <td>৳12,000</td>
-
-                    <td>Main Portfolio</td>
-                  </tr>
-
-                  <!-- Transaction 2 -->
-
-                  <tr>
-                    <td>Sep 05, 2026</td>
-
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> GP </span>
-
-                        <strong> GP </strong>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span class="transaction-badge buy-badge"> BUY </span>
-                    </td>
-
-                    <td>200</td>
-
-                    <td>৳280.00</td>
-
-                    <td>৳56,000</td>
-
-                    <td>Main Portfolio</td>
-                  </tr>
-
-                  <!-- Transaction 3 -->
-
-                  <tr>
-                    <td>Aug 28, 2026</td>
-
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> GP </span>
-
-                        <strong> GP </strong>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span class="transaction-badge sell-badge"> SELL </span>
-                    </td>
-
-                    <td>50</td>
-
-                    <td>৳290.00</td>
-
-                    <td>৳14,500</td>
-
-                    <td>Main Portfolio</td>
-                  </tr>
-
-                  <!-- Transaction 4 -->
-
-                  <tr>
-                    <td>Aug 20, 2026</td>
-
-                    <td>
-                      <div class="company-cell">
-                        <span class="company-logo"> BT </span>
-
-                        <strong> BATBC </strong>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span class="transaction-badge buy-badge"> BUY </span>
-                    </td>
-
-                    <td>50</td>
-
-                    <td>৳450.00</td>
-
-                    <td>৳22,500</td>
-
-                    <td>Main Portfolio</td>
                   </tr>
                 </tbody>
               </table>

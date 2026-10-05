@@ -52,6 +52,38 @@
 
             <span class="brand-name"> Share<span>Sync</span> </span>
           </a>
+          <!-- Global Search (Feature 8) -->
+          <div class="global-search-container position-relative mx-3 flex-grow-1 d-none d-md-block" style="max-width: 420px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-body-tertiary border-end-0 text-muted" style="border-radius: 8px 0 0 8px; border-color: var(--color-border);">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control bg-body-tertiary border-start-0 ps-0 text-body"
+                id="globalSearchInput"
+                placeholder="Search companies, tickers, sectors, portfolios..."
+                aria-label="Search ShareSync"
+                autocomplete="off"
+                style="border-radius: 0 8px 8px 0; border-color: var(--color-border); font-size: 13px;"
+              />
+              <button
+                class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y d-none pe-2 text-decoration-none"
+                id="clearGlobalSearchBtn"
+                type="button"
+                style="z-index: 5;"
+                aria-label="Clear search"
+              >
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+            </div>
+
+            <!-- Search Dropdown Results -->
+            <div class="global-search-dropdown shadow-lg border rounded-3 p-0 d-none" id="globalSearchDropdown" style="position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--color-surface); z-index: 1050; max-height: 480px; overflow-y: auto;">
+              <div id="globalSearchResults"></div>
+            </div>
+          </div>
+
 
           <!-- Right side -->
           <div class="d-flex align-items-center gap-2">
@@ -231,6 +263,22 @@
               <span>Portfolio</span>
             </a>
 
+            <a href="analytics.html" class="sidebar-link">
+              <i class="bi bi-pie-chart-fill"></i>
+
+              <span>Analytics</span>
+            </a>
+
+            <a href="simulator.html" class="sidebar-link">
+              <i class="bi bi-cpu"></i>
+              <span>Simulator</span>
+            </a>
+
+            <a href="goals.html" class="sidebar-link">
+              <i class="bi bi-bullseye"></i>
+              <span>Goals</span>
+            </a>
+
             <a href="transactions.html" class="sidebar-link">
               <i class="bi bi-arrow-left-right"></i>
 
@@ -243,6 +291,12 @@
               <span>Watchlist</span>
             </a>
 
+            <a href="alerts.html" class="sidebar-link">
+              <i class="bi bi-bell"></i>
+
+              <span>Alerts</span>
+            </a>
+
             <a href="dividends.html" class="sidebar-link">
               <i class="bi bi-cash-stack"></i>
 
@@ -253,6 +307,11 @@
               <i class="bi bi-bar-chart-line"></i>
 
               <span> Reports </span>
+            </a>
+
+            <a href="activity.html" class="sidebar-link">
+              <i class="bi bi-clock-history"></i>
+              <span>Activity</span>
             </a>
 
 
@@ -509,6 +568,106 @@
           </section>
         </div>
       </main>
+    </div>
+
+    <!-- =====================================
+         HISTORICAL MARKET PRICE TRACKING MODAL
+    ====================================== -->
+    <div class="modal fade" id="priceHistoryModal" tabindex="-1" aria-labelledby="priceHistoryModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-bottom">
+            <div class="d-flex align-items-center gap-3">
+              <span class="company-logo fs-5" id="histModalLogo" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--color-primary-soft); color: var(--color-accent); font-weight: 700;">GP</span>
+              <div>
+                <h5 class="modal-title fw-bold mb-0" id="priceHistoryModalLabel">
+                  <span id="histModalTicker">GP</span>
+                  <small class="text-muted fw-normal ms-2 fs-6" id="histModalName">Grameenphone Ltd.</small>
+                </h5>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                  <span class="fs-5 fw-bold" id="histModalCurrentPrice">৳0.00</span>
+                  <span class="badge" id="histModalChangeBadge">+0.00%</span>
+                  <span class="text-muted small ms-2" id="histModalSyncTime"><i class="bi bi-clock me-1"></i>Last recorded: Just now</span>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4">
+            <!-- Timeframe selector pills & quick stats -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+              <div class="timeframe-btn-group" id="histTimeframeButtons">
+                <button type="button" class="timeframe-btn" data-period="1D">1D</button>
+                <button type="button" class="timeframe-btn" data-period="1W">1W</button>
+                <button type="button" class="timeframe-btn active" data-period="1M">1M</button>
+                <button type="button" class="timeframe-btn" data-period="3M">3M</button>
+                <button type="button" class="timeframe-btn" data-period="6M">6M</button>
+                <button type="button" class="timeframe-btn" data-period="1Y">1Y</button>
+                <button type="button" class="timeframe-btn" data-period="ALL">ALL</button>
+              </div>
+
+              <!-- Quick stats pills -->
+              <div class="d-flex align-items-center gap-3" id="histStatsContainer">
+                <div class="price-stat-item">
+                  <small class="text-muted d-block">Period High</small>
+                  <strong class="fs-6" id="histStatHigh">৳0.00</strong>
+                </div>
+                <div class="price-stat-item">
+                  <small class="text-muted d-block">Period Low</small>
+                  <strong class="fs-6" id="histStatLow">৳0.00</strong>
+                </div>
+                <div class="price-stat-item">
+                  <small class="text-muted d-block">Snapshots</small>
+                  <strong class="fs-6" id="histStatPoints">0</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chart / Loading / Empty / Error States -->
+            <div class="price-history-chart-wrapper position-relative">
+              <!-- Loading spinner -->
+              <div id="histLoadingState" class="d-none position-absolute top-50 start-50 translate-middle text-center">
+                <div class="spinner-border text-primary mb-2" role="status"></div>
+                <div class="text-muted small">Loading market price history...</div>
+              </div>
+
+              <!-- Error state -->
+              <div id="histErrorState" class="d-none text-center py-5">
+                <i class="bi bi-exclamation-triangle text-warning fs-1 d-block mb-2"></i>
+                <h6 class="fw-semibold text-danger" id="histErrorMessage">Failed to load price history</h6>
+                <p class="text-muted small mb-3">Could not retrieve market price snapshots from the server.</p>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="histRetryBtn">
+                  <i class="bi bi-arrow-clockwise me-1"></i> Try Again
+                </button>
+              </div>
+
+              <!-- Empty state (0 data points) -->
+              <div id="histEmptyState" class="d-none text-center py-5">
+                <i class="bi bi-bar-chart text-muted fs-1 d-block mb-2"></i>
+                <h6 class="fw-semibold">No Price History Available</h6>
+                <p class="text-muted small mb-0">No historical market snapshots have been recorded for this timeframe yet.<br>Historical records are continuously collected during DSE synchronization.</p>
+              </div>
+
+              <!-- Single data point notice -->
+              <div id="histSinglePointAlert" class="alert alert-info py-2 px-3 small mb-2 d-none">
+                <i class="bi bi-info-circle me-1"></i>
+                <strong>Single Snapshot Recorded:</strong> Only 1 historical price point is available for this period. A minimum of 2 points are required to plot a trend line.
+              </div>
+
+              <!-- Chart canvas container -->
+              <div id="histChartContainer" style="height: 320px;">
+                <canvas id="priceHistoryChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer justify-content-between border-top py-2 px-4">
+            <span class="text-muted small">
+              <i class="bi bi-shield-check text-success me-1"></i> DSE Market Historical Tracking · ShareSync
+            </span>
+            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Bootstrap JavaScript -->

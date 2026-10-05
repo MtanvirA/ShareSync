@@ -89,6 +89,11 @@ public class AuthService : IAuthService
             throw new UnauthorizedException("Invalid email or password.");
         }
 
+        if (!user.IsActive)
+        {
+            throw new AppException("This account has been deactivated. Please contact an administrator.", 403);
+        }
+
         var (token, expiresAt) = _jwtTokenGenerator.GenerateToken(user);
 
         var responseData = new AuthResponseDto
@@ -154,6 +159,21 @@ public class AuthService : IAuthService
 
     public async Task<ApiResponse> ChangePasswordAsync(int userId, ChangePasswordRequestDto request, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+        {
+            throw new AppException("Current password is required.", 400);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 6)
+        {
+            throw new AppException("New password must be at least 6 characters long.", 400);
+        }
+
+        if (!string.IsNullOrEmpty(request.ConfirmNewPassword) && request.NewPassword != request.ConfirmNewPassword)
+        {
+            throw new AppException("New password and confirmation password do not match.", 400);
+        }
+
         var user = await _context.Users
             .SingleOrDefaultAsync(u => u.UserId == userId, cancellationToken);
 
@@ -170,6 +190,6 @@ public class AuthService : IAuthService
         user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return ApiResponse.Ok("Password changed successfully.");
+        return ApiResponse.Ok("Password changed successfully. Please log in with your new password.");
     }
 }

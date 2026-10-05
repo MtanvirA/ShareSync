@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ShareSync.Application.DTOs.Reports;
 using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
@@ -11,10 +12,12 @@ namespace ShareSync.Web.Controllers;
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reportService;
+    private readonly IReportExportService _reportExportService;
 
-    public ReportsController(IReportService reportService)
+    public ReportsController(IReportService reportService, IReportExportService reportExportService)
     {
         _reportService = reportService;
+        _reportExportService = reportExportService;
     }
 
     private int GetCurrentUserId()
@@ -127,5 +130,35 @@ public class ReportsController : ControllerBase
         var userId = GetCurrentUserId();
         var response = await _reportService.GetReportSummaryAsync(userId, portfolioId, cancellationToken);
         return Ok(response);
+    }
+
+    /// <summary>
+    /// Export reports in PDF, Excel, or CSV format.
+    /// </summary>
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportReport(
+        [FromQuery] string reportType,
+        [FromQuery] string format,
+        [FromQuery] ReportExportFilterDto filter,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _reportExportService.ExportReportAsync(reportType, format, userId, filter, cancellationToken);
+        return File(result.FileContents, result.ContentType, result.FileName);
+    }
+
+    /// <summary>
+    /// Route-based report export endpoint.
+    /// </summary>
+    [HttpGet("{reportType}/export")]
+    public async Task<IActionResult> ExportReportByType(
+        string reportType,
+        [FromQuery] string format,
+        [FromQuery] ReportExportFilterDto filter,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _reportExportService.ExportReportAsync(reportType, format, userId, filter, cancellationToken);
+        return File(result.FileContents, result.ContentType, result.FileName);
     }
 }

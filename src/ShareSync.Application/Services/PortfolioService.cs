@@ -207,20 +207,30 @@ public class PortfolioService : IPortfolioService
             throw new BusinessRuleException("Cannot delete portfolio because it contains active transactions. Financial history must be preserved.");
         }
 
-        // Remove snapshots if any
-        var snapshots = await _context.PortfolioSnapshots
-            .Where(s => s.PortfolioId == portfolioId)
-            .ToListAsync(cancellationToken);
-
-        if (snapshots.Any())
+        await using var dbTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            _context.PortfolioSnapshots.RemoveRange(snapshots);
+            // Remove snapshots if any
+            var snapshots = await _context.PortfolioSnapshots
+                .Where(s => s.PortfolioId == portfolioId)
+                .ToListAsync(cancellationToken);
+
+            if (snapshots.Any())
+            {
+                _context.PortfolioSnapshots.RemoveRange(snapshots);
+            }
+
+            _context.Portfolios.Remove(portfolio);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await dbTransaction.CommitAsync(cancellationToken);
+            return ApiResponse.Ok("Portfolio deleted successfully.");
         }
-
-        _context.Portfolios.Remove(portfolio);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return ApiResponse.Ok("Portfolio deleted successfully.");
+        catch (Exception)
+        {
+            await dbTransaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     private static List<PortfolioHoldingDto> CalculateHoldings(List<Transaction> transactions)

@@ -42,6 +42,14 @@ public class DividendsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("analytics")]
+    public async Task<IActionResult> GetAnalytics([FromQuery] DividendAnalyticsFilterDto filter, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _dividendService.GetDividendAnalyticsAsync(filter, userId, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetDividend(int id, CancellationToken cancellationToken)
     {

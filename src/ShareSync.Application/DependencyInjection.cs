@@ -17,6 +17,18 @@ public static class DependencyInjection
         services.AddScoped<IPortfolioSnapshotService, PortfolioSnapshotService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IAnalyticsService, AnalyticsService>();
+        services.AddScoped<IAlertService, AlertService>();
+        services.AddScoped<ICsvTransactionImportService, CsvTransactionImportService>();
+        services.AddScoped<IReportExportService, ReportExportService>();
+        services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<ISimulatorService, SimulatorService>();
+        services.AddScoped<IPortfolioGoalService, PortfolioGoalService>();
+        services.AddSingleton<IBenchmarkDataProvider, BenchmarkDataProvider>();
+        services.AddScoped<IBenchmarkService, BenchmarkService>();
+        services.AddScoped<IActivityTimelineService, ActivityTimelineService>();
+        services.AddScoped<ISearchService, SearchService>();
 
         return services;
     }

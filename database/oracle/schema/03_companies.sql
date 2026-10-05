@@ -5,6 +5,7 @@ CREATE TABLE companies (
     sector_id       NUMBER NOT NULL,
     current_price   NUMBER(14,2) NOT NULL,
     market_cap      NUMBER(20,2),
+    is_active       NUMBER(1) DEFAULT 1 NOT NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
     CONSTRAINT pk_companies

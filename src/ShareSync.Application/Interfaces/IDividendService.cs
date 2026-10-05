@@ -11,4 +11,5 @@ public interface IDividendService
     Task<ApiResponse<DividendDto>> CreateDividendAsync(CreateDividendRequestDto request, int userId, CancellationToken cancellationToken = default);
     Task<ApiResponse<DividendDto>> UpdateDividendAsync(int dividendId, UpdateDividendRequestDto request, int userId, CancellationToken cancellationToken = default);
     Task<ApiResponse> DeleteDividendAsync(int dividendId, int userId, CancellationToken cancellationToken = default);
+    Task<ApiResponse<DividendAnalyticsDto>> GetDividendAnalyticsAsync(DividendAnalyticsFilterDto filter, int userId, CancellationToken cancellationToken = default);
 }

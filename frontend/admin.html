@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ShareSync - Administrative Management and System Control">
+    <title>ShareSync | Admin Panel</title>
+
+    <!-- Theme initialization -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem("sharesync_theme");
+        var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+
+    <!-- ShareSync CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .admin-nav-item {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .admin-nav-item.active {
+            background-color: var(--color-sidebar-active-bg) !important;
+            color: #fff !important;
+            font-weight: 600;
+        }
+        .admin-tab-pane {
+            display: none;
+        }
+        .admin-tab-pane.active {
+            display: block;
+        }
+        .status-badge-active {
+            background-color: var(--color-positive-soft);
+            color: var(--color-positive);
+            border: 1px solid rgba(22, 122, 74, 0.2);
+        }
+        .status-badge-inactive {
+            background-color: var(--color-negative-soft);
+            color: var(--color-negative);
+            border: 1px solid rgba(192, 57, 43, 0.2);
+        }
+        .role-badge-admin {
+            background-color: rgba(124, 58, 237, 0.15);
+            color: #7C3AED;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+        }
+        .role-badge-investor {
+            background-color: var(--color-accent-soft);
+            color: var(--color-accent);
+            border: 1px solid rgba(29, 78, 216, 0.2);
+        }
+    </style>
+</head>
+
+<body id="adminPage">
+
+    <!-- =====================================
+         TOP BAR
+    ====================================== -->
+    <header class="topbar">
+        <div class="container-fluid px-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                    <a href="index.html" class="brand text-decoration-none">
+                        <span class="brand-mark">S</span>
+                        <span class="brand-name">Share<span>Sync</span></span>
+                    </a>
+          <!-- Global Search (Feature 8) -->
+          <div class="global-search-container position-relative mx-3 flex-grow-1 d-none d-md-block" style="max-width: 420px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-body-tertiary border-end-0 text-muted" style="border-radius: 8px 0 0 8px; border-color: var(--color-border);">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control bg-body-tertiary border-start-0 ps-0 text-body"
+                id="globalSearchInput"
+                placeholder="Search companies, tickers, sectors, portfolios..."
+                aria-label="Search ShareSync"
+                autocomplete="off"
+                style="border-radius: 0 8px 8px 0; border-color: var(--color-border); font-size: 13px;"
+              />
+              <button
+                class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y d-none pe-2 text-decoration-none"
+                id="clearGlobalSearchBtn"
+                type="button"
+                style="z-index: 5;"
+                aria-label="Clear search"
+              >
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+            </div>
+
+            <!-- Search Dropdown Results -->
+            <div class="global-search-dropdown shadow-lg border rounded-3 p-0 d-none" id="globalSearchDropdown" style="position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--color-surface); z-index: 1050; max-height: 480px; overflow-y: auto;">
+              <div id="globalSearchResults"></div>
+            </div>
+          </div>
+
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fs-xs fw-semibold">
+                        <i class="bi bi-shield-lock me-1"></i>ADMIN CONSOLE
+                    </span>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <a href="index.html" class="btn btn-sm btn-outline-secondary d-none d-sm-inline-flex align-items-center gap-1">
+                        <i class="bi bi-arrow-left"></i> Investor Portal
+                    </a>
+
+                    <button class="icon-button theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle theme">
+                        <i class="bi bi-moon-stars"></i>
+                    </button>
+
+                    <!-- Notifications Center -->
+                    <div class="header-dropdown-wrapper position-relative">
+                        <button class="icon-button position-relative" id="notificationBtn" title="Notifications" aria-label="Notifications" aria-expanded="false">
+                            <i class="bi bi-bell"></i>
+                            <span class="notification-badge d-none" id="notificationBadge"></span>
+                        </button>
+
+                        <div class="header-dropdown notification-dropdown" id="notificationDropdown">
+                            <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-2">
+                                    <h6 class="mb-0 fw-semibold" style="font-size: 14px;">Notifications</h6>
+                                    <span class="badge bg-secondary rounded-pill px-2 py-1" id="notificationCountBadge" style="font-size: 11px;">0 new</span>
+                                </div>
+                                <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" id="markAllNotificationsReadBtn" style="font-size: 12px;">
+                                    Mark all as read
+                                </button>
+                            </div>
+
+                            <div class="notification-list" id="notificationList" style="max-height: 340px; overflow-y: auto;">
+                                <div class="p-4 text-center text-muted fs-xs">Loading notifications...</div>
+                            </div>
+
+                            <div class="p-2 text-center border-top">
+                                <a href="alerts.html" class="text-decoration-none fw-medium" style="font-size: 12px; color: var(--color-accent);">View Alert Rules &rarr;</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Menu -->
+                    <div class="header-dropdown-wrapper position-relative ms-2">
+                        <div class="profile" id="headerProfileBtn" role="button" tabindex="0" aria-expanded="false" title="Account Menu">
+                            <div class="profile-avatar bg-danger text-white" id="headerAvatar">A</div>
+                            <div class="profile-info d-none d-md-block">
+                                <span class="profile-name" id="headerUserName">Admin</span>
+                                <span class="profile-role text-danger fw-semibold">Administrator</span>
+                            </div>
+                            <i class="bi bi-chevron-down profile-arrow"></i>
+                        </div>
+
+                        <div class="header-dropdown profile-dropdown" id="profileDropdown">
+                            <div class="p-3 border-bottom">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="profile-avatar bg-danger text-white flex-shrink-0" id="dropdownAvatar" style="width: 42px; height: 42px; font-size: 17px;">A</div>
+                                    <div style="min-width: 0;">
+                                        <div class="fw-semibold text-truncate" id="dropdownUserName">Administrator</div>
+                                        <div class="text-muted text-truncate" id="dropdownUserEmail" style="font-size: 12px;">admin@sharesync.com</div>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <span class="badge bg-danger-subtle text-danger border px-2 py-0" style="font-size: 11px;" id="dropdownUserRole">ADMIN</span>
+                                </div>
+                            </div>
+
+                            <div class="py-2 border-bottom">
+                                <a href="index.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                                    <i class="bi bi-grid-1x2"></i>
+                                    <span>Investor Dashboard</span>
+                                </a>
+                                <a href="settings.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                                    <i class="bi bi-person"></i>
+                                    <span>Account Settings</span>
+                                </a>
+                            </div>
+
+                            <div class="p-2 border-bottom">
+                                <div class="d-flex align-items-center justify-content-between px-2 py-1">
+                                    <span class="text-muted d-flex align-items-center gap-2" style="font-size: 13px;">
+                                        <i class="bi bi-moon-stars" style="font-size: 14px;"></i> Dark Mode
+                                    </span>
+                                    <div class="form-check form-switch m-0 p-0" style="min-height: auto;">
+                                        <input class="form-check-input ms-0" type="checkbox" role="switch" id="dropdownThemeSwitch" style="cursor: pointer;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-2">
+                                <button class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2 w-100 border-0 bg-transparent text-danger" id="dropdownLogoutBtn">
+                                    <i class="bi bi-box-arrow-right text-danger"></i>
+                                    <span>Sign Out</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- =====================================
+         APPLICATION LAYOUT
+    ====================================== -->
+    <div class="app-layout">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <p class="sidebar-label">Administration</p>
+                <nav class="sidebar-nav">
+                    <a href="javascript:void(0)" class="sidebar-link admin-nav-item active" data-tab="overview">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>System Overview</span>
+                    </a>
+                    <a href="javascript:void(0)" class="sidebar-link admin-nav-item" data-tab="diagnostics">
+                        <i class="bi bi-activity"></i>
+                        <span>System Diagnostics</span>
+                    </a>
+                    <a href="javascript:void(0)" class="sidebar-link admin-nav-item" data-tab="companies">
+                        <i class="bi bi-building"></i>
+                        <span>Companies</span>
+                    </a>
+                    <a href="javascript:void(0)" class="sidebar-link admin-nav-item" data-tab="sectors">
+                        <i class="bi bi-pie-chart"></i>
+                        <span>Sectors</span>
+                    </a>
+                    <a href="javascript:void(0)" class="sidebar-link admin-nav-item" data-tab="users">
+                        <i class="bi bi-people"></i>
+                        <span>User Accounts</span>
+                    </a>
+                    <a href="javascript:void(0)" class="sidebar-link admin-nav-item" data-tab="sync">
+                        <i class="bi bi-cloud-arrow-down"></i>
+                        <span>DSE Sync</span>
+                    </a>
+                    <a href="javascript:void(0)" class="sidebar-link admin-nav-item" data-tab="audit">
+                        <i class="bi bi-journal-text"></i>
+                        <span>Audit Logs</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="sidebar-section sidebar-bottom">
+                <p class="sidebar-label">Navigation</p>
+                <nav class="sidebar-nav">
+                    <a href="index.html" class="sidebar-link">
+                        <i class="bi bi-box-arrow-left"></i>
+                        <span>Investor Portal</span>
+                    </a>
+                    <a href="settings.html" class="sidebar-link">
+                        <i class="bi bi-gear"></i>
+                        <span>Settings</span>
+                    </a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+            <div class="content-container">
+
+                <!-- TAB 1: SYSTEM OVERVIEW -->
+                <div id="tab-overview" class="admin-tab-pane active">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                        <div>
+                            <h4 class="fw-bold mb-1">System Overview</h4>
+                            <p class="text-muted mb-0">System statistics, user engagement, and market data synchronization health.</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button id="adminRefreshOverviewBtn" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                            <button id="quickDseSyncBtn" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
+                                <i class="bi bi-cloud-arrow-down"></i> Sync Market Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPI Cards Grid -->
+                    <div class="row g-3 mb-4" id="overviewKpiContainer">
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="app-card p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="text-muted fs-sm fw-medium">Total Registered Users</span>
+                                    <div class="avatar-sm bg-primary-subtle text-primary rounded p-2"><i class="bi bi-people-fill"></i></div>
+                                </div>
+                                <h3 class="fw-bold mb-1" id="kpiTotalUsers">-</h3>
+                                <div class="text-muted fs-xs" id="kpiActiveUsers">- active accounts</div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="app-card p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="text-muted fs-sm fw-medium">Listed Companies</span>
+                                    <div class="avatar-sm bg-success-subtle text-success rounded p-2"><i class="bi bi-building"></i></div>
+                                </div>
+                                <h3 class="fw-bold mb-1" id="kpiTotalCompanies">-</h3>
+                                <div class="text-muted fs-xs" id="kpiActiveCompanies">- active trading tickers</div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="app-card p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="text-muted fs-sm fw-medium">Market Sectors</span>
+                                    <div class="avatar-sm bg-info-subtle text-info rounded p-2"><i class="bi bi-pie-chart-fill"></i></div>
+                                </div>
+                                <h3 class="fw-bold mb-1" id="kpiTotalSectors">-</h3>
+                                <div class="text-muted fs-xs">Reference classifications</div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="app-card p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="text-muted fs-sm fw-medium">Total System Transactions</span>
+                                    <div class="avatar-sm bg-warning-subtle text-warning rounded p-2"><i class="bi bi-receipt"></i></div>
+                                </div>
+                                <h3 class="fw-bold mb-1" id="kpiTotalTransactions">-</h3>
+                                <div class="text-muted fs-xs" id="kpiTotalPortfolios">- active portfolios</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Navigation & Health -->
+                    <div class="row g-4">
+                        <div class="col-12 col-lg-7">
+                            <div class="app-card p-4">
+                                <h6 class="fw-semibold mb-3"><i class="bi bi-shield-check text-primary me-2"></i>Administrative Controls</h6>
+                                <p class="text-muted fs-sm mb-4">Select a management area below or use the sidebar navigation:</p>
+                                <div class="row g-3">
+                                    <div class="col-12 col-sm-6">
+                                        <div class="p-3 border rounded h-100 hover-card" role="button" onclick="switchAdminTab('companies')">
+                                            <div class="d-flex align-items-center gap-2 mb-2 text-primary fw-semibold">
+                                                <i class="bi bi-building fs-5"></i> Manage Companies
+                                            </div>
+                                            <p class="text-muted fs-xs mb-0">Create, update reference prices, assign sectors, and safely toggle active status.</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <div class="p-3 border rounded h-100 hover-card" role="button" onclick="switchAdminTab('sectors')">
+                                            <div class="d-flex align-items-center gap-2 mb-2 text-info fw-semibold">
+                                                <i class="bi bi-pie-chart fs-5"></i> Manage Sectors
+                                            </div>
+                                            <p class="text-muted fs-xs mb-0">Define market sector categories with safe deletion safeguards.</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <div class="p-3 border rounded h-100 hover-card" role="button" onclick="switchAdminTab('users')">
+                                            <div class="d-flex align-items-center gap-2 mb-2 text-warning fw-semibold">
+                                                <i class="bi bi-people fs-5"></i> Manage Users
+                                            </div>
+                                            <p class="text-muted fs-xs mb-0">Inspect user accounts, toggle active/disabled states, and manage administrative roles.</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <div class="p-3 border rounded h-100 hover-card" role="button" onclick="switchAdminTab('audit')">
+                                            <div class="d-flex align-items-center gap-2 mb-2 text-secondary fw-semibold">
+                                                <i class="bi bi-journal-text fs-5"></i> Audit Logs
+                                            </div>
+                                            <p class="text-muted fs-xs mb-0">Review transactional audit records for system accountability.</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <div class="p-3 border rounded h-100 hover-card" role="button" onclick="switchAdminTab('diagnostics')">
+                                            <div class="d-flex align-items-center gap-2 mb-2 text-danger fw-semibold">
+                                                <i class="bi bi-activity fs-5"></i> System Diagnostics
+                                            </div>
+                                            <p class="text-muted fs-xs mb-0">Inspect real-time Oracle connectivity, application status, and database counters.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-5">
+                            <div class="app-card p-4">
+                                <h6 class="fw-semibold mb-3"><i class="bi bi-broadcast text-success me-2"></i>Market Data Sync Status</h6>
+                                <div class="p-3 bg-body-tertiary rounded mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fs-sm text-muted">Last Synchronization:</span>
+                                        <span class="fs-sm fw-semibold" id="overviewLastSync">-</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="fs-sm text-muted">Data Source:</span>
+                                        <span class="badge bg-secondary-subtle text-secondary border">Dhaka Stock Exchange (DSE)</span>
+                                    </div>
+                                </div>
+                                <p class="text-muted fs-xs mb-3">
+                                    Synchronization securely invokes the authoritative <code>IDsePriceService</code> to fetch latest ticker prices, highs, lows, and day movements without duplicating synchronization mechanisms.
+                                </p>
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="switchAdminTab('sync')">
+                                    Open Synchronization Console &rarr;
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: SYSTEM DIAGNOSTICS (FEATURE 10) -->
+                <div id="tab-diagnostics" class="admin-tab-pane">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                        <div>
+                            <h4 class="fw-bold mb-1">System Diagnostics &amp; Health</h4>
+                            <p class="text-muted mb-0">High-level Oracle database status, application metrics, and real-time synchronization state.</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button id="refreshDiagnosticsBtn" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+                                <i class="bi bi-arrow-clockwise"></i> Re-check Diagnostics
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Diagnostics 3-Section Grid (Feature 10 spec) -->
+                    <div class="row g-4 mb-4">
+                        <!-- 1. SYSTEM STATUS -->
+                        <div class="col-12 col-lg-4">
+                            <div class="app-card p-4 h-100">
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <i class="bi bi-heart-pulse-fill text-success fs-5"></i>
+                                    <h6 class="text-uppercase text-muted fw-bold mb-0" style="font-size: 11px; letter-spacing: 0.8px;">SYSTEM STATUS</h6>
+                                </div>
+                                <div class="d-flex flex-column gap-3">
+                                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light-subtle">
+                                        <span class="text-body fw-medium">Oracle Database</span>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" id="diagDbStatus">
+                                            <i class="bi bi-circle-fill me-1" style="font-size: 8px;"></i> Connected
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light-subtle">
+                                        <span class="text-body fw-medium">Application</span>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" id="diagAppStatus">
+                                            <i class="bi bi-circle-fill me-1" style="font-size: 8px;"></i> Healthy
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-2">
+                                        <span class="text-body fw-medium">DSE Synchronization</span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" id="diagDseStatus">
+                                            <i class="bi bi-circle-fill me-1" style="font-size: 8px;"></i> Running
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. DATABASE -->
+                        <div class="col-12 col-lg-4">
+                            <div class="app-card p-4 h-100">
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <i class="bi bi-database-fill-check text-primary fs-5"></i>
+                                    <h6 class="text-uppercase text-muted fw-bold mb-0" style="font-size: 11px; letter-spacing: 0.8px;">DATABASE</h6>
+                                </div>
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-light-subtle">
+                                        <span class="text-muted">Users</span>
+                                        <span class="fw-bold fs-6" id="diagUsersCount">-</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-light-subtle">
+                                        <span class="text-muted">Companies</span>
+                                        <span class="fw-bold fs-6" id="diagCompaniesCount">-</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-light-subtle">
+                                        <span class="text-muted">Portfolios</span>
+                                        <span class="fw-bold fs-6" id="diagPortfoliosCount">-</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-light-subtle">
+                                        <span class="text-muted">Transactions</span>
+                                        <span class="fw-bold fs-6" id="diagTransactionsCount">-</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                        <span class="text-muted">Audit Records</span>
+                                        <span class="fw-bold fs-6" id="diagAuditRecordsCount">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. SYNCHRONIZATION -->
+                        <div class="col-12 col-lg-4">
+                            <div class="app-card p-4 h-100">
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <i class="bi bi-arrow-repeat text-info fs-5"></i>
+                                    <h6 class="text-uppercase text-muted fw-bold mb-0" style="font-size: 11px; letter-spacing: 0.8px;">SYNCHRONIZATION</h6>
+                                </div>
+                                <div class="d-flex flex-column gap-3">
+                                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light-subtle">
+                                        <span class="text-muted">Last Sync</span>
+                                        <span class="fw-semibold" id="diagLastSyncTime">-</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light-subtle">
+                                        <span class="text-muted">Status</span>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" id="diagSyncStatus">
+                                            Successful
+                                        </span>
+                                    </div>
+                                    <div class="p-3 bg-body-tertiary rounded mt-1">
+                                        <div class="text-muted fs-xs">
+                                            <i class="bi bi-shield-check me-1 text-success"></i> Protected Diagnostic Surface: internal connection strings, passwords, and JWT credentials are never transmitted.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: COMPANIES MANAGEMENT -->
+                <div id="tab-companies" class="admin-tab-pane">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                        <div>
+                            <h4 class="fw-bold mb-1">Company Reference Management</h4>
+                            <p class="text-muted mb-0">Configure traded tickers, names, market sectors, and toggle active status.</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" onclick="window.openDseMarketModal()">
+                                <i class="bi bi-bank"></i> Import from DSE Market
+                            </button>
+                            <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="openAddCompanyModalBtn">
+                                <i class="bi bi-plus-lg"></i> Add New Company
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="app-card p-3 mb-4">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12 col-md-5">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" class="form-control" id="companySearchInput" placeholder="Search by ticker symbol or company name...">
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <select class="form-select form-select-sm" id="companySectorFilter">
+                                    <option value="">All Sectors</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <select class="form-select form-select-sm" id="companyStatusFilter">
+                                    <option value="">All Statuses</option>
+                                    <option value="active">Active Only</option>
+                                    <option value="inactive">Inactive Only</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Companies Table Card -->
+                    <div class="app-card p-0 overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table modern-table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-4">Ticker</th>
+                                        <th>Company Name</th>
+                                        <th>Sector</th>
+                                        <th class="text-end">Current Price</th>
+                                        <th class="text-end">Day Change</th>
+                                        <th class="text-center">Status</th>
+                                        <th class="text-end pe-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="companiesTableBody">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4 text-muted">
+                                            <span class="spinner-border spinner-border-sm me-2"></span> Loading companies...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: SECTORS MANAGEMENT -->
+                <div id="tab-sectors" class="admin-tab-pane">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                        <div>
+                            <h4 class="fw-bold mb-1">Market Sector Management</h4>
+                            <p class="text-muted mb-0">Manage industry classifications and sector reference entities.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="openAddSectorModalBtn">
+                            <i class="bi bi-plus-lg"></i> Add New Sector
+                        </button>
+                    </div>
+
+                    <!-- Sectors Table Card -->
+                    <div class="app-card p-0 overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table modern-table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-4">Sector Name</th>
+                                        <th>Description</th>
+                                        <th class="text-center">Associated Companies</th>
+                                        <th class="text-end pe-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sectorsTableBody">
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted">
+                                            <span class="spinner-border spinner-border-sm me-2"></span> Loading sectors...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: USERS MANAGEMENT -->
+                <div id="tab-users" class="admin-tab-pane">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                        <div>
+                            <h4 class="fw-bold mb-1">User Account Management</h4>
+                            <p class="text-muted mb-0">Inspect user accounts, toggle active/disabled access, and manage permissions.</p>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="userSearchInput" placeholder="Search by name or email...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Users Table Card -->
+                    <div class="app-card p-0 overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table modern-table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-4">User</th>
+                                        <th>Role</th>
+                                        <th class="text-center">Account Status</th>
+                                        <th>Registered Date</th>
+                                        <th>Portfolios</th>
+                                        <th class="text-end pe-4">Administrative Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted">
+                                            <span class="spinner-border spinner-border-sm me-2"></span> Loading users...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: DSE SYNCHRONIZATION -->
+                <div id="tab-sync" class="admin-tab-pane">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                        <div>
+                            <h4 class="fw-bold mb-1">Market Data Synchronization</h4>
+                            <p class="text-muted mb-0">Trigger authoritative price and quote synchronization with Dhaka Stock Exchange.</p>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-12 col-lg-6">
+                            <div class="app-card p-4">
+                                <h6 class="fw-semibold mb-2"><i class="bi bi-cloud-arrow-down text-primary me-2"></i>Synchronize Market Prices</h6>
+                                <p class="text-muted fs-sm mb-3">
+                                    This action invokes the existing <code>IDsePriceService</code>. It queries the live DSE ticker stream and updates:
+                                </p>
+                                <ul class="text-muted fs-sm mb-4">
+                                    <li>Current Market Price (LTP)</li>
+                                    <li>Day High & Day Low values</li>
+                                    <li>Day Change (BDT) & Day Change Percentage</li>
+                                    <li>Automated Daily Price History Snapshot record</li>
+                                </ul>
+
+                                <div class="p-3 bg-body-tertiary rounded mb-4">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span class="fs-sm fw-medium">Last Recorded Sync:</span>
+                                        <span class="fs-sm text-primary fw-semibold" id="syncConsoleLastDate">-</span>
+                                    </div>
+                                </div>
+
+                                <button id="triggerDseSyncBtn" class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+                                    <i class="bi bi-arrow-repeat fs-5"></i>
+                                    <span>Run DSE Synchronization Now</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="app-card p-4 h-100">
+                                <h6 class="fw-semibold mb-3"><i class="bi bi-terminal text-secondary me-2"></i>Synchronization Log</h6>
+                                <div id="syncResultContainer" class="p-3 bg-body-tertiary rounded fs-sm" style="min-height: 180px; font-family: var(--font-mono, monospace);">
+                                    <div class="text-muted text-center pt-4">No active synchronization run in this session. Click the button to trigger a live update.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 6: AUDIT INFORMATION -->
+                <div id="tab-audit" class="admin-tab-pane">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                        <div>
+                            <h4 class="fw-bold mb-1">System Audit Logs</h4>
+                            <p class="text-muted mb-0">Chronological transaction audit history captured by database triggers and service audits.</p>
+                        </div>
+                        <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" id="refreshAuditLogsBtn">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh Audit Logs
+                        </button>
+                    </div>
+
+                    <!-- Audit Table Card -->
+                    <div class="app-card p-0 overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table modern-table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-4">Log ID</th>
+                                        <th>Timestamp</th>
+                                        <th>Action</th>
+                                        <th>Table / Entity</th>
+                                        <th>Record ID</th>
+                                        <th>User ID</th>
+                                        <th class="pe-4">Audit Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditLogsTableBody">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4 text-muted">
+                                            <span class="spinner-border spinner-border-sm me-2"></span> Loading audit logs...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- =====================================
+         MODALS
+    ====================================== -->
+
+    <!-- Add/Edit Company Modal -->
+    <div class="modal fade" id="companyModal" tabindex="-1" aria-labelledby="companyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="companyModalLabel">Add New Company</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="companyForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="companyIdInput">
+
+                        <div class="mb-3">
+                            <label class="form-label fs-sm fw-medium">Ticker Symbol <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control text-uppercase" id="companyTickerInput" required placeholder="e.g. GP, SQURPHARMA" maxlength="20">
+                            <div class="form-text fs-xs">Must be unique across listed companies.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fs-sm fw-medium">Company Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="companyNameInput" required placeholder="e.g. Grameenphone Ltd." maxlength="150">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fs-sm fw-medium">Market Sector</label>
+                            <select class="form-select" id="companySectorInput">
+                                <option value="">-- Select Sector --</option>
+                            </select>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fs-sm fw-medium">Current Price (BDT) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" class="form-control" id="companyPriceInput" required min="0" placeholder="0.00">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fs-sm fw-medium">Day Change (BDT)</label>
+                                <input type="number" step="0.01" class="form-control" id="companyDayChangeInput" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fs-sm fw-medium">Day High (BDT)</label>
+                                <input type="number" step="0.01" class="form-control" id="companyHighInput" placeholder="0.00">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fs-sm fw-medium">Day Low (BDT)</label>
+                                <input type="number" step="0.01" class="form-control" id="companyLowInput" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div class="form-check form-switch mt-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="companyIsActiveInput" checked>
+                            <label class="form-check-label fs-sm fw-medium" for="companyIsActiveInput">Active for trading & portfolios</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm" id="saveCompanySubmitBtn">Save Company</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Sector Modal -->
+    <div class="modal fade" id="sectorModal" tabindex="-1" aria-labelledby="sectorModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="sectorModalLabel">Add Market Sector</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="sectorForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="sectorIdInput">
+
+                        <div class="mb-3">
+                            <label class="form-label fs-sm fw-medium">Sector Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="sectorNameInput" required placeholder="e.g. Telecommunication" maxlength="100">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fs-sm fw-medium">Description</label>
+                            <textarea class="form-control" id="sectorDescInput" rows="3" placeholder="Describe the sector classification..." maxlength="255"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm" id="saveSectorSubmitBtn">Save Sector</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Safe Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-danger" id="deleteConfirmModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="deleteConfirmMessage" class="mb-2">Are you sure you want to delete this record?</p>
+                    <div class="alert alert-warning fs-xs mb-0">
+                        <i class="bi bi-shield-exclamation me-1"></i>
+                        Safe guardrail active: If this item is referenced by existing transactions or records, the system will prevent destructive deletion. Consider deactivating instead.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="confirmDeleteActionBtn">Delete Record</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ShareSync JS -->
+    <script src="js/app.js"></script>
+</body>
+
+</html>

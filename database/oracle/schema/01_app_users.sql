@@ -4,6 +4,7 @@ CREATE TABLE app_users (
     email          VARCHAR2(150) NOT NULL,
     password_hash  VARCHAR2(255) NOT NULL,
     role           VARCHAR2(20) DEFAULT 'INVESTOR' NOT NULL,
+    is_active      NUMBER(1) DEFAULT 1 NOT NULL,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
     CONSTRAINT pk_app_users

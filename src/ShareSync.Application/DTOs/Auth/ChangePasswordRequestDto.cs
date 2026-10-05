@@ -10,4 +10,6 @@ public class ChangePasswordRequestDto
     [Required(ErrorMessage = "New password is required.")]
     [StringLength(100, MinimumLength = 6, ErrorMessage = "New password must be at least 6 characters long.")]
     public string NewPassword { get; set; } = string.Empty;
+
+    public string? ConfirmNewPassword { get; set; }
 }

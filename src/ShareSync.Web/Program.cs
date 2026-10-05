@@ -18,14 +18,47 @@ builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-// 2. Add Layer Dependencies
+// 2. Add Layer Dependencies & Validate Configuration
+var isDev = builder.Environment.IsDevelopment();
+var connectionString = builder.Configuration.GetConnectionString("OracleConnection");
+
+if (!isDev)
+{
+    if (string.IsNullOrWhiteSpace(connectionString) || connectionString.Contains("YOUR_DB_PASSWORD"))
+    {
+        throw new InvalidOperationException("Production configuration error: 'ConnectionStrings:OracleConnection' is missing or contains placeholder values.");
+    }
+
+    var configuredSecret = builder.Configuration["Jwt:Secret"];
+    if (string.IsNullOrWhiteSpace(configuredSecret) || configuredSecret.Length < 32 || configuredSecret.Contains("YOUR_STRONG_SECRET"))
+    {
+        throw new InvalidOperationException("Production configuration error: 'Jwt:Secret' must be provided via environment variables or secrets and be at least 32 characters long.");
+    }
+}
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddHttpClient<IDsePriceService, DsePriceService>();
+
+// Add HttpClient with safe timeout for live DSE price synchronization
+builder.Services.AddHttpClient<IDsePriceService, DsePriceService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(3);
+});
 builder.Services.AddHostedService<DsePriceBackgroundService>();
 
 // 3. Configure JWT Authentication
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "ShareSyncSuperSecretKeyForAcademicProjectSecurity2026#LongEnoughKey";
+var jwtSecret = builder.Configuration["Jwt:Secret"];
+if (string.IsNullOrWhiteSpace(jwtSecret))
+{
+    if (isDev)
+    {
+        jwtSecret = "ShareSyncDevSecretKeyForAcademicProjectSecurity2026#LongEnoughKey";
+    }
+    else
+    {
+        throw new InvalidOperationException("Required configuration 'Jwt:Secret' is missing in production environment.");
+    }
+}
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ShareSyncServer";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ShareSyncClient";
 
@@ -89,14 +122,26 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// 5. Configure CORS
+// 5. Configure CORS (Controlled origins policy)
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? new[] { "http://localhost:5000", "https://localhost:5001", "http://127.0.0.1:5000" };
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("ShareSyncCorsPolicy", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        if (isDev)
+        {
+            policy.SetIsOriginAllowed(origin => new Uri(origin).IsLoopback)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
     });
 });
 
@@ -131,7 +176,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseCors("AllowAll");
+app.UseCors("ShareSyncCorsPolicy");
 
 var frontendPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", "..", "frontend"));
 if (Directory.Exists(frontendPath))

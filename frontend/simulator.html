@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Investment Simulator | ShareSync</title>
+    <meta
+      name="description"
+      content="Hypothetically simulate stock BUY and SELL transactions to forecast position sizing, average cost, unrealized P/L, and portfolio asset allocation."
+    />
+
+    <!-- Google Fonts: Sora (Headings) & Inter (Body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+
+    <!-- ShareSync CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+
+    <style>
+      .sim-hero-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        padding: 24px;
+        box-shadow: var(--shadow-card);
+      }
+      .sim-badge-sandbox {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(37, 99, 235, 0.08);
+        color: var(--color-accent);
+        border: 1px solid rgba(37, 99, 235, 0.2);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+      }
+      .type-toggle-btn {
+        padding: 8px 20px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 8px;
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-soft);
+        color: var(--color-text-secondary);
+        transition: all 0.15s ease;
+      }
+      .type-toggle-btn.active.buy-active {
+        background: var(--color-positive) !important;
+        color: #ffffff !important;
+        border-color: var(--color-positive) !important;
+      }
+      .type-toggle-btn.active.sell-active {
+        background: var(--color-negative) !important;
+        color: #ffffff !important;
+        border-color: var(--color-negative) !important;
+      }
+      .quick-price-chip {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: var(--color-surface-soft);
+        border: 1px solid var(--color-border);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .quick-price-chip:hover {
+        background: var(--color-primary-soft);
+        color: var(--color-primary);
+        border-color: var(--color-primary);
+      }
+      .metric-delta-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 4px;
+      }
+      .delta-pos {
+        background: var(--color-positive-soft);
+        color: var(--color-positive);
+      }
+      .delta-neg {
+        background: var(--color-negative-soft);
+        color: var(--color-negative);
+      }
+      .delta-neutral {
+        background: var(--color-surface-soft);
+        color: var(--color-text-muted);
+      }
+      .sim-flow-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-accent);
+        font-size: 20px;
+      }
+      .sim-flow-box {
+        background: var(--color-surface-soft);
+        border: 1px dashed var(--color-border);
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .sim-comparison-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        padding: 20px;
+        box-shadow: var(--shadow-card);
+        height: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- =========================
+         TOP BAR
+    ========================== -->
+    <header class="topbar">
+      <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <!-- Brand -->
+          <a href="index.html" class="brand text-decoration-none">
+            <span class="brand-mark">S</span>
+            <span class="brand-name">Share<span>Sync</span></span>
+          </a>
+          <!-- Global Search (Feature 8) -->
+          <div class="global-search-container position-relative mx-3 flex-grow-1 d-none d-md-block" style="max-width: 420px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-body-tertiary border-end-0 text-muted" style="border-radius: 8px 0 0 8px; border-color: var(--color-border);">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control bg-body-tertiary border-start-0 ps-0 text-body"
+                id="globalSearchInput"
+                placeholder="Search companies, tickers, sectors, portfolios..."
+                aria-label="Search ShareSync"
+                autocomplete="off"
+                style="border-radius: 0 8px 8px 0; border-color: var(--color-border); font-size: 13px;"
+              />
+              <button
+                class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y d-none pe-2 text-decoration-none"
+                id="clearGlobalSearchBtn"
+                type="button"
+                style="z-index: 5;"
+                aria-label="Clear search"
+              >
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+            </div>
+
+            <!-- Search Dropdown Results -->
+            <div class="global-search-dropdown shadow-lg border rounded-3 p-0 d-none" id="globalSearchDropdown" style="position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--color-surface); z-index: 1050; max-height: 480px; overflow-y: auto;">
+              <div id="globalSearchResults"></div>
+            </div>
+          </div>
+
+
+          <!-- Profile & Controls -->
+          <div class="d-flex align-items-center gap-2">
+            <button
+              class="icon-button theme-toggle-btn"
+              id="themeToggleBtn"
+              title="Toggle Light / Dark Mode"
+              aria-label="Toggle theme"
+            >
+              <i class="bi bi-moon-stars"></i>
+            </button>
+
+            <!-- Notifications Center -->
+            <div class="header-dropdown-wrapper position-relative">
+              <button
+                class="icon-button position-relative"
+                id="notificationBtn"
+                title="Notifications"
+                aria-label="Notifications"
+                aria-expanded="false"
+              >
+                <i class="bi bi-bell"></i>
+                <span class="notification-badge" id="notificationBadge"></span>
+              </button>
+
+              <div class="header-dropdown notification-dropdown" id="notificationDropdown">
+                <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center gap-2">
+                    <h6 class="mb-0 fw-semibold" style="font-size: 14px;">Notifications</h6>
+                    <span class="badge bg-primary rounded-pill px-2 py-1" id="notificationCountBadge" style="font-size: 11px;">0 new</span>
+                  </div>
+                  <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" id="markAllNotificationsReadBtn" style="font-size: 12px;">
+                    Mark all as read
+                  </button>
+                </div>
+                <div class="notification-dropdown-body" id="notificationListContainer" style="max-height: 360px; overflow-y: auto;">
+                  <div class="text-center py-4 text-muted fs-xs">Loading notifications...</div>
+                </div>
+                <div class="p-2 text-center border-top">
+                  <a href="alerts.html" class="text-decoration-none fw-medium" style="font-size: 12px; color: var(--color-accent);">View Alert Rules &rarr;</a>
+                </div>
+              </div>
+            </div>
+
+                        <!-- Profile Menu -->
+            <div class="header-dropdown-wrapper position-relative ms-2">
+              <div class="profile" id="headerProfileBtn" role="button" tabindex="0" aria-expanded="false" title="Account Menu">
+                <div class="profile-avatar" id="headerAvatar">T</div>
+
+                <div class="profile-info d-none d-md-block">
+                  <span class="profile-name" id="headerUserName"> Investor </span>
+
+                  <span class="profile-role"> Investor </span>
+                </div>
+
+                <i class="bi bi-chevron-down profile-arrow"></i>
+              </div>
+
+              <div class="header-dropdown profile-dropdown" id="profileDropdown">
+                <div class="p-3 border-bottom">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="profile-avatar flex-shrink-0" id="dropdownAvatar" style="width: 42px; height: 42px; font-size: 17px;">T</div>
+                    <div style="min-width: 0;">
+                      <div class="fw-semibold text-truncate" id="dropdownUserName" style="font-size: 14px;">Investor</div>
+                      <div class="text-muted text-truncate" id="dropdownUserEmail" style="font-size: 12px;">investor@sharesync.com</div>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-0" style="font-size: 11px;" id="dropdownUserRole">INVESTOR</span>
+                  </div>
+                </div>
+
+                <div class="py-2 border-bottom">
+                  <a href="settings.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-person"></i>
+                    <span>My Profile & Settings</span>
+                  </a>
+                  <a href="portfolio.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-pie-chart"></i>
+                    <span>My Portfolios</span>
+                  </a>
+                  <a href="transactions.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-receipt"></i>
+                    <span>Transaction History</span>
+                  </a>
+                </div>
+
+                <div class="p-2 border-bottom">
+                  <div class="d-flex align-items-center justify-content-between px-2 py-1">
+                    <span class="text-muted d-flex align-items-center gap-2" style="font-size: 13px;">
+                      <i class="bi bi-moon-stars" style="font-size: 14px;"></i> Dark Mode
+                    </span>
+                    <div class="form-check form-switch m-0 p-0" style="min-height: auto;">
+                      <input class="form-check-input ms-0" type="checkbox" role="switch" id="dropdownThemeSwitch" style="cursor: pointer;">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-2">
+                  <button class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2 w-100 border-0 bg-transparent text-danger" id="dropdownLogoutBtn">
+                    <i class="bi bi-box-arrow-right text-danger"></i>
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- =========================
+         APPLICATION LAYOUT
+    ========================== -->
+    <div class="app-layout">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <p class="sidebar-label">Workspace</p>
+          <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">
+              <i class="bi bi-grid-1x2-fill"></i>
+              <span>Dashboard</span>
+            </a>
+            <a href="portfolio.html" class="sidebar-link">
+              <i class="bi bi-briefcase"></i>
+              <span>Portfolio</span>
+            </a>
+            <a href="analytics.html" class="sidebar-link">
+              <i class="bi bi-pie-chart-fill"></i>
+              <span>Analytics</span>
+            </a>
+            <a href="simulator.html" class="sidebar-link active">
+              <i class="bi bi-cpu"></i>
+              <span>Simulator</span>
+            </a>
+            <a href="goals.html" class="sidebar-link">
+              <i class="bi bi-bullseye"></i>
+              <span>Goals</span>
+            </a>
+            <a href="transactions.html" class="sidebar-link">
+              <i class="bi bi-arrow-left-right"></i>
+              <span>Transactions</span>
+            </a>
+            <a href="watchlist.html" class="sidebar-link">
+              <i class="bi bi-bookmark"></i>
+              <span>Watchlist</span>
+            </a>
+            <a href="alerts.html" class="sidebar-link">
+              <i class="bi bi-bell"></i>
+              <span>Alerts</span>
+            </a>
+            <a href="dividends.html" class="sidebar-link">
+              <i class="bi bi-cash-stack"></i>
+              <span>Dividends</span>
+            </a>
+            <a href="reports.html" class="sidebar-link">
+              <i class="bi bi-bar-chart-line"></i>
+              <span>Reports</span>
+            </a>
+
+            <a href="activity.html" class="sidebar-link">
+              <i class="bi bi-clock-history"></i>
+              <span>Activity</span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="sidebar-section sidebar-bottom">
+          <p class="sidebar-label">Account</p>
+          <nav class="sidebar-nav">
+            <a href="settings.html" class="sidebar-link">
+              <i class="bi bi-gear"></i>
+              <span>Settings</span>
+            </a>
+            <a href="#" class="sidebar-link" id="sidebarLogoutBtn">
+              <i class="bi bi-box-arrow-right"></i>
+              <span>Sign Out</span>
+            </a>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+
+          <!-- Page Header -->
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <h1 class="page-title mb-0">Investment Simulator</h1>
+                <span class="sim-badge-sandbox">
+                  <i class="bi bi-shield-check"></i> Non-Destructive Sandbox
+                </span>
+              </div>
+              <p class="page-subtitle mb-0">
+                Model hypothetical BUY and SELL trades to forecast average cost, unrealized P/L, and portfolio weight changes before execution.
+              </p>
+            </div>
+          </div>
+
+          <!-- Alert / Error Banner -->
+          <div id="simAlertContainer" class="d-none mb-4"></div>
+
+          <!-- Simulation Form Card -->
+          <div class="sim-hero-card mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-sliders2-vertical text-primary fs-5"></i>
+                <h5 class="mb-0 fw-semibold">Hypothetical Trade Parameters</h5>
+              </div>
+              <span class="text-muted fs-xs">
+                <i class="bi bi-info-circle me-1"></i> No transactions will be written to database
+              </span>
+            </div>
+
+            <form id="simulatorForm" novalidate>
+              <div class="row g-3">
+                <!-- Portfolio Selection -->
+                <div class="col-md-3">
+                  <label for="simPortfolioSelect" class="form-label fw-semibold fs-sm">Target Portfolio</label>
+                  <select id="simPortfolioSelect" class="form-select" required>
+                    <option value="" disabled selected>Loading portfolios...</option>
+                  </select>
+                </div>
+
+                <!-- Company Selection -->
+                <div class="col-md-3">
+                  <label for="simCompanySelect" class="form-label fw-semibold fs-sm">Company / Stock</label>
+                  <select id="simCompanySelect" class="form-select" required>
+                    <option value="" disabled selected>Loading companies...</option>
+                  </select>
+                  <div class="mt-1 d-flex justify-content-between align-items-center">
+                    <span class="text-muted fs-xs" id="simCompanyPriceLabel">Market Price: —</span>
+                    <span class="badge bg-secondary-subtle text-secondary fs-xs" id="simCurrentHoldingsBadge">Holdings: —</span>
+                  </div>
+                </div>
+
+                <!-- Transaction Type Toggle -->
+                <div class="col-md-2">
+                  <label class="form-label fw-semibold fs-sm">Action</label>
+                  <div class="d-flex gap-2">
+                    <button type="button" class="type-toggle-btn flex-fill active buy-active" id="simTypeBuyBtn">
+                      <i class="bi bi-arrow-down-left me-1"></i> BUY
+                    </button>
+                    <button type="button" class="type-toggle-btn flex-fill" id="simTypeSellBtn">
+                      <i class="bi bi-arrow-up-right me-1"></i> SELL
+                    </button>
+                  </div>
+                  <input type="hidden" id="simTransactionType" value="BUY" />
+                </div>
+
+                <!-- Quantity Input -->
+                <div class="col-md-2">
+                  <label for="simQuantity" class="form-label fw-semibold fs-sm">Quantity (Shares)</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="simQuantity"
+                    min="1"
+                    step="1"
+                    placeholder="e.g. 100"
+                    required
+                  />
+                  <div class="text-muted fs-xs mt-1" id="simQuantityHelper">Shares to trade</div>
+                </div>
+
+                <!-- Hypothetical Price Input -->
+                <div class="col-md-2">
+                  <label for="simPrice" class="form-label fw-semibold fs-sm">Hypothetical Price (BDT)</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="simPrice"
+                    min="0.01"
+                    step="0.05"
+                    placeholder="e.g. 125.00"
+                    required
+                  />
+                  <div class="mt-1 d-flex gap-1 flex-wrap">
+                    <button type="button" class="quick-price-chip" id="chipMarketPrice" title="Reset to current market price">Mkt</button>
+                    <button type="button" class="quick-price-chip" id="chipMinus5">-5%</button>
+                    <button type="button" class="quick-price-chip" id="chipPlus5">+5%</button>
+                    <button type="button" class="quick-price-chip" id="chipPlus10">+10%</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Bar & Estimated Order Value -->
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mt-4 pt-3 border-top">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="sim-flow-box py-2 px-3">
+                    <span class="text-muted fs-xs me-2">Estimated Trade Value:</span>
+                    <strong class="fs-sm fw-mono" id="simEstimatedTradeAmount">BDT 0.00</strong>
+                  </div>
+                  <div id="simOversellWarning" class="text-danger fs-xs fw-semibold d-none">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Cannot sell more than available holdings!
+                  </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                  <button type="button" class="secondary-button" id="simResetBtn">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                  </button>
+                  <button type="submit" class="primary-button" id="simRunBtn">
+                    <i class="bi bi-play-circle"></i> Run Simulation
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Empty State (Shown before first simulation) -->
+          <div id="simEmptyState" class="sim-hero-card text-center py-5">
+            <div class="mb-3">
+              <i class="bi bi-graph-up-arrow text-primary display-4"></i>
+            </div>
+            <h4 class="fw-semibold">Ready to Test Hypothetical Trades</h4>
+            <p class="text-muted mx-auto mb-4" style="max-width: 540px;">
+              Select a portfolio, choose a company, enter your planned quantity and hypothetical target price, then click <strong>Run Simulation</strong> to preview the exact mathematical outcome on your portfolio.
+            </p>
+            <div class="row g-3 justify-content-center" style="max-width: 720px; margin: 0 auto;">
+              <div class="col-md-4 text-start">
+                <div class="p-3 border rounded-3 bg-surface-soft h-100">
+                  <div class="fw-semibold text-primary mb-1"><i class="bi bi-1-circle me-1"></i> Choose Asset</div>
+                  <div class="text-muted fs-xs">Select any stock from DSE and pick which portfolio to evaluate against.</div>
+                </div>
+              </div>
+              <div class="col-md-4 text-start">
+                <div class="p-3 border rounded-3 bg-surface-soft h-100">
+                  <div class="fw-semibold text-primary mb-1"><i class="bi bi-2-circle me-1"></i> Set Target Price</div>
+                  <div class="text-muted fs-xs">Simulate buying dips or taking profits at higher valuations.</div>
+                </div>
+              </div>
+              <div class="col-md-4 text-start">
+                <div class="p-3 border rounded-3 bg-surface-soft h-100">
+                  <div class="fw-semibold text-primary mb-1"><i class="bi bi-3-circle me-1"></i> Analyze Impact</div>
+                  <div class="text-muted fs-xs">Inspect new average cost, allocation shift, and return projections.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results Container (Hidden until simulation is calculated) -->
+          <div id="simResultsContainer" class="d-none">
+
+            <!-- Visual Flow Header -->
+            <div class="sim-hero-card mb-4 bg-surface-soft border-primary-subtle">
+              <div class="row align-items-center g-3 text-center text-md-start">
+                <div class="col-md-4">
+                  <div class="p-3 border rounded bg-surface">
+                    <span class="badge bg-secondary-subtle text-secondary mb-1 fs-xs">BEFORE SIMULATION</span>
+                    <h6 class="mb-1 fw-bold" id="flowCurrentTitle">Current Position</h6>
+                    <div class="text-muted fs-xs">
+                      Holdings: <span class="fw-semibold text-body" id="flowCurrentQty">0</span> shares @
+                      <span class="fw-semibold text-body" id="flowCurrentAvgCost">BDT 0.00</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-4 text-center">
+                  <div class="p-2 sim-flow-box bg-white">
+                    <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                      <span class="badge" id="flowTradeBadge">BUY</span>
+                      <strong class="fs-sm fw-mono" id="flowTradeSummary">100 shares @ BDT 125.00</strong>
+                    </div>
+                    <div class="text-muted fs-xs">
+                      Hypothetical Value: <strong id="flowTradeValue">BDT 12,500.00</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <div class="p-3 border rounded bg-surface border-primary">
+                    <span class="badge bg-primary-subtle text-primary mb-1 fs-xs">AFTER SIMULATION</span>
+                    <h6 class="mb-1 fw-bold text-primary" id="flowSimTitle">Simulated Position</h6>
+                    <div class="text-muted fs-xs">
+                      Holdings: <span class="fw-semibold text-body" id="flowSimQty">100</span> shares @
+                      <span class="fw-semibold text-body" id="flowSimAvgCost">BDT 125.00</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Key Metric Comparison Cards -->
+            <div class="row g-3 mb-4">
+              <!-- Metric 1: Quantity -->
+              <div class="col-md-4 col-sm-6">
+                <div class="sim-comparison-card">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted fs-xs fw-semibold">HOLDING QUANTITY</span>
+                    <span class="metric-delta-badge" id="badgeQtyDelta">+0</span>
+                  </div>
+                  <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <h4 class="mb-0 fw-bold fw-mono" id="valSimQty">0</h4>
+                    <span class="text-muted fs-xs">shares</span>
+                  </div>
+                  <div class="text-muted fs-xs">
+                    Current: <span class="fw-semibold" id="valCurrentQty">0</span> shares
+                  </div>
+                </div>
+              </div>
+
+              <!-- Metric 2: Average Cost -->
+              <div class="col-md-4 col-sm-6">
+                <div class="sim-comparison-card">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted fs-xs fw-semibold">WEIGHTED AVG COST</span>
+                    <span class="metric-delta-badge" id="badgeAvgCostDelta">BDT 0.00</span>
+                  </div>
+                  <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <h4 class="mb-0 fw-bold fw-mono" id="valSimAvgCost">BDT 0.00</h4>
+                  </div>
+                  <div class="text-muted fs-xs">
+                    Current: <span class="fw-semibold" id="valCurrentAvgCost">BDT 0.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Metric 3: Position Market Value -->
+              <div class="col-md-4 col-sm-6">
+                <div class="sim-comparison-card">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted fs-xs fw-semibold">POSITION MARKET VALUE</span>
+                    <span class="metric-delta-badge" id="badgePosValDelta">+0.00</span>
+                  </div>
+                  <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <h4 class="mb-0 fw-bold fw-mono" id="valSimPosVal">BDT 0.00</h4>
+                  </div>
+                  <div class="text-muted fs-xs">
+                    Current: <span class="fw-semibold" id="valCurrentPosVal">BDT 0.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Metric 4: Position Unrealized P/L -->
+              <div class="col-md-4 col-sm-6">
+                <div class="sim-comparison-card">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted fs-xs fw-semibold">UNREALIZED PROFIT / LOSS</span>
+                    <span class="metric-delta-badge" id="badgePlPctDelta">0.00%</span>
+                  </div>
+                  <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <h4 class="mb-0 fw-bold fw-mono" id="valSimPL">BDT 0.00</h4>
+                    <span class="fs-xs fw-semibold" id="valSimPLPct">(0.00%)</span>
+                  </div>
+                  <div class="text-muted fs-xs">
+                    Current: <span class="fw-semibold" id="valCurrentPL">BDT 0.00</span> (<span id="valCurrentPLPct">0.00%</span>)
+                  </div>
+                </div>
+              </div>
+
+              <!-- Metric 5: Portfolio Allocation -->
+              <div class="col-md-4 col-sm-6">
+                <div class="sim-comparison-card">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted fs-xs fw-semibold">PORTFOLIO WEIGHT</span>
+                    <span class="metric-delta-badge" id="badgeAllocDelta">+0.0%</span>
+                  </div>
+                  <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <h4 class="mb-0 fw-bold fw-mono" id="valSimAlloc">0.0%</h4>
+                  </div>
+                  <div class="text-muted fs-xs">
+                    Current: <span class="fw-semibold" id="valCurrentAlloc">0.0%</span> of portfolio
+                  </div>
+                </div>
+              </div>
+
+              <!-- Metric 6: Total Portfolio Value -->
+              <div class="col-md-4 col-sm-6">
+                <div class="sim-comparison-card">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted fs-xs fw-semibold">TOTAL PORTFOLIO VALUATION</span>
+                    <span class="metric-delta-badge" id="badgePortValDelta">+0.00</span>
+                  </div>
+                  <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <h4 class="mb-0 fw-bold fw-mono" id="valSimPortVal">BDT 0.00</h4>
+                  </div>
+                  <div class="text-muted fs-xs">
+                    Current: <span class="fw-semibold" id="valCurrentPortVal">BDT 0.00</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SELL Specific Realized P/L Callout (Hidden on BUY) -->
+            <div id="simSellCallout" class="sim-hero-card mb-4 border-warning d-none">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="p-3 bg-warning-subtle text-warning rounded-circle">
+                    <i class="bi bi-cash-coin fs-4"></i>
+                  </div>
+                  <div>
+                    <h6 class="mb-1 fw-bold">Simulated Realized Return</h6>
+                    <p class="text-muted fs-xs mb-0">
+                      Executing this hypothetical sale at <span class="fw-semibold" id="sellCalloutPrice">BDT 0.00</span>
+                      generates an estimated profit or loss based on your original cost basis.
+                    </p>
+                  </div>
+                </div>
+                <div class="text-end">
+                  <div class="fs-xs text-muted">Estimated Realized P/L:</div>
+                  <div class="fs-4 fw-bold fw-mono" id="sellCalloutRealizedPL">BDT 0.00</div>
+                  <div class="fs-xs text-muted">Gross Proceeds: <span class="fw-semibold" id="sellCalloutProceeds">BDT 0.00</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="row g-4 mb-4">
+              <!-- Bar Chart: Valuation & Cost Basis Comparison -->
+              <div class="col-lg-7">
+                <div class="sim-hero-card h-100">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0 fw-semibold">
+                      <i class="bi bi-bar-chart-fill text-primary me-2"></i>Position Valuation & Cost Basis Comparison
+                    </h6>
+                    <span class="badge bg-secondary-subtle text-secondary fs-xs">Current vs Simulated</span>
+                  </div>
+                  <div style="height: 280px; position: relative;">
+                    <canvas id="simComparisonChart"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Donut Chart: Asset Allocation Shift -->
+              <div class="col-lg-5">
+                <div class="sim-hero-card h-100">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0 fw-semibold">
+                      <i class="bi bi-pie-chart-fill text-accent me-2"></i>Simulated Portfolio Allocation
+                    </h6>
+                    <span class="badge bg-primary-subtle text-primary fs-xs" id="donutStockWeightBadge">0.0%</span>
+                  </div>
+                  <div style="height: 280px; position: relative;">
+                    <canvas id="simAllocationChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Side-by-side Audit Table -->
+            <div class="sim-hero-card mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0 fw-semibold">
+                  <i class="bi bi-table text-primary me-2"></i>Comprehensive Side-by-Side Analysis
+                </h6>
+                <span class="text-muted fs-xs">Generated at <span id="simTimestamp">—</span></span>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light fs-xs text-uppercase">
+                    <tr>
+                      <th class="ps-3">Financial Metric</th>
+                      <th>Current Position</th>
+                      <th>Hypothetical Trade</th>
+                      <th>Simulated Outcome</th>
+                      <th class="text-end pe-3">Net Impact</th>
+                    </tr>
+                  </thead>
+                  <tbody class="fs-sm">
+                    <tr>
+                      <td class="ps-3 fw-semibold">Position Quantity</td>
+                      <td id="rowCurrentQty">0 shares</td>
+                      <td id="rowTradeQty">0 shares</td>
+                      <td class="fw-semibold text-primary" id="rowSimQty">0 shares</td>
+                      <td class="text-end pe-3" id="rowDeltaQty">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ps-3 fw-semibold">Weighted Average Buy Price</td>
+                      <td id="rowCurrentAvgCost">BDT 0.00</td>
+                      <td id="rowTradePrice">BDT 0.00</td>
+                      <td class="fw-semibold text-primary" id="rowSimAvgCost">BDT 0.00</td>
+                      <td class="text-end pe-3" id="rowDeltaAvgCost">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ps-3 fw-semibold">Invested Cost Basis</td>
+                      <td id="rowCurrentCostBasis">BDT 0.00</td>
+                      <td id="rowTradeAmount">BDT 0.00</td>
+                      <td class="fw-semibold text-primary" id="rowSimCostBasis">BDT 0.00</td>
+                      <td class="text-end pe-3" id="rowDeltaCostBasis">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ps-3 fw-semibold">Position Market Value</td>
+                      <td id="rowCurrentMarketVal">BDT 0.00</td>
+                      <td>—</td>
+                      <td class="fw-semibold text-primary" id="rowSimMarketVal">BDT 0.00</td>
+                      <td class="text-end pe-3" id="rowDeltaMarketVal">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ps-3 fw-semibold">Unrealized Gain / Loss</td>
+                      <td id="rowCurrentUnrealized">BDT 0.00 (0%)</td>
+                      <td>—</td>
+                      <td class="fw-semibold" id="rowSimUnrealized">BDT 0.00 (0%)</td>
+                      <td class="text-end pe-3" id="rowDeltaUnrealized">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ps-3 fw-semibold">Portfolio Weight</td>
+                      <td id="rowCurrentWeight">0.0%</td>
+                      <td>—</td>
+                      <td class="fw-semibold text-primary" id="rowSimWeight">0.0%</td>
+                      <td class="text-end pe-3" id="rowDeltaWeight">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ps-3 fw-semibold">Total Portfolio Valuation</td>
+                      <td id="rowCurrentPortVal">BDT 0.00</td>
+                      <td>—</td>
+                      <td class="fw-semibold text-primary" id="rowSimPortVal">BDT 0.00</td>
+                      <td class="text-end pe-3" id="rowDeltaPortVal">—</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Non-Destructive Assurance Footer Banner -->
+            <div class="alert alert-secondary border py-3 px-4 d-flex align-items-center gap-3 mb-0">
+              <i class="bi bi-shield-lock-fill text-primary fs-3"></i>
+              <div class="fs-xs text-muted flex-grow-1">
+                <strong class="text-body d-block mb-1">Authoritative Non-Destructive Simulation</strong>
+                This forecast used the exact cumulative weighted-average cost basis algorithm authoritative across ShareSync.
+                No real transactions were booked, no cash balances were modified, and your real portfolio remains intact.
+              </div>
+              <a href="transactions.html" class="btn btn-sm btn-outline-primary text-nowrap">
+                <i class="bi bi-arrow-left-right me-1"></i> Go to Live Trading
+              </a>
+            </div>
+
+          </div>
+
+        </div>
+      </main>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- ShareSync Application Logic -->
+    <script src="js/app.js"></script>
+  </body>
+</html>

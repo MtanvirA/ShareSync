@@ -6,6 +6,8 @@ using ShareSync.Domain.Entities;
 using ShareSync.Infrastructure.Data;
 using Xunit;
 
+using Microsoft.EntityFrameworkCore.Diagnostics;
+
 namespace ShareSync.Tests;
 
 public class PortfolioTests
@@ -14,6 +16,7 @@ public class PortfolioTests
     {
         var options = new DbContextOptionsBuilder<ShareSyncDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
         return new ShareSyncDbContext(options);

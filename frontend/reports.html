@@ -71,6 +71,38 @@
                     </span>
 
                 </a>
+          <!-- Global Search (Feature 8) -->
+          <div class="global-search-container position-relative mx-3 flex-grow-1 d-none d-md-block" style="max-width: 420px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-body-tertiary border-end-0 text-muted" style="border-radius: 8px 0 0 8px; border-color: var(--color-border);">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control bg-body-tertiary border-start-0 ps-0 text-body"
+                id="globalSearchInput"
+                placeholder="Search companies, tickers, sectors, portfolios..."
+                aria-label="Search ShareSync"
+                autocomplete="off"
+                style="border-radius: 0 8px 8px 0; border-color: var(--color-border); font-size: 13px;"
+              />
+              <button
+                class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y d-none pe-2 text-decoration-none"
+                id="clearGlobalSearchBtn"
+                type="button"
+                style="z-index: 5;"
+                aria-label="Clear search"
+              >
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+            </div>
+
+            <!-- Search Dropdown Results -->
+            <div class="global-search-dropdown shadow-lg border rounded-3 p-0 d-none" id="globalSearchDropdown" style="position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--color-surface); z-index: 1050; max-height: 480px; overflow-y: auto;">
+              <div id="globalSearchResults"></div>
+            </div>
+          </div>
+
 
 
                 <div class="d-flex align-items-center gap-2">
@@ -271,6 +303,27 @@
 
                     </a>
 
+                    <a href="analytics.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-pie-chart-fill"></i>
+
+                        <span>
+                            Analytics
+                        </span>
+
+                    </a>
+
+            <a href="simulator.html" class="sidebar-link">
+              <i class="bi bi-cpu"></i>
+              <span>Simulator</span>
+            </a>
+
+            <a href="goals.html" class="sidebar-link">
+              <i class="bi bi-bullseye"></i>
+              <span>Goals</span>
+            </a>
+
 
                     <a href="transactions.html"
                        class="sidebar-link">
@@ -295,6 +348,17 @@
 
                     </a>
 
+                    <a href="alerts.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-bell"></i>
+
+                        <span>
+                            Alerts
+                        </span>
+
+                    </a>
+
 
                     <a href="dividends.html"
                        class="sidebar-link">
@@ -315,6 +379,17 @@
 
                         <span>
                             Reports
+                        </span>
+
+                    </a>
+
+                    <a href="activity.html"
+                       class="sidebar-link">
+
+                        <i class="bi bi-clock-history"></i>
+
+                        <span>
+                            Activity
                         </span>
 
                     </a>
@@ -443,6 +518,38 @@
                                 All time
                             </option>
                         </select>
+
+                        <div class="dropdown" id="reportExportDropdown">
+                            <button class="filter-select dropdown-toggle d-flex align-items-center gap-2"
+                                    type="button"
+                                    id="exportMenuBtn"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    title="Export report">
+                                <i class="bi bi-download"></i>
+                                <span>Export</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="exportMenuBtn">
+                                <li>
+                                    <button class="dropdown-item d-flex align-items-center gap-2 py-2" id="exportPdfBtn" type="button">
+                                        <i class="bi bi-file-earmark-pdf text-danger"></i>
+                                        <span>Export PDF</span>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item d-flex align-items-center gap-2 py-2" id="exportExcelBtn" type="button">
+                                        <i class="bi bi-file-earmark-excel text-success"></i>
+                                        <span>Export Excel</span>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item d-flex align-items-center gap-2 py-2" id="exportCsvBtn" type="button">
+                                        <i class="bi bi-filetype-csv text-primary"></i>
+                                        <span>Export CSV</span>
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
 
                     </div>
 
@@ -688,6 +795,20 @@
                         </div>
 
                         <div id="reportAdditionalFilters" class="d-flex align-items-center gap-2">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Export report formats">
+                                <button type="button" class="btn btn-outline-danger d-flex align-items-center gap-1" id="quickExportPdfBtn" title="Export current report as PDF">
+                                    <i class="bi bi-file-earmark-pdf"></i>
+                                    <span>PDF</span>
+                                </button>
+                                <button type="button" class="btn btn-outline-success d-flex align-items-center gap-1" id="quickExportExcelBtn" title="Export current report as Excel (.xlsx)">
+                                    <i class="bi bi-file-earmark-excel"></i>
+                                    <span>Excel</span>
+                                </button>
+                                <button type="button" class="btn btn-outline-primary d-flex align-items-center gap-1" id="quickExportCsvBtn" title="Export current report as CSV">
+                                    <i class="bi bi-filetype-csv"></i>
+                                    <span>CSV</span>
+                                </button>
+                            </div>
                         </div>
 
                     </div>

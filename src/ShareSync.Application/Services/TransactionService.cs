@@ -17,11 +17,18 @@ public class TransactionService : ITransactionService
         _context = context;
     }
 
-    public async Task<ApiResponse<List<TransactionDto>>> GetUserTransactionsAsync(
+    public async Task<ApiResponse<PagedTransactionsDto>> GetPagedTransactionsAsync(
         int userId,
         TransactionFilterDto? filter = null,
         CancellationToken cancellationToken = default)
     {
+        filter ??= new TransactionFilterDto();
+
+        if (filter.StartDate.HasValue && filter.EndDate.HasValue && filter.StartDate.Value > filter.EndDate.Value)
+        {
+            throw new AppException("Start date cannot be after end date.", 400);
+        }
+
         // Enforce user isolation: only transactions from portfolios owned by userId
         var query = _context.Transactions
             .AsNoTracking()
@@ -29,38 +36,100 @@ public class TransactionService : ITransactionService
             .Include(t => t.Company)
             .Where(t => t.Portfolio.UserId == userId);
 
-        if (filter != null)
+        if (filter.PortfolioId.HasValue && filter.PortfolioId > 0)
         {
-            if (filter.PortfolioId.HasValue && filter.PortfolioId > 0)
+            var portfolio = await _context.Portfolios
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.PortfolioId == filter.PortfolioId.Value, cancellationToken);
+
+            if (portfolio != null && portfolio.UserId != userId)
             {
-                query = query.Where(t => t.PortfolioId == filter.PortfolioId.Value);
+                throw new AppException("You do not have permission to access this portfolio.", 403);
             }
 
-            if (filter.CompanyId.HasValue && filter.CompanyId > 0)
+            if (portfolio == null)
             {
-                query = query.Where(t => t.CompanyId == filter.CompanyId.Value);
+                throw new NotFoundException($"Portfolio with ID {filter.PortfolioId.Value} was not found.");
             }
 
-            if (!string.IsNullOrWhiteSpace(filter.TransactionType) && filter.TransactionType != "all")
-            {
-                var normType = filter.TransactionType.Trim().ToUpperInvariant();
-                query = query.Where(t => t.TransactionType == normType);
-            }
-
-            if (filter.StartDate.HasValue)
-            {
-                query = query.Where(t => t.TransactionDate >= filter.StartDate.Value);
-            }
-
-            if (filter.EndDate.HasValue)
-            {
-                query = query.Where(t => t.TransactionDate <= filter.EndDate.Value);
-            }
+            query = query.Where(t => t.PortfolioId == filter.PortfolioId.Value);
         }
 
-        var transactions = await query
-            .OrderByDescending(t => t.TransactionDate)
-            .ThenByDescending(t => t.TransactionId)
+        if (filter.CompanyId.HasValue && filter.CompanyId > 0)
+        {
+            query = query.Where(t => t.CompanyId == filter.CompanyId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.TransactionType) && filter.TransactionType != "all")
+        {
+            var normType = filter.TransactionType.Trim().ToUpperInvariant();
+            query = query.Where(t => t.TransactionType == normType);
+        }
+
+        if (filter.StartDate.HasValue)
+        {
+            query = query.Where(t => t.TransactionDate >= filter.StartDate.Value);
+        }
+
+        if (filter.EndDate.HasValue)
+        {
+            query = query.Where(t => t.TransactionDate <= filter.EndDate.Value);
+        }
+
+        if (filter.MinPrice.HasValue)
+        {
+            query = query.Where(t => t.PricePerShare >= filter.MinPrice.Value);
+        }
+
+        if (filter.MaxPrice.HasValue)
+        {
+            query = query.Where(t => t.PricePerShare <= filter.MaxPrice.Value);
+        }
+
+        if (filter.MinQuantity.HasValue)
+        {
+            query = query.Where(t => t.Quantity >= filter.MinQuantity.Value);
+        }
+
+        if (filter.MaxQuantity.HasValue)
+        {
+            query = query.Where(t => t.Quantity <= filter.MaxQuantity.Value);
+        }
+
+        var totalItems = await query.CountAsync(cancellationToken);
+
+        // Sorting
+        var sortBy = (filter.SortBy ?? "date").Trim().ToLowerInvariant();
+        var isAsc = (filter.SortDirection ?? "desc").Trim().ToLowerInvariant() == "asc";
+
+        query = sortBy switch
+        {
+            "quantity" or "qty" => isAsc
+                ? query.OrderBy(t => t.Quantity).ThenBy(t => t.TransactionDate).ThenBy(t => t.TransactionId)
+                : query.OrderByDescending(t => t.Quantity).ThenByDescending(t => t.TransactionDate).ThenByDescending(t => t.TransactionId),
+
+            "price" or "pricepershare" => isAsc
+                ? query.OrderBy(t => t.PricePerShare).ThenBy(t => t.TransactionDate).ThenBy(t => t.TransactionId)
+                : query.OrderByDescending(t => t.PricePerShare).ThenByDescending(t => t.TransactionDate).ThenByDescending(t => t.TransactionId),
+
+            "value" or "total" or "amount" or "transactionvalue" => isAsc
+                ? query.OrderBy(t => t.Quantity * t.PricePerShare).ThenBy(t => t.TransactionDate).ThenBy(t => t.TransactionId)
+                : query.OrderByDescending(t => t.Quantity * t.PricePerShare).ThenByDescending(t => t.TransactionDate).ThenByDescending(t => t.TransactionId),
+
+            _ => isAsc
+                ? query.OrderBy(t => t.TransactionDate).ThenBy(t => t.TransactionId)
+                : query.OrderByDescending(t => t.TransactionDate).ThenByDescending(t => t.TransactionId)
+        };
+
+        // Pagination
+        var page = filter.Page < 1 ? 1 : filter.Page;
+        var pageSize = filter.PageSize < 1 ? 10 : (filter.PageSize > 100 ? 100 : filter.PageSize);
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalItems / pageSize) : 0;
+        var skip = (page - 1) * pageSize;
+
+        var items = await query
+            .Skip(skip)
+            .Take(pageSize)
             .Select(t => new TransactionDto
             {
                 TransactionId = t.TransactionId,
@@ -77,7 +146,44 @@ public class TransactionService : ITransactionService
             })
             .ToListAsync(cancellationToken);
 
-        return ApiResponse<List<TransactionDto>>.Ok(transactions);
+        var pagedResult = new PagedTransactionsDto
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalItems,
+            TotalPages = totalPages
+        };
+
+        return ApiResponse<PagedTransactionsDto>.Ok(pagedResult);
+    }
+
+    public async Task<ApiResponse<List<TransactionDto>>> GetUserTransactionsAsync(
+        int userId,
+        TransactionFilterDto? filter = null,
+        CancellationToken cancellationToken = default)
+    {
+        var unpagedFilter = filter == null
+            ? new TransactionFilterDto { Page = 1, PageSize = int.MaxValue }
+            : new TransactionFilterDto
+            {
+                PortfolioId = filter.PortfolioId,
+                CompanyId = filter.CompanyId,
+                TransactionType = filter.TransactionType,
+                StartDate = filter.StartDate,
+                EndDate = filter.EndDate,
+                MinPrice = filter.MinPrice,
+                MaxPrice = filter.MaxPrice,
+                MinQuantity = filter.MinQuantity,
+                MaxQuantity = filter.MaxQuantity,
+                SortBy = filter.SortBy,
+                SortDirection = filter.SortDirection,
+                Page = 1,
+                PageSize = int.MaxValue
+            };
+
+        var paged = await GetPagedTransactionsAsync(userId, unpagedFilter, cancellationToken);
+        return ApiResponse<List<TransactionDto>>.Ok(paged.Data?.Items ?? new List<TransactionDto>());
     }
 
     public async Task<ApiResponse<TransactionDto>> GetTransactionByIdAsync(
@@ -185,6 +291,11 @@ public class TransactionService : ITransactionService
             throw new AppException("Quantity must be greater than zero.", 400);
         }
 
+        if (request.Quantity != Math.Floor(request.Quantity))
+        {
+            throw new AppException("Fractional shares are not supported. Quantity must be a whole integer.", 400);
+        }
+
         // 6. Validate price
         if (request.PricePerShare <= 0)
         {
@@ -287,6 +398,11 @@ public class TransactionService : ITransactionService
         if (request.Quantity <= 0)
         {
             throw new AppException("Quantity must be greater than zero.", 400);
+        }
+
+        if (request.Quantity != Math.Floor(request.Quantity))
+        {
+            throw new AppException("Fractional shares are not supported. Quantity must be a whole integer.", 400);
         }
 
         if (request.PricePerShare <= 0)

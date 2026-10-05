@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ShareSync - Price and Portfolio Alerts" />
+    <title>ShareSync | Alerts</title>
+
+    <!-- Theme initialization -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem("sharesync_theme");
+        var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
+    <!-- Bootstrap -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+
+    <!-- ShareSync CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body>
+    <!-- =====================================
+         TOP BAR
+    ====================================== -->
+    <header class="topbar">
+      <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <a href="index.html" class="brand text-decoration-none">
+            <span class="brand-mark"> S </span>
+            <span class="brand-name"> Share<span>Sync</span> </span>
+          </a>
+          <!-- Global Search (Feature 8) -->
+          <div class="global-search-container position-relative mx-3 flex-grow-1 d-none d-md-block" style="max-width: 420px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-body-tertiary border-end-0 text-muted" style="border-radius: 8px 0 0 8px; border-color: var(--color-border);">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control bg-body-tertiary border-start-0 ps-0 text-body"
+                id="globalSearchInput"
+                placeholder="Search companies, tickers, sectors, portfolios..."
+                aria-label="Search ShareSync"
+                autocomplete="off"
+                style="border-radius: 0 8px 8px 0; border-color: var(--color-border); font-size: 13px;"
+              />
+              <button
+                class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y d-none pe-2 text-decoration-none"
+                id="clearGlobalSearchBtn"
+                type="button"
+                style="z-index: 5;"
+                aria-label="Clear search"
+              >
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+            </div>
+
+            <!-- Search Dropdown Results -->
+            <div class="global-search-dropdown shadow-lg border rounded-3 p-0 d-none" id="globalSearchDropdown" style="position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--color-surface); z-index: 1050; max-height: 480px; overflow-y: auto;">
+              <div id="globalSearchResults"></div>
+            </div>
+          </div>
+
+
+          <div class="d-flex align-items-center gap-2">
+            <button
+              class="icon-button theme-toggle-btn"
+              id="themeToggleBtn"
+              title="Toggle Light / Dark Mode"
+              aria-label="Toggle theme"
+            >
+              <i class="bi bi-moon-stars"></i>
+            </button>
+
+            <!-- Notifications Center -->
+            <div class="header-dropdown-wrapper position-relative">
+              <button
+                class="icon-button position-relative"
+                id="notificationBtn"
+                title="Notifications"
+                aria-label="Notifications"
+                aria-expanded="false"
+              >
+                <i class="bi bi-bell"></i>
+                <span class="notification-badge" id="notificationBadge"></span>
+              </button>
+
+              <div class="header-dropdown notification-dropdown" id="notificationDropdown">
+                <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center gap-2">
+                    <h6 class="mb-0 fw-semibold" style="font-size: 14px;">Notifications</h6>
+                    <span class="badge bg-primary rounded-pill px-2 py-1" id="notificationCountBadge" style="font-size: 11px;">0 new</span>
+                  </div>
+                  <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" id="markAllNotificationsReadBtn" style="font-size: 12px;">
+                    Mark all as read
+                  </button>
+                </div>
+                <div class="notification-list" id="notificationList" style="max-height: 340px; overflow-y: auto;">
+                  <div class="p-4 text-center text-muted small">No new notifications</div>
+                </div>
+              </div>
+            </div>
+
+                        <!-- Profile Menu -->
+            <div class="header-dropdown-wrapper position-relative ms-2">
+              <div class="profile" id="headerProfileBtn" role="button" tabindex="0" aria-expanded="false" title="Account Menu">
+                <div class="profile-avatar" id="headerAvatar">T</div>
+
+                <div class="profile-info d-none d-md-block">
+                  <span class="profile-name" id="headerUserName"> Investor </span>
+
+                  <span class="profile-role"> Investor </span>
+                </div>
+
+                <i class="bi bi-chevron-down profile-arrow"></i>
+              </div>
+
+              <div class="header-dropdown profile-dropdown" id="profileDropdown">
+                <div class="p-3 border-bottom">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="profile-avatar flex-shrink-0" id="dropdownAvatar" style="width: 42px; height: 42px; font-size: 17px;">T</div>
+                    <div style="min-width: 0;">
+                      <div class="fw-semibold text-truncate" id="dropdownUserName" style="font-size: 14px;">Investor</div>
+                      <div class="text-muted text-truncate" id="dropdownUserEmail" style="font-size: 12px;">investor@sharesync.com</div>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-0" style="font-size: 11px;" id="dropdownUserRole">INVESTOR</span>
+                  </div>
+                </div>
+
+                <div class="py-2 border-bottom">
+                  <a href="settings.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-person"></i>
+                    <span>My Profile & Settings</span>
+                  </a>
+                  <a href="portfolio.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-pie-chart"></i>
+                    <span>My Portfolios</span>
+                  </a>
+                  <a href="transactions.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-receipt"></i>
+                    <span>Transaction History</span>
+                  </a>
+                </div>
+
+                <div class="p-2 border-bottom">
+                  <div class="d-flex align-items-center justify-content-between px-2 py-1">
+                    <span class="text-muted d-flex align-items-center gap-2" style="font-size: 13px;">
+                      <i class="bi bi-moon-stars" style="font-size: 14px;"></i> Dark Mode
+                    </span>
+                    <div class="form-check form-switch m-0 p-0" style="min-height: auto;">
+                      <input class="form-check-input ms-0" type="checkbox" role="switch" id="dropdownThemeSwitch" style="cursor: pointer;">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-2">
+                  <button class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2 w-100 border-0 bg-transparent text-danger" id="dropdownLogoutBtn">
+                    <i class="bi bi-box-arrow-right text-danger"></i>
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- =====================================
+         APPLICATION LAYOUT
+    ====================================== -->
+    <div class="app-layout">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <p class="sidebar-label">Workspace</p>
+          <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">
+              <i class="bi bi-grid-1x2-fill"></i>
+              <span> Dashboard </span>
+            </a>
+            <a href="portfolio.html" class="sidebar-link">
+              <i class="bi bi-briefcase"></i>
+              <span> Portfolio </span>
+            </a>
+            <a href="analytics.html" class="sidebar-link">
+              <i class="bi bi-pie-chart-fill"></i>
+              <span> Analytics </span>
+            </a>
+
+            <a href="simulator.html" class="sidebar-link">
+              <i class="bi bi-cpu"></i>
+              <span>Simulator</span>
+            </a>
+
+            <a href="goals.html" class="sidebar-link">
+              <i class="bi bi-bullseye"></i>
+              <span>Goals</span>
+            </a>
+            <a href="transactions.html" class="sidebar-link">
+              <i class="bi bi-arrow-left-right"></i>
+              <span> Transactions </span>
+            </a>
+            <a href="watchlist.html" class="sidebar-link">
+              <i class="bi bi-bookmark"></i>
+              <span> Watchlist </span>
+            </a>
+            <a href="alerts.html" class="sidebar-link active">
+              <i class="bi bi-bell-fill"></i>
+              <span> Alerts </span>
+            </a>
+            <a href="dividends.html" class="sidebar-link">
+              <i class="bi bi-cash-stack"></i>
+              <span> Dividends </span>
+            </a>
+            <a href="reports.html" class="sidebar-link">
+              <i class="bi bi-bar-chart-line"></i>
+              <span> Reports </span>
+            </a>
+
+            <a href="activity.html" class="sidebar-link">
+              <i class="bi bi-clock-history"></i>
+              <span>Activity</span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="sidebar-section sidebar-bottom">
+          <p class="sidebar-label">Account</p>
+          <nav class="sidebar-nav">
+            <a href="settings.html" class="sidebar-link">
+              <i class="bi bi-gear"></i>
+              <span> Settings </span>
+            </a>
+            <a href="#" class="sidebar-link" id="sidebarLogoutBtn">
+              <i class="bi bi-box-arrow-right"></i>
+              <span> Log out </span>
+            </a>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="main-content">
+        <div class="content-container">
+          <!-- Page Header -->
+          <section class="page-header d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-4">
+            <div>
+              <p class="eyebrow">AUTOMATION &amp; NOTIFICATIONS</p>
+              <h1 class="d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-bell text-primary"></i> Price &amp; Portfolio Alerts
+              </h1>
+              <p class="page-description">
+                Set automated triggers when company stock prices or portfolio valuations cross your designated thresholds.
+              </p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button class="secondary-button" id="evaluateAlertsBtn" title="Run alert condition evaluation now">
+                <i class="bi bi-arrow-repeat"></i>
+                <span>Evaluate Alerts</span>
+              </button>
+              <button class="primary-button" id="openCreateAlertModalBtn">
+                <i class="bi bi-plus-lg"></i>
+                <span>Create Alert</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Metric KPI Cards -->
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-lg-3">
+              <div class="dashboard-card h-100 p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span class="text-muted fs-xs fw-semibold">TOTAL ALERTS</span>
+                  <div class="metric-icon-box bg-primary-subtle text-primary rounded-circle p-2" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-bell fs-5"></i>
+                  </div>
+                </div>
+                <h3 class="fw-bold mb-1" id="kpiTotalAlerts">0</h3>
+                <small class="text-muted">Configured monitors</small>
+              </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+              <div class="dashboard-card h-100 p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span class="text-muted fs-xs fw-semibold">ACTIVE MONITORING</span>
+                  <div class="metric-icon-box bg-success-subtle text-success rounded-circle p-2" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-shield-check fs-5"></i>
+                  </div>
+                </div>
+                <h3 class="fw-bold text-success mb-1" id="kpiActiveAlerts">0</h3>
+                <small class="text-muted">Awaiting threshold cross</small>
+              </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+              <div class="dashboard-card h-100 p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span class="text-muted fs-xs fw-semibold">TRIGGERED</span>
+                  <div class="metric-icon-box bg-warning-subtle text-warning rounded-circle p-2" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-exclamation-triangle fs-5"></i>
+                  </div>
+                </div>
+                <h3 class="fw-bold text-warning mb-1" id="kpiTriggeredAlerts">0</h3>
+                <small class="text-muted">Triggered (ready to reactivate)</small>
+              </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+              <div class="dashboard-card h-100 p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span class="text-muted fs-xs fw-semibold">DISABLED</span>
+                  <div class="metric-icon-box bg-secondary-subtle text-secondary rounded-circle p-2" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-pause-circle fs-5"></i>
+                  </div>
+                </div>
+                <h3 class="fw-bold text-secondary mb-1" id="kpiDisabledAlerts">0</h3>
+                <small class="text-muted">Temporarily paused</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter Pills Bar -->
+          <div class="dashboard-card p-3 mb-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+              <div class="btn-group" role="group" aria-label="Alert status filters" id="alertFilterGroup">
+                <button type="button" class="btn btn-sm btn-primary active" data-filter="ALL">All Alerts</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-filter="ACTIVE">Active</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-filter="TRIGGERED">Triggered</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-filter="DISABLED">Disabled</button>
+              </div>
+              <div class="text-muted small">
+                <i class="bi bi-info-circle me-1"></i> Triggered alerts fire once and pause until you choose to reactivate them.
+              </div>
+            </div>
+          </div>
+
+          <!-- Alerts Content Container -->
+          <div id="alertsContainer">
+            <!-- Loading State -->
+            <div id="alertsLoadingState" class="text-center py-5 d-none">
+              <div class="spinner-border text-primary mb-3" role="status"></div>
+              <div class="text-muted">Loading your alerts...</div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="alertsEmptyState" class="dashboard-card text-center py-5 d-none">
+              <div class="p-4">
+                <i class="bi bi-bell-slash text-muted fs-1 d-block mb-3"></i>
+                <h5 class="fw-semibold">No Alerts Found</h5>
+                <p class="text-muted small mb-4">You have not created any price or portfolio alerts under this filter yet.</p>
+                <button class="primary-button mx-auto" id="emptyStateCreateBtn">
+                  <i class="bi bi-plus-lg me-1"></i> Create Your First Alert
+                </button>
+              </div>
+            </div>
+
+            <!-- Alerts List / Grid -->
+            <div id="alertsGrid" class="row g-3">
+              <!-- Dynamic Alert Cards Injected Here -->
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- =====================================
+         CREATE ALERT MODAL
+    ====================================== -->
+    <div class="modal fade" id="createAlertModal" tabindex="-1" aria-labelledby="createAlertModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title fw-bold" id="createAlertModalLabel">
+              <i class="bi bi-bell-plus text-primary me-2"></i>Create New Alert
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="createAlertForm">
+            <div class="modal-body p-4">
+              <!-- Alert Type -->
+              <div class="mb-3">
+                <label for="alertTypeSelect" class="form-label fw-semibold small">Alert Condition Type</label>
+                <select class="form-select" id="alertTypeSelect" required>
+                  <option value="PRICE_ABOVE">Company Stock Price Rises Above</option>
+                  <option value="PRICE_BELOW">Company Stock Price Falls Below</option>
+                  <option value="PORTFOLIO_VALUE_ABOVE">Total Portfolio Value Rises Above</option>
+                  <option value="PORTFOLIO_VALUE_BELOW">Total Portfolio Value Falls Below</option>
+                </select>
+                <div class="form-text small" id="alertTypeHint">
+                  Notifies you when the company stock price reaches or exceeds the threshold.
+                </div>
+              </div>
+
+              <!-- Company Target Selector (For Price Alerts) -->
+              <div class="mb-3" id="companySelectGroup">
+                <label for="alertCompanySelect" class="form-label fw-semibold small">Select Company</label>
+                <select class="form-select" id="alertCompanySelect">
+                  <option value="" disabled selected>Choose a company...</option>
+                </select>
+                <div class="d-flex align-items-center justify-content-between mt-1">
+                  <span class="text-muted small">Current market price:</span>
+                  <span class="fw-semibold small text-primary" id="selectedCompanyPricePreview">৳0.00</span>
+                </div>
+              </div>
+
+              <!-- Portfolio Target Selector (For Portfolio Alerts) -->
+              <div class="mb-3 d-none" id="portfolioSelectGroup">
+                <label for="alertPortfolioSelect" class="form-label fw-semibold small">Select Portfolio</label>
+                <select class="form-select" id="alertPortfolioSelect">
+                  <option value="" disabled selected>Choose a portfolio...</option>
+                </select>
+                <div class="d-flex align-items-center justify-content-between mt-1">
+                  <span class="text-muted small">Current portfolio valuation:</span>
+                  <span class="fw-semibold small text-primary" id="selectedPortfolioValPreview">৳0.00</span>
+                </div>
+              </div>
+
+              <!-- Threshold Value -->
+              <div class="mb-3">
+                <label for="alertThresholdInput" class="form-label fw-semibold small">Threshold Value (৳)</label>
+                <div class="input-group">
+                  <span class="input-group-text">৳</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    class="form-control"
+                    id="alertThresholdInput"
+                    placeholder="e.g. 280.00"
+                    required
+                  />
+                </div>
+                <div class="form-text small">Enter positive monetary threshold to trigger the alert.</div>
+              </div>
+            </div>
+            <div class="modal-footer border-top p-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-sm btn-primary" id="submitCreateAlertBtn">
+                <i class="bi bi-check2-circle me-1"></i> Save Alert
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================
+         DELETE CONFIRMATION MODAL
+    ====================================== -->
+    <div class="modal fade" id="deleteAlertModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-body text-center p-4">
+            <i class="bi bi-trash3 text-danger fs-1 mb-2 d-block"></i>
+            <h6 class="fw-bold mb-2">Delete Alert?</h6>
+            <p class="text-muted small mb-4">Are you sure you want to permanently remove this alert?</p>
+            <div class="d-flex justify-content-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-sm btn-danger" id="confirmDeleteAlertBtn">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+      <div id="alertToast" class="toast align-items-center border-0 text-white" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body" id="alertToastMessage"></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ShareSync JS -->
+    <script src="js/app.js"></script>
+  </body>
+</html>

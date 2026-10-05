@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ShareSync - Advanced Portfolio Analytics, Risk Concentration, and Financial Attribution">
+    <title>ShareSync | Portfolio Analytics</title>
+
+    <!-- Theme initialization -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem("sharesync_theme");
+        var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+
+    <!-- ShareSync CSS -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+      .analytics-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        padding: 20px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .analytics-card:hover {
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+      }
+      .metric-label {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--color-text-secondary);
+        margin-bottom: 6px;
+      }
+      .metric-value {
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--color-text);
+        line-height: 1.1;
+      }
+      .metric-sub {
+        font-size: 13px;
+        color: var(--color-text-muted);
+        margin-top: 6px;
+      }
+      .hhi-gauge-bar {
+        height: 10px;
+        border-radius: 5px;
+        background: #e2e8f0;
+        overflow: hidden;
+        position: relative;
+      }
+      .hhi-gauge-fill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.6s ease;
+      }
+      .concentration-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .chart-container-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        padding: 20px;
+        height: 100%;
+      }
+      .perf-pill-btn {
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-soft);
+        color: var(--color-text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 8px;
+        transition: all 0.15s ease;
+      }
+      .perf-pill-btn:hover {
+        background: var(--color-primary-soft);
+        color: var(--color-text);
+      }
+      .perf-pill-btn.active {
+        background: var(--color-accent) !important;
+        color: #ffffff !important;
+        border-color: var(--color-accent) !important;
+      }
+      .top-holding-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: var(--color-surface-soft);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        transition: background 0.15s ease;
+      }
+      .top-holding-item:hover {
+        background: var(--color-surface);
+      }
+      .top-holding-rank {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--color-primary-soft);
+        color: var(--color-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .risk-section-header {
+        border-bottom: 2px solid var(--color-border);
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+      }
+    </style>
+</head>
+
+<body>
+
+    <!-- =====================================
+         TOP BAR
+    ====================================== -->
+    <header class="topbar">
+        <div class="container-fluid px-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <a href="index.html" class="brand text-decoration-none">
+                    <span class="brand-mark">S</span>
+                    <span class="brand-name">Share<span>Sync</span></span>
+                </a>
+          <!-- Global Search (Feature 8) -->
+          <div class="global-search-container position-relative mx-3 flex-grow-1 d-none d-md-block" style="max-width: 420px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-body-tertiary border-end-0 text-muted" style="border-radius: 8px 0 0 8px; border-color: var(--color-border);">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control bg-body-tertiary border-start-0 ps-0 text-body"
+                id="globalSearchInput"
+                placeholder="Search companies, tickers, sectors, portfolios..."
+                aria-label="Search ShareSync"
+                autocomplete="off"
+                style="border-radius: 0 8px 8px 0; border-color: var(--color-border); font-size: 13px;"
+              />
+              <button
+                class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y d-none pe-2 text-decoration-none"
+                id="clearGlobalSearchBtn"
+                type="button"
+                style="z-index: 5;"
+                aria-label="Clear search"
+              >
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+            </div>
+
+            <!-- Search Dropdown Results -->
+            <div class="global-search-dropdown shadow-lg border rounded-3 p-0 d-none" id="globalSearchDropdown" style="position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--color-surface); z-index: 1050; max-height: 480px; overflow-y: auto;">
+              <div id="globalSearchResults"></div>
+            </div>
+          </div>
+
+
+                <div class="d-flex align-items-center gap-2">
+                    <button class="icon-button theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode" aria-label="Toggle theme">
+                        <i class="bi bi-moon-stars"></i>
+                    </button>
+
+                    <!-- Notifications Center -->
+                    <div class="header-dropdown-wrapper position-relative">
+                        <button class="icon-button position-relative" id="notificationBtn" title="Notifications" aria-label="Notifications" aria-expanded="false">
+                            <i class="bi bi-bell"></i>
+                            <span class="notification-badge" id="notificationBadge"></span>
+                        </button>
+
+                        <div class="header-dropdown notification-dropdown" id="notificationDropdown">
+                            <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+                                <h6 class="mb-0 fw-semibold" style="font-size: 14px;">Notifications</h6>
+                                <span class="badge bg-primary-subtle text-primary border" style="font-size: 11px;">System</span>
+                            </div>
+                            <div class="notification-list p-2">
+                                <div class="p-3 text-center text-muted" style="font-size: 12px;">No unread alerts.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                                <!-- Profile Menu -->
+            <div class="header-dropdown-wrapper position-relative ms-2">
+              <div class="profile" id="headerProfileBtn" role="button" tabindex="0" aria-expanded="false" title="Account Menu">
+                <div class="profile-avatar" id="headerAvatar">T</div>
+
+                <div class="profile-info d-none d-md-block">
+                  <span class="profile-name" id="headerUserName"> Investor </span>
+
+                  <span class="profile-role"> Investor </span>
+                </div>
+
+                <i class="bi bi-chevron-down profile-arrow"></i>
+              </div>
+
+              <div class="header-dropdown profile-dropdown" id="profileDropdown">
+                <div class="p-3 border-bottom">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="profile-avatar flex-shrink-0" id="dropdownAvatar" style="width: 42px; height: 42px; font-size: 17px;">T</div>
+                    <div style="min-width: 0;">
+                      <div class="fw-semibold text-truncate" id="dropdownUserName" style="font-size: 14px;">Investor</div>
+                      <div class="text-muted text-truncate" id="dropdownUserEmail" style="font-size: 12px;">investor@sharesync.com</div>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-0" style="font-size: 11px;" id="dropdownUserRole">INVESTOR</span>
+                  </div>
+                </div>
+
+                <div class="py-2 border-bottom">
+                  <a href="settings.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-person"></i>
+                    <span>My Profile & Settings</span>
+                  </a>
+                  <a href="portfolio.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-pie-chart"></i>
+                    <span>My Portfolios</span>
+                  </a>
+                  <a href="transactions.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-receipt"></i>
+                    <span>Transaction History</span>
+                  </a>
+                </div>
+
+                <div class="p-2 border-bottom">
+                  <div class="d-flex align-items-center justify-content-between px-2 py-1">
+                    <span class="text-muted d-flex align-items-center gap-2" style="font-size: 13px;">
+                      <i class="bi bi-moon-stars" style="font-size: 14px;"></i> Dark Mode
+                    </span>
+                    <div class="form-check form-switch m-0 p-0" style="min-height: auto;">
+                      <input class="form-check-input ms-0" type="checkbox" role="switch" id="dropdownThemeSwitch" style="cursor: pointer;">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-2">
+                  <button class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2 w-100 border-0 bg-transparent text-danger" id="dropdownLogoutBtn">
+                    <i class="bi bi-box-arrow-right text-danger"></i>
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- =====================================
+         APPLICATION LAYOUT
+    ====================================== -->
+    <div class="app-layout">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <p class="sidebar-label">Workspace</p>
+                <nav class="sidebar-nav">
+                    <a href="index.html" class="sidebar-link">
+                        <i class="bi bi-grid-1x2-fill"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="portfolio.html" class="sidebar-link">
+                        <i class="bi bi-briefcase"></i>
+                        <span>Portfolio</span>
+                    </a>
+                    <a href="analytics.html" class="sidebar-link active">
+                        <i class="bi bi-pie-chart-fill"></i>
+                        <span>Analytics</span>
+                    </a>
+                    <a href="simulator.html" class="sidebar-link">
+                        <i class="bi bi-cpu"></i>
+                        <span>Simulator</span>
+                    </a>
+                    <a href="goals.html" class="sidebar-link">
+                        <i class="bi bi-bullseye"></i>
+                        <span>Goals</span>
+                    </a>
+                    <a href="transactions.html" class="sidebar-link">
+                        <i class="bi bi-arrow-left-right"></i>
+                        <span>Transactions</span>
+                    </a>
+                    <a href="watchlist.html" class="sidebar-link">
+                        <i class="bi bi-bookmark"></i>
+                        <span>Watchlist</span>
+                    </a>
+                    <a href="alerts.html" class="sidebar-link">
+                        <i class="bi bi-bell"></i>
+                        <span>Alerts</span>
+                    </a>
+                    <a href="dividends.html" class="sidebar-link">
+                        <i class="bi bi-cash-stack"></i>
+                        <span>Dividends</span>
+                    </a>
+                    <a href="reports.html" class="sidebar-link">
+                        <i class="bi bi-bar-chart-line"></i>
+                        <span>Reports</span>
+                    </a>
+
+            <a href="activity.html" class="sidebar-link">
+              <i class="bi bi-clock-history"></i>
+              <span>Activity</span>
+            </a>
+                </nav>
+            </div>
+
+            <div class="sidebar-section sidebar-bottom">
+                <p class="sidebar-label">Account</p>
+                <nav class="sidebar-nav">
+                    <a href="settings.html" class="sidebar-link">
+                        <i class="bi bi-gear"></i>
+                        <span>Settings</span>
+                    </a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+            <div class="content-container">
+
+                <!-- Breadcrumb & Header Controls -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                    <div>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-1" style="font-size: 13px;">
+                                <li class="breadcrumb-item"><a href="index.html" class="text-decoration-none">Home</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Portfolio Analytics</li>
+                            </ol>
+                        </nav>
+                        <h3 class="fw-bold mb-0" style="color: var(--color-text);">Portfolio Analytics</h3>
+                        <p class="text-muted mb-0" style="font-size: 13px;">
+                            Advanced portfolio return attribution, risk concentration metrics, and historical performance tracking.
+                        </p>
+                    </div>
+
+                    <!-- Portfolio Switcher & Period Filter -->
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-1">
+                            <label for="analyticsPortfolioSelect" class="form-label mb-0 text-muted fw-semibold small d-none d-sm-inline">Portfolio:</label>
+                            <select id="analyticsPortfolioSelect" class="form-select form-select-sm" style="min-width: 210px; font-weight: 500;">
+                                <option value="">Consolidated (All Portfolios)</option>
+                            </select>
+                        </div>
+                        <button id="analyticsRefreshBtn" class="btn btn-sm btn-outline-secondary" title="Refresh Analytics Data">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- LOADING STATE -->
+                <div id="analyticsLoadingState" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading analytics...</span>
+                    </div>
+                    <p class="mt-3 text-muted fw-medium">Calculating portfolio analytics and risk metrics...</p>
+                </div>
+
+                <!-- ERROR STATE -->
+                <div id="analyticsErrorState" class="alert alert-danger d-none my-4 shadow-sm" role="alert">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="alert-heading fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Unable to Load Analytics</h6>
+                            <p class="mb-0 small" id="analyticsErrorMessage">An error occurred while loading portfolio metrics.</p>
+                        </div>
+                        <button id="analyticsRetryBtn" class="btn btn-sm btn-outline-danger">Try Again</button>
+                    </div>
+                </div>
+
+                <!-- EMPTY STATE -->
+                <div id="analyticsEmptyState" class="analytics-card text-center py-5 d-none my-4">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center p-3 mb-3" style="background: rgba(37, 99, 235, 0.1); color: var(--color-accent);">
+                        <i class="bi bi-pie-chart" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">No Holdings in Selected Portfolio</h5>
+                    <p class="text-muted mx-auto mb-4" style="max-width: 480px; font-size: 14px;">
+                        To generate comprehensive analytics, sector distribution, and performance curves, record BUY transactions in this portfolio.
+                    </p>
+                    <a href="transactions.html?type=BUY" class="btn btn-primary btn-sm px-3">
+                        <i class="bi bi-plus-circle me-1"></i> Record Buy Transaction
+                    </a>
+                </div>
+
+                <!-- ANALYTICS CONTENT CONTAINER -->
+                <div id="analyticsContent" class="d-none">
+
+                    <!-- ==========================================
+                         WEB FEATURE 3: PORTFOLIO RISK & DIVERSIFICATION
+                    =========================================== -->
+                    <div class="risk-section-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <span class="text-uppercase fw-bold text-primary" style="font-size: 11px; letter-spacing: 1px;">ANALYTICS & CONCENTRATION</span>
+                            <h4 class="fw-bold mb-0" style="color: var(--color-text);">PORTFOLIO RISK & DIVERSIFICATION</h4>
+                            <p class="text-muted mb-0" style="font-size: 13px;">
+                                Analytical concentration metrics and diversification assessment across holdings and economic sectors.
+                            </p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span id="riskConcentrationBadge" class="concentration-pill bg-success-subtle text-success border border-success-subtle">
+                                <i class="bi bi-shield-check"></i> Diversified
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 4 Risk & Diversification KPI Cards -->
+                    <div class="row g-3 mb-4">
+                        <!-- Total Holdings -->
+                        <div class="col-xl-3 col-sm-6">
+                            <div class="analytics-card h-100">
+                                <div class="metric-label">Total Holdings</div>
+                                <div class="metric-value text-primary" id="riskTotalHoldings">0</div>
+                                <div class="metric-sub">
+                                    Across <span class="fw-semibold text-body" id="riskTotalSectors">0</span> distinct sectors
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Largest Holding -->
+                        <div class="col-xl-3 col-sm-6">
+                            <div class="analytics-card h-100">
+                                <div class="metric-label">Largest Holding</div>
+                                <div class="metric-value text-body" id="riskLargestHolding">0.00%</div>
+                                <div class="metric-sub text-truncate">
+                                    Lead: <span class="fw-semibold text-primary" id="riskLargestHoldingTicker">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Largest Sector -->
+                        <div class="col-xl-3 col-sm-6">
+                            <div class="analytics-card h-100">
+                                <div class="metric-label">Largest Sector</div>
+                                <div class="metric-value text-body" id="riskLargestSector">0.00%</div>
+                                <div class="metric-sub text-truncate">
+                                    Dominant: <span class="fw-semibold text-body" id="riskLargestSectorName">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Diversification Score -->
+                        <div class="col-xl-3 col-sm-6">
+                            <div class="analytics-card h-100" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(37, 99, 235, 0.05)); border-color: rgba(16, 185, 129, 0.2);">
+                                <div class="metric-label text-success">Diversification Score</div>
+                                <div class="metric-value text-success" id="riskDiversificationScore">0%</div>
+                                <div class="metric-sub">
+                                    Status: <span class="fw-semibold text-body" id="riskDiversificationStatus">Diversified</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Company Allocation [Chart] | Sector Allocation [Chart] | Top Holdings List -->
+                    <div class="row g-3 mb-4">
+                        <!-- Company Allocation [Chart] -->
+                        <div class="col-lg-4 col-md-6">
+                            <div class="chart-container-card">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <h6 class="fw-bold mb-0">Company Allocation</h6>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="badgeCompanyAllocationCount">0 Companies</span>
+                                </div>
+                                <div style="position: relative; height: 210px; width: 100%;">
+                                    <canvas id="riskCompanyChart"></canvas>
+                                </div>
+                                <div class="text-center mt-2">
+                                    <small class="text-muted" style="font-size: 11px;">Relative weight of equity holdings in portfolio</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sector Allocation [Chart] -->
+                        <div class="col-lg-4 col-md-6">
+                            <div class="chart-container-card">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <h6 class="fw-bold mb-0">Sector Allocation</h6>
+                                    <span class="badge bg-secondary-subtle text-secondary border" id="badgeSectorAllocationCount">0 Sectors</span>
+                                </div>
+                                <div style="position: relative; height: 210px; width: 100%;">
+                                    <canvas id="riskSectorChart"></canvas>
+                                </div>
+                                <div class="text-center mt-2">
+                                    <small class="text-muted" style="font-size: 11px;">Diversification across economic sectors</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Holdings Ranked List -->
+                        <div class="col-lg-4 col-md-12">
+                            <div class="chart-container-card">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <h6 class="fw-bold mb-0">Top Holdings</h6>
+                                    <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 11px;">Ranked by Weight</span>
+                                </div>
+                                <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                                    <div id="riskTopHoldingsList" class="d-flex flex-column gap-2">
+                                        <!-- Dynamic: 1. Company A 21.4%, 2. Company B 16.8%, etc. -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==========================================
+                         PORTFOLIO VALUATION & RETURN ATTRIBUTION
+                    =========================================== -->
+                    <div class="d-flex align-items-center justify-content-between mb-3 mt-4">
+                        <h6 class="fw-bold text-uppercase text-muted mb-0" style="font-size: 12px; letter-spacing: 0.5px;">Portfolio Valuation & Return Attribution</h6>
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <!-- Portfolio Value -->
+                        <div class="col-xl col-md-4 col-sm-6">
+                            <div class="analytics-card h-100">
+                                <div class="metric-label">Current Portfolio Value</div>
+                                <div class="metric-value text-primary" id="kpiPortfolioValue">৳0.00</div>
+                                <div class="metric-sub">
+                                    Invested: <span class="fw-semibold text-body" id="kpiInvestedCapital">৳0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Unrealized P/L -->
+                        <div class="col-xl col-md-4 col-sm-6">
+                            <div class="analytics-card h-100">
+                                <div class="metric-label">Unrealized P/L</div>
+                                <div class="metric-value" id="kpiUnrealizedPL">৳0.00</div>
+                                <div class="metric-sub">
+                                    Return: <span class="badge" id="kpiUnrealizedReturnBadge">0.00%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Realized P/L -->
+                        <div class="col-xl col-md-4 col-sm-6">
+                            <div class="analytics-card h-100">
+                                <div class="metric-label">Realized P/L</div>
+                                <div class="metric-value" id="kpiRealizedPL">৳0.00</div>
+                                <div class="metric-sub">
+                                    From closed SELL orders
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dividend Income -->
+                        <div class="col-xl col-md-6 col-sm-6">
+                            <div class="analytics-card h-100">
+                                <div class="metric-label">Dividend Income</div>
+                                <div class="metric-value text-success" id="kpiDividendIncome">৳0.00</div>
+                                <div class="metric-sub">
+                                    Dividend Yield: <span class="fw-semibold text-body" id="kpiDividendYield">0.00%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Total Return -->
+                        <div class="col-xl col-md-6 col-sm-12">
+                            <div class="analytics-card h-100" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(124, 58, 237, 0.05)); border-color: rgba(37, 99, 235, 0.2);">
+                                <div class="metric-label text-primary">Total Economic Return</div>
+                                <div class="metric-value" id="kpiTotalReturn">৳0.00</div>
+                                <div class="metric-sub">
+                                    Total Return: <span class="badge" id="kpiTotalReturnBadge">0.00%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==========================================
+                         ROW 2: RISK & CONCENTRATION + HISTORICAL PERFORMANCE
+                    =========================================== -->
+                    <div class="row g-3 mb-4">
+                        <!-- Concentration & Risk Card -->
+                        <div class="col-lg-5">
+                            <div class="chart-container-card">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <div>
+                                        <h6 class="fw-bold mb-0">Risk & Portfolio Concentration</h6>
+                                        <small class="text-muted">Herfindahl-Hirschman Index (HHI) analysis</small>
+                                    </div>
+                                    <span id="concentrationBadge" class="concentration-pill bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-shield-check"></i> Diversified
+                                    </span>
+                                </div>
+
+                                <!-- HHI Score Display -->
+                                <div class="p-3 rounded mb-3" style="background: var(--color-surface-soft); border: 1px solid var(--color-border);">
+                                    <div class="d-flex justify-content-between align-items-baseline mb-1">
+                                        <span class="text-muted small fw-semibold">HHI Concentration Score</span>
+                                        <span class="fw-bold fs-5" id="hhiScoreText">0</span>
+                                    </div>
+                                    <div class="hhi-gauge-bar mb-2">
+                                        <div id="hhiBarFill" class="hhi-gauge-fill bg-success" style="width: 10%;"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-muted" style="font-size: 10px;">
+                                        <span>0 (Diversified)</span>
+                                        <span>1500 (Moderate)</span>
+                                        <span>2500+ (Concentrated)</span>
+                                    </div>
+                                </div>
+
+                                <!-- Concentration Breakdown Grid -->
+                                <div class="row g-2 mb-3">
+                                    <div class="col-4">
+                                        <div class="p-2 border rounded text-center">
+                                            <div class="text-muted" style="font-size: 11px;">Top Holding</div>
+                                            <div class="fw-bold text-body" id="metricTop1Weight">0.00%</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 border rounded text-center">
+                                            <div class="text-muted" style="font-size: 11px;">Top 3 Holdings</div>
+                                            <div class="fw-bold text-body" id="metricTop3Weight">0.00%</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 border rounded text-center">
+                                            <div class="text-muted" style="font-size: 11px;">Top 5 Holdings</div>
+                                            <div class="fw-bold text-body" id="metricTop5Weight">0.00%</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Count stats -->
+                                <div class="d-flex justify-content-between small text-muted border-top pt-2">
+                                    <span>Active Positions: <strong class="text-body" id="statHoldingsCount">0</strong></span>
+                                    <span>Diversified Across: <strong class="text-body" id="statSectorsCount">0</strong> Sectors</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Historical Portfolio Performance Card -->
+                        <div class="col-lg-7">
+                            <div class="chart-container-card">
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                    <div>
+                                        <h6 class="fw-bold mb-0">Historical Portfolio Performance</h6>
+                                        <small class="text-muted">Net portfolio valuation curve over time</small>
+                                    </div>
+
+                                    <!-- Timeframe Filters -->
+                                    <div class="d-flex align-items-center gap-1" id="analyticsTimeframeButtons">
+                                        <button type="button" class="perf-pill-btn" data-period="1M">1M</button>
+                                        <button type="button" class="perf-pill-btn" data-period="3M">3M</button>
+                                        <button type="button" class="perf-pill-btn" data-period="6M">6M</button>
+                                        <button type="button" class="perf-pill-btn" data-period="1Y">1Y</button>
+                                        <button type="button" class="perf-pill-btn active" data-period="ALL">ALL</button>
+                                    </div>
+                                </div>
+
+                                <!-- Performance summary stats banner -->
+                                <div class="d-flex align-items-center justify-content-between px-3 py-2 rounded mb-2" style="background: var(--color-surface-soft); font-size: 12px;">
+                                    <div>
+                                        <span class="text-muted">Starting:</span> <strong id="chartStartingValue">৳0.00</strong> &rarr;
+                                        <span class="text-muted">Current:</span> <strong id="chartEndingValue">৳0.00</strong>
+                                    </div>
+                                    <div>
+                                        <span class="text-muted">Period Change:</span>
+                                        <span id="chartNetChange" class="fw-bold ms-1">৳0.00 (0.00%)</span>
+                                    </div>
+                                </div>
+
+                                <!-- Performance Canvas -->
+                                <div style="position: relative; height: 210px; width: 100%;">
+                                    <canvas id="analyticsPerformanceChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==========================================
+                         WEB FEATURE 5: PORTFOLIO BENCHMARK COMPARISON
+                    =========================================== -->
+                    <div class="benchmark-section-card mb-4 p-4 rounded-3" style="background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: var(--shadow-card);">
+                        <!-- Header with Benchmark selection & Period pills -->
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
+                            <div>
+                                <span class="text-uppercase fw-bold text-primary" style="font-size: 11px; letter-spacing: 1px;">ALPHA & PERFORMANCE ATTRIBUTION</span>
+                                <h4 class="fw-bold mb-0" style="color: var(--color-text);">Portfolio vs Benchmark</h4>
+                                <p class="text-muted mb-0" style="font-size: 13px;">
+                                    Compare cumulative returns against market benchmarks across historical timeframes.
+                                </p>
+                            </div>
+
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <!-- Benchmark Selector -->
+                                <div class="d-flex align-items-center gap-1">
+                                    <label for="benchmarkSelect" class="form-label mb-0 text-muted small fw-semibold">Benchmark:</label>
+                                    <select id="benchmarkSelect" class="form-select form-select-sm" style="min-width: 170px;">
+                                        <option value="DSEX">DSE Broad Index (DSEX)</option>
+                                        <option value="DS30">DSE 30 Blue Chip (DS30)</option>
+                                        <option value="DSEG">DSE Shariah Index (DSEG)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Timeframe Buttons -->
+                                <div class="d-flex align-items-center gap-1" id="benchmarkTimeframeButtons">
+                                    <button type="button" class="perf-pill-btn" data-period="1M">1M</button>
+                                    <button type="button" class="perf-pill-btn" data-period="3M">3M</button>
+                                    <button type="button" class="perf-pill-btn" data-period="6M">6M</button>
+                                    <button type="button" class="perf-pill-btn" data-period="1Y">1Y</button>
+                                    <button type="button" class="perf-pill-btn active" data-period="ALL">ALL</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Insufficient Data Warning Banner (hidden when sufficient data exists) -->
+                        <div id="benchmarkInsufficientDataAlert" class="alert alert-warning d-none mb-3 py-2 px-3 small d-flex align-items-center gap-2" role="alert">
+                            <i class="bi bi-info-circle-fill fs-5 text-warning flex-shrink-0"></i>
+                            <span id="benchmarkInsufficientDataText">Insufficient historical snapshot data for the selected period.</span>
+                        </div>
+
+                        <!-- Metrics Grid: 3 KPI Cards -->
+                        <div class="row g-3 mb-4">
+                            <!-- Portfolio Return -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-2 border h-100" style="background: var(--color-surface-soft);">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="text-muted small fw-semibold">Portfolio Return</span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2" id="benchmarkPortfolioBadge">Portfolio</span>
+                                    </div>
+                                    <div class="fs-3 fw-bold mb-1" id="benchmarkPortfolioReturn">+0.00%</div>
+                                    <div class="small text-muted" style="font-size: 11px;">
+                                        <span>Start: <strong id="benchmarkPortfolioStart">৳0.00</strong></span> &rarr;
+                                        <span>End: <strong id="benchmarkPortfolioEnd">৳0.00</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Benchmark Return -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-2 border h-100" style="background: var(--color-surface-soft);">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="text-muted small fw-semibold" id="benchmarkLabelTitle">Benchmark Return</span>
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2" id="benchmarkCodeBadge">DSEX</span>
+                                    </div>
+                                    <div class="fs-3 fw-bold mb-1 text-secondary-emphasis" id="benchmarkReturn">+0.00%</div>
+                                    <div class="small text-muted" style="font-size: 11px;">
+                                        <span>Start: <strong id="benchmarkStartVal">0.00</strong></span> &rarr;
+                                        <span>End: <strong id="benchmarkEndVal">0.00</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Difference / Outperformance -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-2 border h-100" id="benchmarkDiffCard" style="background: var(--color-surface-soft);">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="text-muted small fw-semibold">Outperformance / Difference</span>
+                                        <span class="badge bg-success" id="benchmarkOutperformanceBadge">Outperforming</span>
+                                    </div>
+                                    <div class="fs-3 fw-bold mb-1 text-success" id="benchmarkDifference">+0.00%</div>
+                                    <div class="small text-muted" style="font-size: 11px;" id="benchmarkDifferenceSub">
+                                        Portfolio vs Benchmark return spread
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Benchmark Comparison Chart Card -->
+                        <div class="position-relative mb-3" style="min-height: 280px; height: 320px; width: 100%;">
+                            <canvas id="benchmarkComparisonChart"></canvas>
+                            <div id="benchmarkChartEmptyState" class="d-none h-100 d-flex flex-column align-items-center justify-content-center text-muted">
+                                <i class="bi bi-graph-up fs-1 mb-2 opacity-50"></i>
+                                <p class="mb-0 small">No benchmark comparison points available for the selected timeframe.</p>
+                            </div>
+                        </div>
+
+                        <!-- Data Source & Limitation Footer Note -->
+                        <div class="p-2 px-3 rounded-2 border d-flex align-items-start gap-2 text-muted" style="background: var(--color-surface-soft); font-size: 11px;">
+                            <i class="bi bi-shield-exclamation text-primary flex-shrink-0 mt-1"></i>
+                            <div>
+                                <strong>Benchmark Source & Limitations:</strong>
+                                <span id="benchmarkLimitationNotice">
+                                    DSE Broad Index (DSEX) reference series configured for performance attribution and benchmarking. Not live market data. Periods with insufficient historical snapshot records are automatically restricted to prevent unverified interpolation.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==========================================
+                         ROW 3: ALLOCATIONS (SECTOR & COMPANY)
+                    =========================================== -->
+                    <div class="row g-3 mb-4">
+                        <!-- Sector Allocation -->
+                        <div class="col-lg-6">
+                            <div class="chart-container-card">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <h6 class="fw-bold mb-0">Sector Allocation</h6>
+                                    <span class="badge bg-secondary-subtle text-secondary border" id="badgeSectorCount">0 Sectors</span>
+                                </div>
+
+                                <div class="row align-items-center mb-3">
+                                    <div class="col-sm-5 text-center">
+                                        <div style="position: relative; height: 180px; width: 100%;">
+                                            <canvas id="analyticsSectorChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-7">
+                                        <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+                                            <table class="table table-sm table-hover align-middle mb-0" style="font-size: 12px;">
+                                                <thead class="table-light sticky-top">
+                                                    <tr>
+                                                        <th>Sector</th>
+                                                        <th class="text-end">Value</th>
+                                                        <th class="text-end">Weight</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="analyticsSectorTableBody">
+                                                    <!-- Dynamic rows -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Company Allocation -->
+                        <div class="col-lg-6">
+                            <div class="chart-container-card">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <h6 class="fw-bold mb-0">Company Asset Allocation</h6>
+                                    <span class="badge bg-secondary-subtle text-secondary border" id="badgeCompanyCount">0 Companies</span>
+                                </div>
+
+                                <div class="row align-items-center mb-3">
+                                    <div class="col-sm-5 text-center">
+                                        <div style="position: relative; height: 180px; width: 100%;">
+                                            <canvas id="analyticsCompanyChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-7">
+                                        <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+                                            <table class="table table-sm table-hover align-middle mb-0" style="font-size: 12px;">
+                                                <thead class="table-light sticky-top">
+                                                    <tr>
+                                                        <th>Company</th>
+                                                        <th class="text-end">Value</th>
+                                                        <th class="text-end">Weight</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="analyticsCompanyTableBody">
+                                                    <!-- Dynamic rows -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==========================================
+                         ROW 4: TOP GAINERS & TOP LOSERS
+                    =========================================== -->
+                    <div class="row g-3 mb-4">
+                        <!-- Top Gainers -->
+                        <div class="col-lg-6">
+                            <div class="analytics-card">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: rgba(22, 122, 74, 0.1); color: var(--color-positive);">
+                                            <i class="bi bi-arrow-up-right"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-0">Top Gainers</h6>
+                                    </div>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Unrealized Return</span>
+                                </div>
+
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Asset</th>
+                                                <th class="text-end">Avg Cost</th>
+                                                <th class="text-end">Current Price</th>
+                                                <th class="text-end">Unrealized P/L</th>
+                                                <th class="text-end">Return</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="analyticsTopGainersBody">
+                                            <!-- Dynamic items -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Losers -->
+                        <div class="col-lg-6">
+                            <div class="analytics-card">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: rgba(192, 57, 43, 0.1); color: var(--color-negative);">
+                                            <i class="bi bi-arrow-down-right"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-0">Top Losers</h6>
+                                    </div>
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Unrealized Return</span>
+                                </div>
+
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Asset</th>
+                                                <th class="text-end">Avg Cost</th>
+                                                <th class="text-end">Current Price</th>
+                                                <th class="text-end">Unrealized P/L</th>
+                                                <th class="text-end">Return</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="analyticsTopLosersBody">
+                                            <!-- Dynamic items -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==========================================
+                         ROW 5: FINANCIAL MODEL & AUDIT FORMULAS
+                    =========================================== -->
+                    <div class="analytics-card mb-4">
+                        <div class="d-flex align-items-center justify-content-between" role="button" data-bs-toggle="collapse" data-bs-target="#formulaCollapse" aria-expanded="false" aria-controls="formulaCollapse">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-calculator text-primary fs-5"></i>
+                                <div>
+                                    <h6 class="fw-bold mb-0">Authoritative Financial Calculation Model & Formulas</h6>
+                                    <small class="text-muted">Strict mathematical definitions consolidating database views and accounting logic</small>
+                                </div>
+                            </div>
+                            <i class="bi bi-chevron-down text-muted"></i>
+                        </div>
+
+                        <div class="collapse mt-3" id="formulaCollapse">
+                            <hr class="my-2">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered align-middle mb-0" style="font-size: 12px;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 22%;">Financial Metric</th>
+                                            <th style="width: 48%;">Authoritative Mathematical Formula</th>
+                                            <th style="width: 30%;">Source / Standard</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="analyticsFormulasTableBody">
+                                        <!-- Formulas dynamically populated from backend DTO -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div> <!-- End #analyticsContent -->
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ShareSync JS -->
+    <script src="js/app.js"></script>
+</body>
+
+</html>

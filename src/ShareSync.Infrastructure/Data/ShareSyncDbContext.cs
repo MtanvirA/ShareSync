@@ -21,6 +21,10 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
     public DbSet<Dividend> Dividends => Set<Dividend>();
     public DbSet<TransactionAudit> TransactionAudits => Set<TransactionAudit>();
     public DbSet<PortfolioSnapshot> PortfolioSnapshots => Set<PortfolioSnapshot>();
+    public DbSet<CompanyPriceHistory> CompanyPriceHistories => Set<CompanyPriceHistory>();
+    public DbSet<Alert> Alerts => Set<Alert>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<PortfolioGoal> PortfolioGoals => Set<PortfolioGoal>();
     public DbSet<PortfolioHoldingView> PortfolioHoldings => Set<PortfolioHoldingView>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -56,6 +60,11 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
                 .HasColumnName("ROLE")
                 .HasMaxLength(20)
                 .HasDefaultValue("INVESTOR")
+                .IsRequired();
+
+            entity.Property(e => e.IsActive)
+                .HasColumnName("IS_ACTIVE")
+                .HasDefaultValue(true)
                 .IsRequired();
 
             entity.Property(e => e.CreatedAt)
@@ -94,6 +103,7 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
             entity.ToTable("COMPANIES", t =>
             {
                 t.HasCheckConstraint("CK_COMPANIES_PRICE", "CURRENT_PRICE > 0");
+                t.HasCheckConstraint("CK_COMPANIES_MARKET_CAP", "MARKET_CAP IS NULL OR MARKET_CAP >= 0");
             });
             entity.HasKey(e => e.CompanyId).HasName("PK_COMPANIES");
 
@@ -123,6 +133,11 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.MarketCap)
                 .HasColumnName("MARKET_CAP")
                 .HasPrecision(20, 2);
+
+            entity.Property(e => e.IsActive)
+                .HasColumnName("IS_ACTIVE")
+                .HasDefaultValue(true)
+                .IsRequired();
 
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("CREATED_AT")
@@ -215,7 +230,10 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
         // 6. WATCHLIST_ITEMS
         modelBuilder.Entity<WatchlistItem>(entity =>
         {
-            entity.ToTable("WATCHLIST_ITEMS");
+            entity.ToTable("WATCHLIST_ITEMS", t =>
+            {
+                t.HasCheckConstraint("CK_WATCHLIST_ITEMS_TARGET", "TARGET_PRICE IS NULL OR TARGET_PRICE > 0");
+            });
             entity.HasKey(e => new { e.WatchlistId, e.CompanyId }).HasName("PK_WATCHLIST_ITEMS");
 
             entity.Property(e => e.WatchlistId).HasColumnName("WATCHLIST_ID");
@@ -410,6 +428,265 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
                 .WithMany(p => p.Snapshots)
                 .HasForeignKey(e => e.PortfolioId)
                 .HasConstraintName("FK_PORTFOLIO_SNAPSHOTS_PORTFOLIO")
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // 11. COMPANY_PRICE_HISTORY
+        modelBuilder.Entity<CompanyPriceHistory>(entity =>
+        {
+            entity.ToTable("COMPANY_PRICE_HISTORY", t =>
+            {
+                t.HasCheckConstraint("CK_PRICE_HIST_PRICE", "PRICE > 0");
+                t.HasCheckConstraint("CK_PRICE_HIST_OPEN", "OPEN_PRICE IS NULL OR OPEN_PRICE > 0");
+                t.HasCheckConstraint("CK_PRICE_HIST_HIGH", "HIGH_PRICE IS NULL OR HIGH_PRICE > 0");
+                t.HasCheckConstraint("CK_PRICE_HIST_LOW", "LOW_PRICE IS NULL OR LOW_PRICE > 0");
+                t.HasCheckConstraint("CK_PRICE_HIST_VOLUME", "VOLUME IS NULL OR VOLUME >= 0");
+            });
+
+            entity.HasKey(e => e.PriceHistoryId).HasName("PK_COMPANY_PRICE_HISTORY");
+
+            entity.Property(e => e.PriceHistoryId)
+                .HasColumnName("PRICE_HISTORY_ID")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.CompanyId)
+                .HasColumnName("COMPANY_ID")
+                .IsRequired();
+
+            entity.Property(e => e.Price)
+                .HasColumnName("PRICE")
+                .HasPrecision(14, 2)
+                .IsRequired();
+
+            entity.Property(e => e.OpenPrice)
+                .HasColumnName("OPEN_PRICE")
+                .HasPrecision(14, 2);
+
+            entity.Property(e => e.HighPrice)
+                .HasColumnName("HIGH_PRICE")
+                .HasPrecision(14, 2);
+
+            entity.Property(e => e.LowPrice)
+                .HasColumnName("LOW_PRICE")
+                .HasPrecision(14, 2);
+
+            entity.Property(e => e.Volume)
+                .HasColumnName("VOLUME");
+
+            entity.Property(e => e.RecordedAt)
+                .HasColumnName("RECORDED_AT")
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("CREATED_AT")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            entity.HasIndex(e => new { e.CompanyId, e.RecordedAt }, "IDX_PRICE_HIST_COMP_DATE");
+
+            entity.HasOne(e => e.Company)
+                .WithMany(c => c.PriceHistories)
+                .HasForeignKey(e => e.CompanyId)
+                .HasConstraintName("FK_PRICE_HISTORY_COMPANY")
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // 13. ALERTS
+        modelBuilder.Entity<Alert>(entity =>
+        {
+            entity.ToTable("ALERTS", t =>
+            {
+                t.HasCheckConstraint("CK_ALERTS_TYPE", "ALERT_TYPE IN ('PRICE_ABOVE', 'PRICE_BELOW', 'PORTFOLIO_VALUE_ABOVE', 'PORTFOLIO_VALUE_BELOW')");
+                t.HasCheckConstraint("CK_ALERTS_THRESHOLD", "THRESHOLD_VALUE > 0");
+                t.HasCheckConstraint("CK_ALERTS_IS_ACTIVE", "IS_ACTIVE IN (0, 1)");
+            });
+            entity.HasKey(e => e.AlertId).HasName("PK_ALERTS");
+
+            entity.Property(e => e.AlertId)
+                .HasColumnName("ALERT_ID")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("USER_ID")
+                .IsRequired();
+
+            entity.Property(e => e.CompanyId)
+                .HasColumnName("COMPANY_ID");
+
+            entity.Property(e => e.PortfolioId)
+                .HasColumnName("PORTFOLIO_ID");
+
+            entity.Property(e => e.AlertType)
+                .HasColumnName("ALERT_TYPE")
+                .HasMaxLength(30)
+                .IsRequired();
+
+            entity.Property(e => e.ThresholdValue)
+                .HasColumnName("THRESHOLD_VALUE")
+                .HasPrecision(14, 2)
+                .IsRequired();
+
+            entity.Property(e => e.IsActive)
+                .HasColumnName("IS_ACTIVE")
+                .HasConversion<int>()
+                .HasDefaultValue(true)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("CREATED_AT")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            entity.Property(e => e.TriggeredAt)
+                .HasColumnName("TRIGGERED_AT");
+
+            entity.Property(e => e.Message)
+                .HasColumnName("MESSAGE")
+                .HasMaxLength(500);
+
+            entity.HasIndex(e => new { e.UserId, e.IsActive }, "IDX_ALERTS_USER");
+            entity.HasIndex(e => new { e.IsActive, e.CompanyId, e.AlertType }, "IDX_ALERTS_PRICE_EVAL");
+            entity.HasIndex(e => new { e.IsActive, e.PortfolioId, e.AlertType }, "IDX_ALERTS_PORT_EVAL");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .HasConstraintName("FK_ALERTS_USER")
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Company)
+                .WithMany()
+                .HasForeignKey(e => e.CompanyId)
+                .HasConstraintName("FK_ALERTS_COMPANY")
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Portfolio)
+                .WithMany()
+                .HasForeignKey(e => e.PortfolioId)
+                .HasConstraintName("FK_ALERTS_PORTFOLIO")
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // 13. NOTIFICATIONS
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.ToTable("NOTIFICATIONS");
+            entity.HasKey(e => e.NotificationId).HasName("PK_NOTIFICATIONS");
+
+            entity.Property(e => e.NotificationId)
+                .HasColumnName("NOTIFICATION_ID")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("USER_ID")
+                .IsRequired();
+
+            entity.Property(e => e.NotificationType)
+                .HasColumnName("NOTIFICATION_TYPE")
+                .HasMaxLength(30)
+                .IsRequired();
+
+            entity.Property(e => e.Title)
+                .HasColumnName("TITLE")
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(e => e.Message)
+                .HasColumnName("MESSAGE")
+                .HasMaxLength(1000)
+                .IsRequired();
+
+            entity.Property(e => e.IsRead)
+                .HasColumnName("IS_READ")
+                .HasConversion<int>()
+                .HasDefaultValue(false);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("CREATED_AT")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(e => e.RelatedEntityType)
+                .HasColumnName("RELATED_ENTITY_TYPE")
+                .HasMaxLength(50);
+
+            entity.Property(e => e.RelatedEntityId)
+                .HasColumnName("RELATED_ENTITY_ID");
+
+            entity.HasIndex(e => new { e.UserId, e.IsRead, e.CreatedAt }, "IDX_NOTIFICATIONS_USER");
+            entity.HasIndex(e => new { e.UserId, e.RelatedEntityType, e.RelatedEntityId }, "IDX_NOTIFICATIONS_ENTITY");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .HasConstraintName("FK_NOTIFICATIONS_USER")
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // 14. PORTFOLIO_GOALS
+        modelBuilder.Entity<PortfolioGoal>(entity =>
+        {
+            entity.ToTable("PORTFOLIO_GOALS");
+            entity.HasKey(e => e.GoalId).HasName("PK_PORTFOLIO_GOALS");
+
+            entity.Property(e => e.GoalId)
+                .HasColumnName("GOAL_ID")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("USER_ID")
+                .IsRequired();
+
+            entity.Property(e => e.PortfolioId)
+                .HasColumnName("PORTFOLIO_ID")
+                .IsRequired();
+
+            entity.Property(e => e.GoalType)
+                .HasColumnName("GOAL_TYPE")
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(e => e.TargetValue)
+                .HasColumnName("TARGET_VALUE")
+                .HasPrecision(15, 2)
+                .IsRequired();
+
+            entity.Property(e => e.TargetDate)
+                .HasColumnName("TARGET_DATE");
+
+            entity.Property(e => e.Title)
+                .HasColumnName("TITLE")
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(e => e.Description)
+                .HasColumnName("DESCRIPTION")
+                .HasMaxLength(500);
+
+            entity.Property(e => e.IsActive)
+                .HasColumnName("IS_ACTIVE")
+                .HasConversion<int>()
+                .HasDefaultValue(true);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("CREATED_AT")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("UPDATED_AT");
+
+            entity.HasIndex(e => new { e.UserId, e.IsActive, e.CreatedAt }, "IDX_PORTFOLIO_GOALS_USER");
+            entity.HasIndex(e => new { e.PortfolioId, e.IsActive }, "IDX_PORTFOLIO_GOALS_PORTFOLIO");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .HasConstraintName("FK_PORTFOLIO_GOALS_USER")
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Portfolio)
+                .WithMany()
+                .HasForeignKey(e => e.PortfolioId)
+                .HasConstraintName("FK_PORTFOLIO_GOALS_PORTFOLIO")
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

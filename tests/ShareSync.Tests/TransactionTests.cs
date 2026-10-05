@@ -660,5 +660,96 @@ public class TransactionTests
         var history = await service.GetUserTransactionsAsync(userId: 1, new TransactionFilterDto { PortfolioId = 1 });
         Assert.Equal(3, history.Data!.Count);
     }
+
+    [Fact]
+    public async Task GetAvailableShares_ControllerEndpoint_ReturnsAvailableSharesAndData()
+    {
+        using var context = CreateInMemoryDbContext();
+        var service = new TransactionService(context);
+
+        // Buy 150 shares of Company 1 in Portfolio 1
+        await service.CreateTransactionAsync(new CreateTransactionRequestDto
+        {
+            PortfolioId = 1,
+            CompanyId = 1,
+            TransactionType = "BUY",
+            Quantity = 150,
+            PricePerShare = 200.00m
+        }, userId: 1);
+
+        var fakeUser = new FakeCurrentUserService(userId: 1);
+        var controller = new ShareSync.Web.Controllers.TransactionsController(service, null!, fakeUser);
+
+        var result = await controller.GetAvailableShares(portfolioId: 1, companyId: 1, default);
+        var okResult = Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(result);
+        var resp = Assert.IsType<ShareSync.Application.Common.Models.ApiResponse<decimal>>(okResult.Value);
+        Assert.True(resp.Success);
+        Assert.Equal(150m, resp.Data);
+    }
+
+    [Theory]
+    [InlineData(1.5)]
+    [InlineData(0.25)]
+    [InlineData(99.999)]
+    public async Task CreateTransaction_FractionalQuantity_ThrowsBadRequest(decimal fractionalQty)
+    {
+        using var context = CreateInMemoryDbContext();
+        var service = new TransactionService(context);
+
+        var request = new CreateTransactionRequestDto
+        {
+            PortfolioId = 1,
+            CompanyId = 1,
+            TransactionType = "BUY",
+            Quantity = fractionalQty,
+            PricePerShare = 200m
+        };
+
+        var ex = await Assert.ThrowsAsync<AppException>(() => service.CreateTransactionAsync(request, userId: 1));
+        Assert.Equal(400, ex.StatusCode);
+        Assert.Contains("Fractional shares are not supported", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(1.5)]
+    [InlineData(0.5)]
+    public async Task UpdateTransaction_FractionalQuantity_ThrowsBadRequest(decimal fractionalQty)
+    {
+        using var context = CreateInMemoryDbContext();
+        var service = new TransactionService(context);
+
+        var created = await service.CreateTransactionAsync(new CreateTransactionRequestDto
+        {
+            PortfolioId = 1,
+            CompanyId = 1,
+            TransactionType = "BUY",
+            Quantity = 10,
+            PricePerShare = 200m
+        }, userId: 1);
+
+        var updateReq = new UpdateTransactionRequestDto
+        {
+            Quantity = fractionalQty,
+            PricePerShare = 200m
+        };
+
+        var ex = await Assert.ThrowsAsync<AppException>(() => service.UpdateTransactionAsync(created.Data!.TransactionId, updateReq, userId: 1));
+        Assert.Equal(400, ex.StatusCode);
+        Assert.Contains("Fractional shares are not supported", ex.Message);
+    }
+
+    private class FakeCurrentUserService : ShareSync.Application.Common.Interfaces.ICurrentUserService
+    {
+        public FakeCurrentUserService(int? userId = 1, string role = "INVESTOR")
+        {
+            UserId = userId;
+            Role = role;
+        }
+
+        public int? UserId { get; }
+        public string? Email => "test@sharesync.com";
+        public string? Role { get; }
+        public bool IsAuthenticated => UserId.HasValue;
+    }
 }
 

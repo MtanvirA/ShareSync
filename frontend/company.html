@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="ShareSync - Company Profile & Historical Market Price Tracking"
+    />
+    <title>ShareSync | Company Profile</title>
+
+    <!-- Theme initialization -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem("sharesync_theme");
+        var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body>
+    <!-- =====================================
+         TOP BAR
+    ====================================== -->
+    <header class="topbar">
+      <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <a href="index.html" class="brand text-decoration-none">
+            <span class="brand-mark"> S </span>
+            <span class="brand-name"> Share<span>Sync</span> </span>
+          </a>
+          <!-- Global Search (Feature 8) -->
+          <div class="global-search-container position-relative mx-3 flex-grow-1 d-none d-md-block" style="max-width: 420px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-body-tertiary border-end-0 text-muted" style="border-radius: 8px 0 0 8px; border-color: var(--color-border);">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control bg-body-tertiary border-start-0 ps-0 text-body"
+                id="globalSearchInput"
+                placeholder="Search companies, tickers, sectors, portfolios..."
+                aria-label="Search ShareSync"
+                autocomplete="off"
+                style="border-radius: 0 8px 8px 0; border-color: var(--color-border); font-size: 13px;"
+              />
+              <button
+                class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y d-none pe-2 text-decoration-none"
+                id="clearGlobalSearchBtn"
+                type="button"
+                style="z-index: 5;"
+                aria-label="Clear search"
+              >
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+            </div>
+
+            <!-- Search Dropdown Results -->
+            <div class="global-search-dropdown shadow-lg border rounded-3 p-0 d-none" id="globalSearchDropdown" style="position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--color-surface); z-index: 1050; max-height: 480px; overflow-y: auto;">
+              <div id="globalSearchResults"></div>
+            </div>
+          </div>
+
+
+          <div class="d-flex align-items-center gap-2">
+            <button
+              class="icon-button theme-toggle-btn"
+              id="themeToggleBtn"
+              title="Toggle Light / Dark Mode"
+              aria-label="Toggle theme"
+            >
+              <i class="bi bi-moon-stars"></i>
+            </button>
+
+            <!-- Notifications Center -->
+            <div class="header-dropdown-wrapper position-relative">
+              <button
+                class="icon-button position-relative"
+                id="notificationBtn"
+                title="Notifications"
+                aria-label="Notifications"
+                aria-expanded="false"
+              >
+                <i class="bi bi-bell"></i>
+                <span class="notification-badge" id="notificationBadge"></span>
+              </button>
+
+              <div class="header-dropdown notification-dropdown" id="notificationDropdown">
+                <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center gap-2">
+                    <h6 class="mb-0 fw-semibold" style="font-size: 14px;">Notifications</h6>
+                    <span class="badge bg-primary rounded-pill px-2 py-1" id="notificationCountBadge" style="font-size: 11px;">3 new</span>
+                  </div>
+                  <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" id="markAllNotificationsReadBtn" style="font-size: 12px;">
+                    Mark all as read
+                  </button>
+                </div>
+
+                <div class="notification-list" id="notificationList" style="max-height: 340px; overflow-y: auto;">
+                  <div class="notification-item unread p-3 border-bottom d-flex gap-3 align-items-start" data-notif-id="1">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 34px; height: 34px; background: rgba(16, 185, 129, 0.15); color: #10B981;">
+                      <i class="bi bi-arrow-up-right"></i>
+                    </div>
+                    <div class="flex-grow-1" style="min-width: 0;">
+                      <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="fw-semibold text-truncate" style="font-size: 13px;">Price Target Reached</span>
+                        <span class="text-muted" style="font-size: 11px;">10m ago</span>
+                      </div>
+                      <p class="mb-0 text-muted" style="font-size: 12px; line-height: 1.4;">BEXIMCO touched your target price of ৳115.50 (+3.2% today).</p>
+                    </div>
+                    <div class="unread-dot rounded-circle bg-primary flex-shrink-0 mt-1"></div>
+                  </div>
+
+                  <div class="notification-item unread p-3 border-bottom d-flex gap-3 align-items-start" data-notif-id="2">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 34px; height: 34px; background: rgba(59, 130, 246, 0.15); color: #3B82F6;">
+                      <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <div class="flex-grow-1" style="min-width: 0;">
+                      <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="fw-semibold text-truncate" style="font-size: 13px;">Dividend Announcement</span>
+                        <span class="text-muted" style="font-size: 11px;">2h ago</span>
+                      </div>
+                      <p class="mb-0 text-muted" style="font-size: 12px; line-height: 1.4;">GP declared cash dividend of ৳12.50 per share. Record date upcoming.</p>
+                    </div>
+                    <div class="unread-dot rounded-circle bg-primary flex-shrink-0 mt-1"></div>
+                  </div>
+
+                  <div class="notification-item unread p-3 border-bottom d-flex gap-3 align-items-start" data-notif-id="3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 34px; height: 34px; background: rgba(245, 158, 11, 0.15); color: #F59E0B;">
+                      <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <div class="flex-grow-1" style="min-width: 0;">
+                      <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="fw-semibold text-truncate" style="font-size: 13px;">DSE Market Live Sync</span>
+                        <span class="text-muted" style="font-size: 11px;">1d ago</span>
+                      </div>
+                      <p class="mb-0 text-muted" style="font-size: 12px; line-height: 1.4;">Automated daily price updates synchronized successfully with DSE.</p>
+                    </div>
+                    <div class="unread-dot rounded-circle bg-primary flex-shrink-0 mt-1"></div>
+                  </div>
+                </div>
+
+                <div class="p-2 text-center border-top">
+                  <a href="watchlist.html" class="text-decoration-none fw-medium" style="font-size: 12px; color: var(--color-accent);">View Watchlist Alerts &rarr;</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Profile Menu -->
+            <div class="header-dropdown-wrapper position-relative ms-2">
+              <div class="profile" id="headerProfileBtn" role="button" tabindex="0" aria-expanded="false" title="Account Menu">
+                <div class="profile-avatar" id="headerAvatar">T</div>
+                <div class="profile-info d-none d-md-block">
+                  <span class="profile-name" id="headerUserName"> Investor </span>
+                  <span class="profile-role"> Investor </span>
+                </div>
+                <i class="bi bi-chevron-down ms-1 text-muted d-none d-md-inline" style="font-size: 11px;"></i>
+              </div>
+
+              <div class="header-dropdown profile-dropdown" id="profileDropdown">
+                <div class="p-3 border-bottom">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="profile-avatar flex-shrink-0" id="dropdownAvatar" style="width: 42px; height: 42px; font-size: 17px;">T</div>
+                    <div style="min-width: 0;">
+                      <div class="fw-semibold text-truncate" id="dropdownUserName" style="font-size: 14px;">Investor</div>
+                      <div class="text-muted text-truncate" id="dropdownUserEmail" style="font-size: 12px;">investor@sharesync.com</div>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-0" style="font-size: 11px;" id="dropdownUserRole">INVESTOR</span>
+                  </div>
+                </div>
+
+                <div class="py-2 border-bottom">
+                  <a href="settings.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-person"></i>
+                    <span>My Profile & Settings</span>
+                  </a>
+                  <a href="portfolio.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-pie-chart"></i>
+                    <span>My Portfolios</span>
+                  </a>
+                  <a href="transactions.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-receipt"></i>
+                    <span>Transaction History</span>
+                  </a>
+                </div>
+
+                <div class="p-2 border-bottom">
+                  <div class="d-flex align-items-center justify-content-between px-2 py-1">
+                    <span class="text-muted d-flex align-items-center gap-2" style="font-size: 13px;">
+                      <i class="bi bi-moon-stars" style="font-size: 14px;"></i> Dark Mode
+                    </span>
+                    <div class="form-check form-switch m-0 p-0" style="min-height: auto;">
+                      <input class="form-check-input ms-0" type="checkbox" role="switch" id="dropdownThemeSwitch" style="cursor: pointer;">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-2">
+                  <button class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2 w-100 border-0 bg-transparent text-danger" id="dropdownLogoutBtn">
+                    <i class="bi bi-box-arrow-right text-danger"></i>
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- =====================================
+         APPLICATION LAYOUT
+    ====================================== -->
+    <div class="app-layout">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <p class="sidebar-label">Workspace</p>
+          <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">
+              <i class="bi bi-grid-1x2-fill"></i>
+              <span> Dashboard </span>
+            </a>
+            <a href="portfolio.html" class="sidebar-link">
+              <i class="bi bi-briefcase"></i>
+              <span> Portfolio </span>
+            </a>
+            <a href="analytics.html" class="sidebar-link">
+              <i class="bi bi-pie-chart-fill"></i>
+              <span> Analytics </span>
+            </a>
+
+            <a href="simulator.html" class="sidebar-link">
+              <i class="bi bi-cpu"></i>
+              <span>Simulator</span>
+            </a>
+
+            <a href="goals.html" class="sidebar-link">
+              <i class="bi bi-bullseye"></i>
+              <span>Goals</span>
+            </a>
+            <a href="transactions.html" class="sidebar-link">
+              <i class="bi bi-arrow-left-right"></i>
+              <span> Transactions </span>
+            </a>
+            <a href="watchlist.html" class="sidebar-link">
+              <i class="bi bi-bookmark"></i>
+              <span> Watchlist </span>
+            </a>
+            <a href="alerts.html" class="sidebar-link">
+              <i class="bi bi-bell"></i>
+              <span> Alerts </span>
+            </a>
+            <a href="dividends.html" class="sidebar-link">
+              <i class="bi bi-cash-stack"></i>
+              <span> Dividends </span>
+            </a>
+            <a href="reports.html" class="sidebar-link">
+              <i class="bi bi-bar-chart-line"></i>
+              <span> Reports </span>
+            </a>
+            <a href="activity.html" class="sidebar-link">
+              <i class="bi bi-clock-history"></i>
+              <span> Activity </span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="sidebar-section sidebar-bottom">
+          <p class="sidebar-label">Account</p>
+          <nav class="sidebar-nav">
+            <a href="settings.html" class="sidebar-link">
+              <i class="bi bi-gear"></i>
+              <span> Settings </span>
+            </a>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="main-content" id="mainContent">
+        <div class="content-container">
+          <!-- BREADCRUMB NAVIGATION -->
+          <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="index.html" class="text-decoration-none">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="portfolio.html" class="text-decoration-none">Companies</a></li>
+              <li class="breadcrumb-item active" id="breadcrumbCompanyName" aria-current="page">Company Profile</li>
+            </ol>
+          </nav>
+
+          <!-- LOADING STATE -->
+          <div id="companyLoadingState" class="text-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+            <h5 class="fw-semibold">Loading Company Profile...</h5>
+            <p class="text-muted small">Retrieving market data, holdings, and financial history</p>
+          </div>
+
+          <!-- ERROR STATE -->
+          <div id="companyErrorState" class="d-none text-center py-5 dashboard-card p-5">
+            <i class="bi bi-exclamation-triangle text-danger display-3 mb-3"></i>
+            <h3 class="fw-bold text-danger mb-2" id="companyErrorMessage">Company Not Found</h3>
+            <p class="text-muted mb-4" id="companyErrorDetail">The requested company could not be located in the database.</p>
+            <div class="d-flex justify-content-center gap-3">
+              <a href="index.html" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+              </a>
+              <button type="button" class="btn btn-primary" id="companyRetryBtn">
+                <i class="bi bi-arrow-clockwise me-1"></i> Try Again
+              </button>
+            </div>
+          </div>
+
+          <!-- COMPANY CONTENT (SHOWN WHEN LOADED) -->
+          <div id="companyContentContainer" class="d-none">
+            <!-- HERO HEADER CARD -->
+            <section class="dashboard-card mb-4 p-4 company-hero-card">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <!-- Left: Logo & Names -->
+                <div class="d-flex align-items-center gap-3">
+                  <div class="company-logo fs-3" id="companyLogo" style="width: 60px; height: 60px; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; background: var(--color-primary-soft); color: var(--color-accent); font-weight: 700;">
+                    --
+                  </div>
+                  <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <h1 class="h3 fw-bold mb-0" id="companyName">Loading...</h1>
+                      <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 fs-6" id="companyTicker">---</span>
+                      <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" id="companySector">Sector</span>
+                      <span class="badge bg-body-secondary text-body-secondary border px-2 py-1">DSE Listed</span>
+                    </div>
+                    <p class="text-muted small mb-0 mt-1">Dhaka Stock Exchange · Equity Market Security</p>
+                  </div>
+                </div>
+
+                <!-- Right: Price & Quick Action Buttons -->
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                  <div class="text-end pe-3 border-end d-none d-sm-block">
+                    <small class="text-muted d-block">Market Price</small>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="h3 fw-bold mb-0" id="companyCurrentPrice">৳0.00</span>
+                      <span class="badge" id="companyDayChangeBadge">+0.00%</span>
+                    </div>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-2 flex-wrap" id="companyActionButtons">
+                    <!-- Action buttons populated dynamically -->
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- MAIN GRID LAYOUT -->
+            <div class="row g-4">
+              <!-- LEFT COLUMN (CHARTS & DIVIDENDS) -->
+              <div class="col-lg-8">
+                <!-- 1. Interactive Historical Price Chart Card -->
+                <article class="dashboard-card mb-4 p-4">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                    <div>
+                      <h2 class="h5 fw-bold mb-1">Market Price History</h2>
+                      <p class="text-muted small mb-0">Historical valuation trends over time</p>
+                    </div>
+
+                    <!-- Timeframe buttons -->
+                    <div class="timeframe-btn-group" id="companyTimeframeButtons">
+                      <button type="button" class="timeframe-btn" data-period="1D">1D</button>
+                      <button type="button" class="timeframe-btn" data-period="1W">1W</button>
+                      <button type="button" class="timeframe-btn active" data-period="1M">1M</button>
+                      <button type="button" class="timeframe-btn" data-period="3M">3M</button>
+                      <button type="button" class="timeframe-btn" data-period="6M">6M</button>
+                      <button type="button" class="timeframe-btn" data-period="1Y">1Y</button>
+                      <button type="button" class="timeframe-btn" data-period="ALL">ALL</button>
+                    </div>
+                  </div>
+
+                  <!-- Quick Stats Bar -->
+                  <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+                    <div class="price-stat-item">
+                      <small class="text-muted d-block">Period High</small>
+                      <strong class="fs-6" id="companyChartHigh">৳0.00</strong>
+                    </div>
+                    <div class="price-stat-item">
+                      <small class="text-muted d-block">Period Low</small>
+                      <strong class="fs-6" id="companyChartLow">৳0.00</strong>
+                    </div>
+                    <div class="price-stat-item">
+                      <small class="text-muted d-block">Period Change</small>
+                      <strong class="fs-6" id="companyChartChange">৳0.00</strong>
+                    </div>
+                    <div class="price-stat-item">
+                      <small class="text-muted d-block">Snapshots</small>
+                      <strong class="fs-6" id="companyChartSnapshots">0</strong>
+                    </div>
+                  </div>
+
+                  <!-- Chart Canvas Wrapper -->
+                  <div class="price-history-chart-wrapper position-relative" style="min-height: 350px;">
+                    <div id="companyChartLoading" class="d-none position-absolute top-50 start-50 translate-middle text-center">
+                      <div class="spinner-border text-primary mb-2" role="status"></div>
+                      <div class="text-muted small">Loading price trend...</div>
+                    </div>
+
+                    <div id="companyChartEmpty" class="d-none text-center py-5">
+                      <i class="bi bi-bar-chart text-muted fs-1 d-block mb-2"></i>
+                      <h6 class="fw-semibold">No Price History Recorded</h6>
+                      <p class="text-muted small mb-0">Historical records for this timeframe will be collected during DSE synchronization.</p>
+                    </div>
+
+                    <div id="companyChartContainer" style="height: 340px;">
+                      <canvas id="companyPriceHistoryCanvas"></canvas>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 2. Dividend Distribution History Card -->
+                <article class="dashboard-card p-4">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                      <h2 class="h5 fw-bold mb-1">Corporate Dividend History</h2>
+                      <p class="text-muted small mb-0">Historical dividend declarations and user yield attribution</p>
+                    </div>
+                    <span class="badge bg-secondary-subtle text-secondary" id="companyDividendCount">0 declared</span>
+                  </div>
+
+                  <div class="table-responsive">
+                    <table class="holdings-table">
+                      <thead>
+                        <tr>
+                          <th>Declaration Date</th>
+                          <th>Payment Date</th>
+                          <th>Dividend / Share</th>
+                          <th>My Estimated Income</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody id="companyDividendsBody">
+                        <tr>
+                          <td colspan="5" class="text-center py-4 text-muted">
+                            Loading dividend history...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
+              </div>
+
+              <!-- RIGHT COLUMN (MY POSITION & WATCHLIST) -->
+              <div class="col-lg-4">
+                <!-- 3. My Investment Position (User-Specific) -->
+                <article class="dashboard-card mb-4 p-4" id="companyPositionCard">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h2 class="h5 fw-bold mb-0">My Investment Position</h2>
+                    <span class="badge" id="companyOwnershipBadge">Evaluating...</span>
+                  </div>
+
+                  <!-- Owned Position View -->
+                  <div id="companyOwnedPositionView" class="d-none">
+                    <div class="row g-2 mb-3">
+                      <div class="col-6">
+                        <div class="price-stat-item text-start p-3 w-100">
+                          <small class="text-muted d-block">Shares Held</small>
+                          <strong class="fs-5" id="positionShares">0</strong>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="price-stat-item text-start p-3 w-100">
+                          <small class="text-muted d-block">Avg. Buy Price</small>
+                          <strong class="fs-5" id="positionAvgPrice">৳0.00</strong>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="price-stat-item text-start p-3 w-100">
+                          <small class="text-muted d-block">Total Cost</small>
+                          <strong class="fs-6" id="positionCostBasis">৳0.00</strong>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="price-stat-item text-start p-3 w-100">
+                          <small class="text-muted d-block">Market Value</small>
+                          <strong class="fs-6" id="positionMarketValue">৳0.00</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Unrealized P/L Banner -->
+                    <div class="p-3 rounded-3 mb-3 border text-center" id="positionPLBanner" style="background: var(--color-surface-soft);">
+                      <small class="text-muted d-block mb-1">Unrealized Return (P/L)</small>
+                      <h4 class="fw-bold mb-0" id="positionUnrealizedPL">৳0.00</h4>
+                      <small class="fw-semibold" id="positionReturnPct">(0.00%)</small>
+                    </div>
+
+                    <!-- Portfolio Breakdown (if across portfolios) -->
+                    <div id="positionBreakdownContainer" class="d-none">
+                      <small class="text-muted fw-semibold d-block mb-2">Portfolio Allocation</small>
+                      <div class="list-group list-group-flush small" id="positionBreakdownList">
+                        <!-- Populated dynamically -->
+                      </div>
+                    </div>
+
+                    <div class="mt-3">
+                      <a href="portfolio.html" class="btn btn-sm btn-outline-primary w-100" id="goToPortfolioBtn">
+                        <i class="bi bi-briefcase me-1"></i> View in Portfolios
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- Not Owned State -->
+                  <div id="companyNotOwnedView" class="d-none text-center py-4">
+                    <i class="bi bi-inbox text-muted fs-1 d-block mb-2"></i>
+                    <h6 class="fw-semibold">No Active Position</h6>
+                    <p class="text-muted small mb-3">You do not currently hold shares of this company in your portfolios.</p>
+                    <a href="transactions.html" class="btn btn-sm btn-primary" id="buyCompanyBtn">
+                      <i class="bi bi-plus-circle me-1"></i> Record BUY Transaction
+                    </a>
+                  </div>
+                </article>
+
+                <!-- 4. Watchlist Status Card -->
+                <article class="dashboard-card mb-4 p-4">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h2 class="h5 fw-bold mb-0">Watchlist & Target</h2>
+                    <span class="badge" id="companyWatchlistBadge">Not Watching</span>
+                  </div>
+
+                  <div id="companyWatchlistActiveView" class="d-none">
+                    <div class="metric-row d-flex justify-content-between py-2 border-bottom">
+                      <span class="text-muted">Watchlist:</span>
+                      <strong id="companyActiveWatchlistName">Primary</strong>
+                    </div>
+                    <div class="metric-row d-flex justify-content-between py-2 border-bottom">
+                      <span class="text-muted">Target Price:</span>
+                      <strong id="companyActiveTargetPrice">৳0.00</strong>
+                    </div>
+                    <div class="metric-row d-flex justify-content-between py-2 border-bottom">
+                      <span class="text-muted">Target Status:</span>
+                      <span id="companyActiveTargetStatus" class="fw-semibold">-</span>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                      <button type="button" class="btn btn-sm btn-outline-primary flex-grow-1" id="companyQuickEditTargetBtn">
+                        <i class="bi bi-pencil me-1"></i> Set Target
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-danger" id="companyQuickRemoveWatchlistBtn" title="Remove from Watchlist">
+                        <i class="bi bi-trash3"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="companyWatchlistInactiveView" class="d-none text-center py-3">
+                    <p class="text-muted small mb-3">Add this company to a watchlist to monitor price targets and receive proximity alerts.</p>
+                    <button type="button" class="btn btn-sm btn-outline-primary w-100" id="companyAddWatchlistCardBtn">
+                      <i class="bi bi-bookmark-plus me-1"></i> Add to Watchlist
+                    </button>
+                  </div>
+                </article>
+
+                <!-- 5. Key Market Statistics Card -->
+                <article class="dashboard-card p-4">
+                  <h2 class="h5 fw-bold mb-3">Key Market Statistics</h2>
+                  <div class="metric-list">
+                    <div class="metric-row d-flex justify-content-between py-2 border-bottom">
+                      <span class="text-muted">Ticker Symbol</span>
+                      <strong id="statTicker">---</strong>
+                    </div>
+                    <div class="metric-row d-flex justify-content-between py-2 border-bottom">
+                      <span class="text-muted">Sector</span>
+                      <strong id="statSector">---</strong>
+                    </div>
+                    <div class="metric-row d-flex justify-content-between py-2 border-bottom">
+                      <span class="text-muted">Market Cap</span>
+                      <strong id="statMarketCap">৳0.00</strong>
+                    </div>
+                    <div class="metric-row d-flex justify-content-between py-2 border-bottom">
+                      <span class="text-muted">52-Week High</span>
+                      <strong id="statYearHigh">৳0.00</strong>
+                    </div>
+                    <div class="metric-row d-flex justify-content-between py-2 border-bottom">
+                      <span class="text-muted">52-Week Low</span>
+                      <strong id="statYearLow">৳0.00</strong>
+                    </div>
+                    <div class="metric-row d-flex justify-content-between py-2">
+                      <span class="text-muted">Currency</span>
+                      <strong>BDT (৳)</strong>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- =====================================
+         ADD TO WATCHLIST MODAL
+    ====================================== -->
+    <div class="modal fade" id="companyWatchlistModal" tabindex="-1" aria-labelledby="companyWatchlistModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title fw-bold" id="companyWatchlistModalLabel">Add to Watchlist</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="companyWatchlistForm">
+            <div class="modal-body p-4">
+              <div class="mb-3">
+                <label for="companyWatchlistSelect" class="form-label fw-semibold">Select Watchlist</label>
+                <select class="form-select" id="companyWatchlistSelect" required>
+                  <option value="">Choose a watchlist...</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="companyWatchlistTargetInput" class="form-label fw-semibold">Target Price (৳) <span class="text-muted fw-normal">(optional)</span></label>
+                <input type="number" step="0.01" min="0" class="form-control" id="companyWatchlistTargetInput" placeholder="e.g. 260.00" />
+                <div class="form-text">You will be alerted when the market price touches or crosses this target.</div>
+              </div>
+            </div>
+            <div class="modal-footer border-top justify-content-between">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="saveCompanyWatchlistBtn">
+                <i class="bi bi-bookmark-plus me-1"></i> Add to Watchlist
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- ShareSync JS -->
+    <script src="js/app.js"></script>
+  </body>
+</html>

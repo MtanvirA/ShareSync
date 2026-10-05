@@ -5,6 +5,7 @@ namespace ShareSync.Application.Interfaces;
 
 public interface ITransactionService
 {
+    Task<ApiResponse<PagedTransactionsDto>> GetPagedTransactionsAsync(int userId, TransactionFilterDto? filter = null, CancellationToken cancellationToken = default);
     Task<ApiResponse<List<TransactionDto>>> GetUserTransactionsAsync(int userId, TransactionFilterDto? filter = null, CancellationToken cancellationToken = default);
     Task<ApiResponse<TransactionDto>> GetTransactionByIdAsync(int transactionId, int userId, CancellationToken cancellationToken = default);
     Task<ApiResponse<TransactionDto>> CreateTransactionAsync(CreateTransactionRequestDto request, int userId, CancellationToken cancellationToken = default);

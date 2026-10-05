@@ -37,6 +37,9 @@ BEGIN
     ) holdings
     JOIN companies c ON holdings.company_id = c.company_id;
 
+    -- Savepoint before upsert
+    SAVEPOINT sp_before_snapshot;
+
     -- Upsert into portfolio_snapshots
     MERGE INTO portfolio_snapshots ps
     USING (
@@ -49,15 +52,14 @@ BEGIN
         INSERT (portfolio_id, snapshot_date, total_value)
         VALUES (src.portfolio_id, src.snapshot_date, v_calc_value);
 
-    COMMIT;
-
+    -- Transaction commit is delegated to the calling client/session
     p_total_value := v_calc_value;
     p_status := 'SUCCESS';
     p_message := 'Snapshot generated successfully with value ' || TO_CHAR(v_calc_value, 'FM999,999,990.00');
 
 EXCEPTION
     WHEN OTHERS THEN
-        ROLLBACK;
+        ROLLBACK TO sp_before_snapshot;
         p_status := 'FAILED';
         p_message := 'Snapshot failed: ' || SQLERRM;
         p_total_value := 0;

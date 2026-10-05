@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Activity Timeline | ShareSync</title>
+    <meta
+      name="description"
+      content="Comprehensive timeline of your portfolio trades, watchlist actions, goals, dividends, and account alerts."
+    />
+
+    <!-- Theme initialization -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem("sharesync_theme");
+        var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+
+    <!-- ShareSync CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+
+    <style>
+      .timeline-flow {
+        position: relative;
+        padding-left: 28px;
+      }
+      .timeline-flow::before {
+        content: "";
+        position: absolute;
+        top: 8px;
+        bottom: 8px;
+        left: 11px;
+        width: 2px;
+        background: var(--color-border);
+      }
+      .timeline-date-group {
+        margin-bottom: 28px;
+      }
+      .timeline-date-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-muted);
+        background: var(--color-surface-soft);
+        border: 1px solid var(--color-border);
+        padding: 4px 12px;
+        border-radius: 20px;
+        margin-bottom: 16px;
+        position: relative;
+        z-index: 2;
+      }
+      .timeline-item {
+        position: relative;
+        margin-bottom: 14px;
+      }
+      .timeline-dot {
+        position: absolute;
+        left: -28px;
+        top: 14px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--color-surface);
+        border: 2px solid var(--color-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        z-index: 1;
+        box-shadow: 0 0 0 3px var(--color-surface);
+      }
+      .timeline-dot.buy {
+        border-color: #10b981;
+        color: #10b981;
+        background: rgba(16, 185, 129, 0.1);
+      }
+      .timeline-dot.sell {
+        border-color: #ef4444;
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+      }
+      .timeline-dot.primary {
+        border-color: #3b82f6;
+        color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
+      }
+      .timeline-dot.info {
+        border-color: #06b6d4;
+        color: #06b6d4;
+        background: rgba(6, 182, 212, 0.1);
+      }
+      .timeline-dot.warning {
+        border-color: #f59e0b;
+        color: #f59e0b;
+        background: rgba(245, 158, 11, 0.1);
+      }
+      .timeline-dot.success {
+        border-color: #10b981;
+        color: #10b981;
+        background: rgba(16, 185, 129, 0.1);
+      }
+      .timeline-dot.danger {
+        border-color: #ef4444;
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+      }
+      .timeline-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        padding: 14px 18px;
+        box-shadow: var(--shadow-card);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .timeline-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- =========================
+         TOP BAR
+    ========================== -->
+    <header class="topbar">
+      <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <!-- Brand -->
+          <a href="index.html" class="brand text-decoration-none">
+            <span class="brand-mark">S</span>
+            <span class="brand-name">Share<span>Sync</span></span>
+          </a>
+          <!-- Global Search (Feature 8) -->
+          <div class="global-search-container position-relative mx-3 flex-grow-1 d-none d-md-block" style="max-width: 420px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-body-tertiary border-end-0 text-muted" style="border-radius: 8px 0 0 8px; border-color: var(--color-border);">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control bg-body-tertiary border-start-0 ps-0 text-body"
+                id="globalSearchInput"
+                placeholder="Search companies, tickers, sectors, portfolios..."
+                aria-label="Search ShareSync"
+                autocomplete="off"
+                style="border-radius: 0 8px 8px 0; border-color: var(--color-border); font-size: 13px;"
+              />
+              <button
+                class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y d-none pe-2 text-decoration-none"
+                id="clearGlobalSearchBtn"
+                type="button"
+                style="z-index: 5;"
+                aria-label="Clear search"
+              >
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+            </div>
+
+            <!-- Search Dropdown Results -->
+            <div class="global-search-dropdown shadow-lg border rounded-3 p-0 d-none" id="globalSearchDropdown" style="position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--color-surface); z-index: 1050; max-height: 480px; overflow-y: auto;">
+              <div id="globalSearchResults"></div>
+            </div>
+          </div>
+
+
+          <!-- Profile & Controls -->
+          <div class="d-flex align-items-center gap-2">
+            <button
+              class="icon-button theme-toggle-btn"
+              id="themeToggleBtn"
+              title="Toggle Light / Dark Mode"
+              aria-label="Toggle theme"
+            >
+              <i class="bi bi-moon-stars"></i>
+            </button>
+
+            <!-- Notifications Center -->
+            <div class="header-dropdown-wrapper position-relative">
+              <button
+                class="icon-button position-relative"
+                id="notificationBtn"
+                title="Notifications"
+                aria-label="Notifications"
+                aria-expanded="false"
+              >
+                <i class="bi bi-bell"></i>
+                <span class="notification-badge" id="notificationBadge"></span>
+              </button>
+
+              <div class="header-dropdown notification-dropdown" id="notificationDropdown">
+                <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center gap-2">
+                    <h6 class="mb-0 fw-semibold" style="font-size: 14px;">Notifications</h6>
+                    <span class="badge bg-primary rounded-pill px-2 py-1" id="notificationCountBadge" style="font-size: 11px;">0 new</span>
+                  </div>
+                  <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" id="markAllNotificationsReadBtn" style="font-size: 12px;">
+                    Mark all as read
+                  </button>
+                </div>
+                <div class="notification-list" id="notificationList" style="max-height: 340px; overflow-y: auto;">
+                  <div class="p-3 text-center text-muted" style="font-size: 12px;">No new notifications</div>
+                </div>
+                <div class="p-2 text-center border-top">
+                  <a href="activity.html" class="text-decoration-none fw-medium" style="font-size: 12px; color: var(--color-accent);">View All Activity &rarr;</a>
+                </div>
+              </div>
+            </div>
+
+                        <!-- Profile Menu -->
+            <div class="header-dropdown-wrapper position-relative ms-2">
+              <div class="profile" id="headerProfileBtn" role="button" tabindex="0" aria-expanded="false" title="Account Menu">
+                <div class="profile-avatar" id="headerAvatar">T</div>
+
+                <div class="profile-info d-none d-md-block">
+                  <span class="profile-name" id="headerUserName"> Investor </span>
+
+                  <span class="profile-role"> Investor </span>
+                </div>
+
+                <i class="bi bi-chevron-down profile-arrow"></i>
+              </div>
+
+              <div class="header-dropdown profile-dropdown" id="profileDropdown">
+                <div class="p-3 border-bottom">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="profile-avatar flex-shrink-0" id="dropdownAvatar" style="width: 42px; height: 42px; font-size: 17px;">T</div>
+                    <div style="min-width: 0;">
+                      <div class="fw-semibold text-truncate" id="dropdownUserName" style="font-size: 14px;">Investor</div>
+                      <div class="text-muted text-truncate" id="dropdownUserEmail" style="font-size: 12px;">investor@sharesync.com</div>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-0" style="font-size: 11px;" id="dropdownUserRole">INVESTOR</span>
+                  </div>
+                </div>
+
+                <div class="py-2 border-bottom">
+                  <a href="settings.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-person"></i>
+                    <span>My Profile & Settings</span>
+                  </a>
+                  <a href="portfolio.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-pie-chart"></i>
+                    <span>My Portfolios</span>
+                  </a>
+                  <a href="transactions.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-receipt"></i>
+                    <span>Transaction History</span>
+                  </a>
+                </div>
+
+                <div class="p-2 border-bottom">
+                  <div class="d-flex align-items-center justify-content-between px-2 py-1">
+                    <span class="text-muted d-flex align-items-center gap-2" style="font-size: 13px;">
+                      <i class="bi bi-moon-stars" style="font-size: 14px;"></i> Dark Mode
+                    </span>
+                    <div class="form-check form-switch m-0 p-0" style="min-height: auto;">
+                      <input class="form-check-input ms-0" type="checkbox" role="switch" id="dropdownThemeSwitch" style="cursor: pointer;">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-2">
+                  <button class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2 w-100 border-0 bg-transparent text-danger" id="dropdownLogoutBtn">
+                    <i class="bi bi-box-arrow-right text-danger"></i>
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- =========================
+         APPLICATION LAYOUT
+    ========================== -->
+    <div class="app-layout">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <p class="sidebar-label">Workspace</p>
+          <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">
+              <i class="bi bi-grid-1x2-fill"></i>
+              <span>Dashboard</span>
+            </a>
+            <a href="portfolio.html" class="sidebar-link">
+              <i class="bi bi-briefcase"></i>
+              <span>Portfolio</span>
+            </a>
+            <a href="analytics.html" class="sidebar-link">
+              <i class="bi bi-pie-chart-fill"></i>
+              <span>Analytics</span>
+            </a>
+            <a href="simulator.html" class="sidebar-link">
+              <i class="bi bi-cpu"></i>
+              <span>Simulator</span>
+            </a>
+            <a href="goals.html" class="sidebar-link">
+              <i class="bi bi-bullseye"></i>
+              <span>Goals</span>
+            </a>
+            <a href="transactions.html" class="sidebar-link">
+              <i class="bi bi-arrow-left-right"></i>
+              <span>Transactions</span>
+            </a>
+            <a href="watchlist.html" class="sidebar-link">
+              <i class="bi bi-bookmark"></i>
+              <span>Watchlist</span>
+            </a>
+            <a href="alerts.html" class="sidebar-link">
+              <i class="bi bi-bell"></i>
+              <span>Alerts</span>
+            </a>
+            <a href="dividends.html" class="sidebar-link">
+              <i class="bi bi-cash-stack"></i>
+              <span>Dividends</span>
+            </a>
+            <a href="reports.html" class="sidebar-link">
+              <i class="bi bi-bar-chart-line"></i>
+              <span>Reports</span>
+            </a>
+            <a href="activity.html" class="sidebar-link active">
+              <i class="bi bi-clock-history"></i>
+              <span>Activity</span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="sidebar-section sidebar-bottom">
+          <p class="sidebar-label">Account</p>
+          <nav class="sidebar-nav">
+            <a href="settings.html" class="sidebar-link">
+              <i class="bi bi-gear"></i>
+              <span>Settings</span>
+            </a>
+            <a href="#" class="sidebar-link" id="sidebarLogoutLink">
+              <i class="bi bi-box-arrow-right"></i>
+              <span>Log out</span>
+            </a>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- =========================
+           MAIN CONTENT
+      ========================== -->
+      <main class="main-content">
+        <div class="content-container">
+          <!-- PAGE HEADER -->
+          <section class="page-header">
+            <div>
+              <p class="eyebrow">AUDIT &amp; EVENTS</p>
+              <h1>Activity Timeline</h1>
+              <p class="page-description">
+                Chronological log of transactions, portfolio adjustments, watchlist items, dividends, and alerts.
+              </p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button class="secondary-button" id="refreshActivityBtn" type="button">
+                <i class="bi bi-arrow-clockwise"></i>
+                Refresh
+              </button>
+            </div>
+          </section>
+
+          <!-- FILTER BAR -->
+          <section class="dashboard-card mb-4 p-3">
+            <div class="row g-2 align-items-center">
+              <div class="col-12 col-md-4">
+                <label for="activityTypeFilter" class="form-label mb-1 text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Event Category</label>
+                <select class="form-select form-select-sm filter-select w-100" id="activityTypeFilter">
+                  <option value="ALL">All Categories</option>
+                  <option value="TRANSACTION">Trades (BUY / SELL)</option>
+                  <option value="PORTFOLIO">Portfolios</option>
+                  <option value="WATCHLIST">Watchlist</option>
+                  <option value="GOAL">Financial Goals</option>
+                  <option value="ALERT">Alerts &amp; Triggers</option>
+                  <option value="DIVIDEND">Dividends</option>
+                </select>
+              </div>
+
+              <div class="col-6 col-md-3">
+                <label for="activityDateFrom" class="form-label mb-1 text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">From</label>
+                <input type="date" class="form-control form-control-sm filter-select w-100" id="activityDateFrom" />
+              </div>
+
+              <div class="col-6 col-md-3">
+                <label for="activityDateTo" class="form-label mb-1 text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">To</label>
+                <input type="date" class="form-control form-control-sm filter-select w-100" id="activityDateTo" />
+              </div>
+
+              <div class="col-12 col-md-2 d-flex align-items-end gap-1 mt-md-4">
+                <button type="button" class="primary-button w-100" id="applyActivityFilterBtn" style="padding: 6px 12px; font-size: 12px;">
+                  <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                <button type="button" class="secondary-button" id="resetActivityFilterBtn" style="padding: 6px 10px; font-size: 12px;" title="Reset Filters">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- TIMELINE CONTAINER -->
+          <section class="dashboard-card p-4">
+            <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
+              <div>
+                <h3 class="h5 fw-bold mb-1">Recent Activity</h3>
+                <p class="text-muted mb-0" id="activitySubtitle" style="font-size: 13px;">Loading events...</p>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="text-muted" style="font-size: 12px;">Page size:</span>
+                <select class="form-select form-select-sm filter-select" id="activityPageSize" style="width: 70px;">
+                  <option value="10">10</option>
+                  <option value="25" selected>25</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Dynamic Timeline Flow -->
+            <div id="timelineContainer">
+              <div class="text-center py-5 text-muted">
+                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                Loading activity history...
+              </div>
+            </div>
+
+            <!-- Dynamic Pagination -->
+            <div class="pagination-row mt-4 pt-3 border-top" id="activityPaginationRow" style="display: none;">
+              <span id="activityPaginationSummary">Showing 0–0 of 0 events</span>
+              <div class="pagination-buttons" id="activityPaginationButtons"></div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <!-- Bootstrap 5.3 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ShareSync Application Logic -->
+    <script src="js/app.js"></script>
+  </body>
+</html>

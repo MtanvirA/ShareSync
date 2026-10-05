@@ -33,9 +33,9 @@ BEGIN
         RETURN;
     END IF;
 
-    IF p_quantity <= 0 THEN
+    IF p_quantity <= 0 OR p_quantity != TRUNC(p_quantity) THEN
         p_status := 'ERROR';
-        p_message := 'Quantity must be strictly positive.';
+        p_message := 'Quantity must be a positive whole integer. Fractional shares are not supported.';
         p_transaction_id := NULL;
         RETURN;
     END IF;
@@ -105,28 +105,11 @@ BEGIN
     )
     RETURNING transaction_id INTO v_new_tx_id;
 
-    -- 5. Insert audit log
-    v_audit_details := 'Executed ' || v_type || ' of ' || p_quantity || ' shares at price ' || p_price_per_share;
-
-    INSERT INTO transaction_audit (
-        transaction_id,
-        action_type,
-        action_date,
-        changed_by,
-        details
-    ) VALUES (
-        v_new_tx_id,
-        'INSERT',
-        CURRENT_TIMESTAMP,
-        NVL(p_changed_by, USER),
-        v_audit_details
-    );
-
-    COMMIT;
-
+    -- Note: Audit is handled automatically by trg_transactions_audit trigger upon INSERT.
+    -- Transaction commit is delegated to the calling client/session to maintain unified transaction demarcation.
     p_transaction_id := v_new_tx_id;
     p_status := 'SUCCESS';
-    p_message := 'Transaction recorded and audited successfully.';
+    p_message := 'Transaction recorded successfully.';
 
 EXCEPTION
     WHEN OTHERS THEN

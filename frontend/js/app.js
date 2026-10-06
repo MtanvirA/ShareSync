@@ -211,6 +211,30 @@ async function setupUserHeader() {
     if (dropdownUserEmail) dropdownUserEmail.textContent = u.email || "investor@sharesync.com";
     if (dropdownAvatar) dropdownAvatar.textContent = firstName.charAt(0).toUpperCase();
     if (dropdownUserRole) dropdownUserRole.textContent = (u.role || "INVESTOR").toUpperCase();
+
+    if ((u.role || "").toUpperCase() === "ADMIN") {
+      const profileDropdown = document.getElementById("profileDropdown");
+      if (profileDropdown && !document.getElementById("dropdownAdminLink")) {
+        const py2 = profileDropdown.querySelector(".py-2.border-bottom");
+        if (py2) {
+          const adminA = document.createElement("a");
+          adminA.id = "dropdownAdminLink";
+          adminA.href = "admin.html";
+          adminA.className = "dropdown-item-link px-3 py-2 d-flex align-items-center gap-2 text-danger fw-semibold";
+          adminA.innerHTML = '<i class="bi bi-shield-lock text-danger"></i><span>Admin Control Panel</span>';
+          py2.prepend(adminA);
+        }
+      }
+      const sidebarNav = document.querySelector(".sidebar-nav");
+      if (sidebarNav && !document.getElementById("sidebarAdminLink")) {
+        const adminSideA = document.createElement("a");
+        adminSideA.id = "sidebarAdminLink";
+        adminSideA.href = "admin.html";
+        adminSideA.className = "sidebar-link text-danger fw-semibold";
+        adminSideA.innerHTML = '<i class="bi bi-shield-lock text-danger"></i><span>Admin Control Panel</span>';
+        sidebarNav.appendChild(adminSideA);
+      }
+    }
   };
 
   updateUI(user);
@@ -298,7 +322,8 @@ function setupLoginForm() {
 
       showAlert("Sign in successful! Redirecting...", "success");
       setTimeout(() => {
-        window.location.href = "index.html";
+        const role = (data?.data?.role || "").toUpperCase();
+        window.location.href = role === "ADMIN" ? "admin.html" : "index.html";
       }, 300);
     } catch (err) {
       showAlert("Unable to connect to the backend server. Please check your connection.", "danger");

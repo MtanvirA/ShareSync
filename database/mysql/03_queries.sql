@@ -246,3 +246,31 @@ SELECT
 FROM transaction_audit
 ORDER BY audit_id DESC
 LIMIT 10;
+
+-- ============================================================
+-- 11. INDEX DEMONSTRATION & EXECUTION PLAN ANALYSIS (EXPLAIN)
+-- ============================================================
+
+-- Show indexes configured on the transactions table
+SHOW INDEX FROM transactions;
+
+-- Explain execution plan proving index usage on (portfolio_id, transaction_date)
+EXPLAIN SELECT transaction_id, quantity, price_per_share
+FROM transactions
+WHERE portfolio_id = 1 AND transaction_date >= '2026-01-01';
+
+-- Explain execution plan proving index usage on company_price_history
+EXPLAIN SELECT price, recorded_at
+FROM company_price_history
+WHERE company_id = 1
+ORDER BY recorded_at DESC;
+
+-- ============================================================
+-- 12. DDL & METADATA VERIFICATION
+-- ============================================================
+
+-- View underlying DDL table definition
+SHOW CREATE TABLE transactions;
+
+-- View underlying DDL view definition
+SHOW CREATE VIEW vw_portfolio_holdings;

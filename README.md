@@ -1,87 +1,153 @@
-# ShareSync: Share Market Portfolio Tracker (MySQL Version)
+# ShareSync — Share Market Portfolio Tracker (MySQL Version)
 
-ShareSync is an academic web-based portfolio tracking and market-analysis system built using ASP.NET Core, MySQL 8.x, Entity Framework Core, and a modern HTML/CSS/JavaScript frontend.
+ShareSync is a full-featured, academic web-based portfolio tracking and financial analysis platform built using **ASP.NET Core (C#)**, **MySQL 8.x**, **Entity Framework Core**, and a vanilla **HTML5 / CSS3 / Bootstrap 5 / JavaScript / Chart.js** frontend.
 
-## Documentation Links
-- [Architecture](docs/ARCHITECTURE.md)
-- [Database (MySQL)](docs/DATABASE.md)
-- [MySQL Kit](database/mysql/README.md)
-- [API](docs/API.md)
-- [Features](docs/FEATURES.md)
-- [Investment Intelligence](docs/INVESTMENT_INTELLIGENCE.md)
-- [Setup Guide](docs/SETUP.md)
-- [Testing](docs/TESTING.md)
-- [Security](docs/SECURITY.md)
-- [Dataset](docs/DATASET.md)
-- [Demo Guide](docs/DEMO_GUIDE.md)
-- [Project Structure](docs/PROJECT_STRUCTURE.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
-- [Contributing](docs/CONTRIBUTING.md)
-- [Release Notes](docs/RELEASE_NOTES.md)
+---
 
-## 1. Project Overview
-Managing stock portfolios manually makes it difficult to track holdings, transactions, dividends, watchlists, reports, and historical performance.
-ShareSync provides a centralized web-based platform for managing portfolio-related information and analyzing historical market data, cleanly distinguishing user portfolio data from external historical market data.
+## Technical Profile
 
-## 2. Key Features
-- Multi-portfolio management
-- ACID-compliant transactions
-- Detailed reporting & dynamic holdings valuation
-- Historical risk/return evaluation (Investment Intelligence)
-See [Features](docs/FEATURES.md) for details.
+| Component | Technology | Description |
+|---|---|---|
+| **Project** | ShareSync | Share Market Portfolio Tracker |
+| **Database** | MySQL 8.x | Normalized relational database using InnoDB storage engine (`utf8mb4`) |
+| **Backend** | ASP.NET Core Web API (C#) | Clean Architecture Web API targeting .NET 8 / .NET 10 |
+| **ORM** | Entity Framework Core | `Pomelo.EntityFrameworkCore.MySql` (v8.*) |
+| **Frontend** | Pure Web Standards | HTML5, CSS3, Bootstrap 5, JavaScript (ES6+), Chart.js |
+| **Security** | JWT & PBKDF2 | JWT Bearer token authorization with salted PBKDF2 password hashing |
 
-## 3. Investment Intelligence
-The module evaluates historical market behavior using deterministic statistical formulas (CAGR, Annualized Volatility, Max Drawdown). It is designed to act as a *Historical Investment Profile* without making explicit financial advice or predicting future prices.
-See [Investment Intelligence](docs/INVESTMENT_INTELLIGENCE.md).
+---
 
-## 4. Technology Stack
-- **Backend:** C# / ASP.NET Core Web API (.NET 8)
-- **Database:** MySQL 8.x (`Pomelo.EntityFrameworkCore.MySql`)
-- **Frontend:** Pure HTML5, CSS3, Bootstrap 5, Vanilla JavaScript, Chart.js
-- **Security:** PBKDF2 password hashing, JWT Bearer Authentication
+## Key Features
 
-## 5. System Architecture
-Uses ASP.NET Core Clean Architecture.
-See [Architecture](docs/ARCHITECTURE.md).
+1. **Authentication & Multi-Role Access:** Secure investor and administrator login with JWT tokens and salted PBKDF2 password hashes.
+2. **Multi-Portfolio Management:** Track multiple independent portfolios per investor with custom allocations and descriptions.
+3. **Transactional Financial Ledger:** Full BUY and SELL transaction recording with broker fees, dates, and strict oversell validation.
+4. **Holdings & Valuation Engine:** Dynamic computation of volume-weighted average purchase price, market value, and unrealized profit/loss via MySQL database views and stored routines.
+5. **Investor Watchlists:** Customizable watchlists with target price variance tracking.
+6. **Corporate Action Dividends:** Record and aggregate dividend distributions, historical dividend yield, and payout schedules.
+7. **Comprehensive Reporting:** Dedicated reports for portfolio holdings valuation, transaction ledgers, company/sector allocation, and dividend income.
+8. **Real-Time Analytics:** Sector exposure, portfolio performance history, and asset allocation breakdown.
+9. **Investment Intelligence Engine:** Retrospective quantitative analysis calculating CAGR, Annualized Volatility, Maximum Drawdown, Positive-Day Consistency, Trend classification, and multi-factor scores.
+10. **Dhaka Stock Exchange (DSE) Catalog:** Autocomplete search and market tracking across 400+ DSE listed companies.
 
-## 6. Database
-Strictly normalized relational schema with core entities including `APP_USERS`, `SECTORS`, `COMPANIES`, `PORTFOLIOS`, `WATCHLISTS`, `TRANSACTIONS`, `DIVIDENDS`, `TRANSACTION_AUDIT`, `PORTFOLIO_SNAPSHOTS`, `COMPANY_PRICE_HISTORY`, `ALERTS`, `NOTIFICATIONS`, and `PORTFOLIO_GOALS`.
-See [Database](docs/DATABASE.md) and [MySQL Kit](database/mysql/README.md).
+---
 
-## 7. Security
-Token-based authentication, password hashing, and parameterized queries.
-See [Security](docs/SECURITY.md).
+## Documentation Quick Links
 
-## 8. Project Structure
-See [Project Structure](docs/PROJECT_STRUCTURE.md).
+- [MySQL Setup Guide](docs/SETUP.md)
+- [Teacher Demonstration Guide](docs/MYSQL_DEMO_GUIDE.md)
+- [Database Systems Viva Cheat Sheet](docs/MYSQL_VIVA.md)
+- [Database Schema & Programmability](docs/DATABASE.md)
+- [System Architecture](docs/ARCHITECTURE.md)
+- [Automated Testing](docs/TESTING.md)
+- [MySQL Kit & SQL Scripts](database/mysql/README.md)
+- [Dataset Details](docs/DATASET.md)
+- [Security Guidelines](docs/SECURITY.md)
 
-## 9. Requirements
-- .NET 8 SDK
-- MySQL Server 8.0+ (Port 3306)
+---
 
-## 10. Installation & Setup
-See [Setup Guide](docs/SETUP.md).
+## Database Architecture
 
-## 11. Configuration
-Uses `appsettings.json`. Examples provided in `appsettings.example.json`.
+The MySQL database schema (`sharesync`) consists of **14 normalized relational tables** engineered in Third Normal Form (3NF):
 
-## 12. Historical Dataset Import
-The project imports `Dhaka Stock Exchange Historical Data (1999-2025)` via a `.NET 10` Console Data Importer. See [Dataset](docs/DATASET.md).
+```
+sharesync
+├── app_users                  # Investor and administrator credentials & roles
+├── sectors                    # Industry classifications
+├── companies                  # Stock listings & current market prices
+├── portfolios                 # Investor wealth portfolios
+├── transactions               # Immutable BUY and SELL order records
+├── transaction_audit          # Automated audit trail captured via database triggers
+├── dividends                  # Cash dividend declarations & corporate payouts
+├── watchlists                 # Investor watchlists
+├── watchlist_items            # Composite-keyed bridge table for watchlist tracking
+├── portfolio_snapshots        # Historical mark-to-market valuation snapshots
+├── company_price_history      # Historical OHLCV market observations
+├── alerts                     # Price and portfolio value threshold alerts
+├── notifications              # User notifications center
+└── portfolio_goals            # Financial goals & progress tracking
+```
 
-## 13. Running the Application
-`cd src/ShareSync.Web && dotnet run`
+### Programmability Highlights
+- **View (`vw_portfolio_holdings`):** Calculates net shares, volume-weighted average cost, market value, and unrealized P/L on demand.
+- **Function (`fn_get_weighted_avg_price`):** Calculates volume-weighted average purchase price for any portfolio and company.
+- **Function (`fn_calculate_unrealized_pl`):** Computes mark-to-market unrealized gain or loss.
+- **Procedure (`sp_record_transaction`):** Validates transaction parameters, checks for oversell violations on SELL orders, and inserts atomically.
+- **Procedure (`sp_generate_portfolio_snapshot`):** Aggregates net holdings valuation and upserts daily snapshots.
+- **Triggers (`trg_transactions_after_*`):** Transparently writes full before/after audit entries to `transaction_audit`.
 
-## 14. Testing
-Contains 350+ automated unit/integration tests.
-See [Testing](docs/TESTING.md).
+---
 
-## 15. Demo
-See [Demo Guide](docs/DEMO_GUIDE.md).
+## Quick Start & Setup Guide
 
-## 16. Known Limitations
-- The Investment Intelligence models use unadjusted historical closing prices and are computationally static (not ML-driven).
-- Frontend may stagger if plotting 5,000+ points on low-end mobile devices.
+### 1. Prerequisites
+- **MySQL Server 8.0+** running locally on port `3306`
+- **.NET 8.0 SDK** (or .NET 10 SDK with `DOTNET_ROLL_FORWARD=Major`)
 
-## 17. Data Source & Academic Disclaimer
-**Source:** `Harvard Dataverse` (DOI: `10.7910/DVN/XIFYT1`).
-**Disclaimer:** This is a retrospective statistical assessment. It is NOT a prediction system, NOT financial advice, and does NOT guarantee future profitability.
+### 2. Deploy MySQL Database
+From the project root:
+```powershell
+# Deploy complete schema, programmability, seed data, and tests:
+Get-Content database\mysql\setup.sql -Raw | mysql -u root -p
+```
+
+### 3. Configure Connection String
+Set your password in `src/ShareSync.Web/appsettings.json` or export via environment variable:
+```powershell
+$env:ConnectionStrings__MySqlConnection = "Server=localhost;Port=3306;Database=sharesync;User=root;Password=YOUR_PASSWORD;CharSet=utf8mb4;"
+```
+
+### 4. Run the Application
+```powershell
+dotnet build
+dotnet run --project src/ShareSync.Web
+```
+
+Open your browser to: **`http://localhost:5000`**
+
+### Demo Login Accounts
+| Role | Email | Password |
+|---|---|---|
+| **Investor** | `investor@sharesync.com` | `Password123#` |
+| **Investor** | `tanvir@sharesync.com` | `Password123#` |
+| **Administrator** | `admin@sharesync.com` | `Admin123#` |
+
+---
+
+## Automated Testing
+
+Run the full automated test suite containing **350 tests**:
+```powershell
+dotnet test
+```
+
+Execute direct database verification in MySQL:
+```powershell
+Get-Content database\mysql\07_tests.sql -Raw | mysql -u root -p sharesync
+```
+
+---
+
+## Project Structure
+
+```
+ShareSync/
+├── database/
+│   └── mysql/                  # Complete MySQL SQL scripts (01 to 07, setup.sql, README)
+├── docs/                       # Project documentation, guides, viva cheat sheet
+├── frontend/                   # HTML5, Bootstrap 5, CSS, and JavaScript single-page views
+├── src/
+│   ├── ShareSync.Domain/       # Domain entities and core models
+│   ├── ShareSync.Application/  # Business logic, interfaces, services, DTOs
+│   ├── ShareSync.Infrastructure/# Pomelo MySQL EF Core provider, DbContext, auth
+│   ├── ShareSync.Web/          # ASP.NET Core Web API controllers & static host
+│   └── ShareSync.DataImporter/ # Console utility for historical dataset ingestion
+└── tests/
+    └── ShareSync.Tests/        # 350 unit and integration tests
+```
+
+---
+
+## Academic Disclaimer
+**Dataset Source:** Dhaka Stock Exchange Historical Data (1999-2025), Harvard Dataverse (`DOI: 10.7910/DVN/XIFYT1`).  
+**Notice:** ShareSync is an academic software project. The Investment Intelligence and valuation modules compute retrospective statistical metrics and do NOT provide financial advice, price forecasting, or investment recommendations.

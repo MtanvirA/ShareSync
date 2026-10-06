@@ -5,7 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using Oracle.ManagedDataAccess.Client;
+using MySqlConnector;
 using ShareSync.Domain.Entities;
 using ShareSync.Infrastructure.Data;
 
@@ -15,10 +15,11 @@ namespace ShareSync.DataImporter
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Starting Historical Data Importer...");
+            Console.WriteLine("Starting Historical Data Importer for MySQL...");
             
             string csvFilePath = @"E:\Projects\Oracle+WebProgramming\ShareSync\Dhaka Stock Exchange Historical Data (1999-2025)\DSE_Data.csv";
-            string connectionString = "Data Source=localhost:1521/FREEPDB1;User Id=sharesync;Password=ShareSync2026#;";
+            string connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__MySqlConnection")
+                ?? "Server=localhost;Port=3306;Database=sharesync;User=root;Password=YOUR_PASSWORD;CharSet=utf8mb4;";
             
             if (!File.Exists(csvFilePath))
             {
@@ -27,7 +28,7 @@ namespace ShareSync.DataImporter
             }
             
             var optionsBuilder = new DbContextOptionsBuilder<ShareSyncDbContext>();
-            optionsBuilder.UseOracle(connectionString);
+            optionsBuilder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)));
             using var context = new ShareSyncDbContext(optionsBuilder.Options);
             
             // Ensure connection
@@ -214,8 +215,8 @@ namespace ShareSync.DataImporter
             
             try
             {
-                // Fast insert using OracleBulkCopy
-                var connection = (OracleConnection)context.Database.GetDbConnection();
+                // Fast insert using MySqlBulkCopy
+                var connection = (MySqlConnection)context.Database.GetDbConnection();
                 if (connection.State != ConnectionState.Open) connection.Open();
                 
                 var dataTable = new DataTable("COMPANY_PRICE_HISTORY");
@@ -252,24 +253,14 @@ namespace ShareSync.DataImporter
                     );
                 }
                 
-                using var bulkCopy = new OracleBulkCopy(connection);
+                var bulkCopy = new MySqlBulkCopy(connection);
                 bulkCopy.DestinationTableName = "COMPANY_PRICE_HISTORY";
                 bulkCopy.BulkCopyTimeout = 600;
-                bulkCopy.BatchSize = 10000;
                 
-                bulkCopy.ColumnMappings.Add("COMPANY_ID", "COMPANY_ID");
-                bulkCopy.ColumnMappings.Add("PRICE", "PRICE");
-                bulkCopy.ColumnMappings.Add("OPEN_PRICE", "OPEN_PRICE");
-                bulkCopy.ColumnMappings.Add("HIGH_PRICE", "HIGH_PRICE");
-                bulkCopy.ColumnMappings.Add("LOW_PRICE", "LOW_PRICE");
-                bulkCopy.ColumnMappings.Add("VOLUME", "VOLUME");
-                bulkCopy.ColumnMappings.Add("RECORDED_AT", "RECORDED_AT");
-                bulkCopy.ColumnMappings.Add("TRADING_DATE", "TRADING_DATE");
-                bulkCopy.ColumnMappings.Add("SOURCE", "SOURCE");
-                bulkCopy.ColumnMappings.Add("SOURCE_DATASET", "SOURCE_DATASET");
-                bulkCopy.ColumnMappings.Add("SOURCE_DOI", "SOURCE_DOI");
-                bulkCopy.ColumnMappings.Add("IMPORT_BATCH_ID", "IMPORT_BATCH_ID");
-                bulkCopy.ColumnMappings.Add("CREATED_AT", "CREATED_AT");
+                for (int i = 0; i < dataTable.Columns.Count; i++)
+                {
+                    bulkCopy.ColumnMappings.Add(new MySqlBulkCopyColumnMapping(i, dataTable.Columns[i].ColumnName));
+                }
                 
                 bulkCopy.WriteToServer(dataTable);
                 Console.WriteLine("Bulk insert completed successfully.");

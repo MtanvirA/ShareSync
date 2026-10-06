@@ -20,13 +20,13 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 // 2. Add Layer Dependencies & Validate Configuration
 var isDev = builder.Environment.IsDevelopment();
-var connectionString = builder.Configuration.GetConnectionString("OracleConnection");
+var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
 
 if (!isDev)
 {
-    if (string.IsNullOrWhiteSpace(connectionString) || connectionString.Contains("YOUR_DB_PASSWORD"))
+    if (string.IsNullOrWhiteSpace(connectionString) || connectionString.Contains("YOUR_PASSWORD") || connectionString.Contains("YOUR_DB_PASSWORD"))
     {
-        throw new InvalidOperationException("Production configuration error: 'ConnectionStrings:OracleConnection' is missing or contains placeholder values.");
+        throw new InvalidOperationException("Production configuration error: 'ConnectionStrings:MySqlConnection' is missing or contains placeholder values.");
     }
 
     var configuredSecret = builder.Configuration["Jwt:Secret"];
@@ -94,7 +94,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "ShareSync API",
         Version = "v1",
-        Description = "ASP.NET Core Web API for ShareSync Portfolio Tracker backed by Oracle Database"
+        Description = "ASP.NET Core Web API for ShareSync Portfolio Tracker backed by MySQL Database"
     });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

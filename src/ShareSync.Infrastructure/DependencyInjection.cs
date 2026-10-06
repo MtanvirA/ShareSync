@@ -13,16 +13,15 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("OracleConnection")
-            ?? throw new InvalidOperationException("Oracle connection string 'OracleConnection' was not found.");
+        var connectionString = configuration.GetConnectionString("MySqlConnection")
+            ?? throw new InvalidOperationException("MySQL connection string 'MySqlConnection' was not found.");
 
         services.AddDbContext<ShareSyncDbContext>(options =>
         {
-            options.UseOracle(connectionString, b =>
-            {
-                b.MigrationsAssembly(typeof(ShareSyncDbContext).Assembly.FullName);
-                b.UseOracleSQLCompatibility(OracleSQLCompatibility.DatabaseVersion23);
-            });
+            options.UseMySql(
+                connectionString,
+                new MySqlServerVersion(new Version(8, 0, 36)),
+                b => b.MigrationsAssembly(typeof(ShareSyncDbContext).Assembly.FullName));
         });
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ShareSyncDbContext>());

@@ -65,7 +65,7 @@ public class ExceptionHandlingMiddleware
         {
             _logger.LogError(exception, "An unhandled system exception occurred: {Message}", exception.Message);
 
-            if (exception.GetType().FullName?.Contains("Oracle") == true ||
+            if (exception.GetType().FullName?.Contains("MySql") == true ||
                 exception.GetType().FullName?.Contains("DbUpdate") == true)
             {
                 statusCode = HttpStatusCode.BadRequest;

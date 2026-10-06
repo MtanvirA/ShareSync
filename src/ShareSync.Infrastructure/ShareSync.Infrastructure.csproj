@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\ShareSync.Domain\ShareSync.Domain.csproj" />
@@ -6,7 +6,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Oracle.EntityFrameworkCore" Version="8.*" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.*" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
   </ItemGroup>
 

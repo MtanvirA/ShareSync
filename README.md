@@ -1,10 +1,11 @@
-# ShareSync: Share Market Portfolio Tracker
+# ShareSync: Share Market Portfolio Tracker (MySQL Version)
 
-ShareSync is an academic web-based portfolio tracking and market-analysis system built using ASP.NET Core, Oracle 26ai, and a modern HTML/CSS/JavaScript frontend.
+ShareSync is an academic web-based portfolio tracking and market-analysis system built using ASP.NET Core, MySQL 8.x, Entity Framework Core, and a modern HTML/CSS/JavaScript frontend.
 
 ## Documentation Links
 - [Architecture](docs/ARCHITECTURE.md)
-- [Database](docs/DATABASE.md)
+- [Database (MySQL)](docs/DATABASE.md)
+- [MySQL Kit](database/mysql/README.md)
 - [API](docs/API.md)
 - [Features](docs/FEATURES.md)
 - [Investment Intelligence](docs/INVESTMENT_INTELLIGENCE.md)
@@ -25,8 +26,8 @@ ShareSync provides a centralized web-based platform for managing portfolio-relat
 ## 2. Key Features
 - Multi-portfolio management
 - ACID-compliant transactions
-- Detailed reporting
-- Historical risk/return evaluation
+- Detailed reporting & dynamic holdings valuation
+- Historical risk/return evaluation (Investment Intelligence)
 See [Features](docs/FEATURES.md) for details.
 
 ## 3. Investment Intelligence
@@ -35,17 +36,17 @@ See [Investment Intelligence](docs/INVESTMENT_INTELLIGENCE.md).
 
 ## 4. Technology Stack
 - **Backend:** C# / ASP.NET Core Web API (.NET 8)
-- **Database:** Oracle Database 26ai (`Oracle.EntityFrameworkCore`)
+- **Database:** MySQL 8.x (`Pomelo.EntityFrameworkCore.MySql`)
 - **Frontend:** Pure HTML5, CSS3, Bootstrap 5, Vanilla JavaScript, Chart.js
-- **Security:** BCrypt password hashing, JWT Bearer Authentication
+- **Security:** PBKDF2 password hashing, JWT Bearer Authentication
 
 ## 5. System Architecture
 Uses ASP.NET Core Clean Architecture.
 See [Architecture](docs/ARCHITECTURE.md).
 
 ## 6. Database
-Strictly normalized relational schema with core entities including `USERS`, `COMPANIES`, `PORTFOLIOS`, `TRANSACTIONS`, and `COMPANY_PRICE_HISTORY`.
-See [Database](docs/DATABASE.md).
+Strictly normalized relational schema with core entities including `APP_USERS`, `SECTORS`, `COMPANIES`, `PORTFOLIOS`, `WATCHLISTS`, `TRANSACTIONS`, `DIVIDENDS`, `TRANSACTION_AUDIT`, `PORTFOLIO_SNAPSHOTS`, `COMPANY_PRICE_HISTORY`, `ALERTS`, `NOTIFICATIONS`, and `PORTFOLIO_GOALS`.
+See [Database](docs/DATABASE.md) and [MySQL Kit](database/mysql/README.md).
 
 ## 7. Security
 Token-based authentication, password hashing, and parameterized queries.
@@ -56,7 +57,7 @@ See [Project Structure](docs/PROJECT_STRUCTURE.md).
 
 ## 9. Requirements
 - .NET 8 SDK
-- Oracle Database (1521)
+- MySQL Server 8.0+ (Port 3306)
 
 ## 10. Installation & Setup
 See [Setup Guide](docs/SETUP.md).

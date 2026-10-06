@@ -37,7 +37,7 @@ public class HealthController : ControllerBase
             var canConnect = await _context.Database.CanConnectAsync(cancellationToken);
             if (!canConnect)
             {
-                return StatusCode(503, ApiResponse.Fail("Unable to establish connection to Oracle Database."));
+                return StatusCode(503, ApiResponse.Fail("Unable to establish connection to MySQL Database."));
             }
 
             var userCount = await _context.Users.CountAsync(cancellationToken);
@@ -48,7 +48,7 @@ public class HealthController : ControllerBase
 
             return Ok(ApiResponse.Ok(new
             {
-                database = "Oracle Database 23ai Free",
+                database = "MySQL Database 8.0",
                 status = "Connected",
                 tables = new
                 {
@@ -59,7 +59,7 @@ public class HealthController : ControllerBase
                     transactions = transactionCount
                 },
                 timestamp = DateTime.UtcNow
-            }, "Oracle database connectivity verified successfully."));
+            }, "MySQL database connectivity verified successfully."));
         }
         catch (Exception ex)
         {

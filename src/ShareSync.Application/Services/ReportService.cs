@@ -52,7 +52,7 @@ public class ReportService : IReportService
             return ApiResponse<PortfolioHoldingsReportDto>.Ok(new PortfolioHoldingsReportDto());
         }
 
-        // 3. Query the Oracle view VW_PORTFOLIO_HOLDINGS
+        // 3. Query the database view VW_PORTFOLIO_HOLDINGS
         var viewHoldings = await _context.PortfolioHoldings
             .AsNoTracking()
             .Where(h => userPortfolioIds.Contains(h.PortfolioId))

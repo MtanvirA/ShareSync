@@ -8,10 +8,15 @@ namespace ShareSync.Tests;
 
 public class DataImporterTests
 {
-    private ShareSyncDbContext GetDbContext()
+    private ShareSyncDbContext? GetDbContext()
     {
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__MySqlConnection");
+        if (string.IsNullOrWhiteSpace(connectionString) || connectionString.Contains("YOUR_PASSWORD"))
+        {
+            return null;
+        }
         var optionsBuilder = new DbContextOptionsBuilder<ShareSyncDbContext>();
-        optionsBuilder.UseOracle("Data Source=localhost:1521/FREEPDB1;User Id=sharesync;Password=ShareSync2026#;");
+        optionsBuilder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)));
         return new ShareSyncDbContext(optionsBuilder.Options);
     }
 
@@ -19,6 +24,7 @@ public class DataImporterTests
     public async Task HistoricalData_ShouldNotHave_ExactOrConflictingDuplicates()
     {
         using var context = GetDbContext();
+        if (context == null) return;
         
         var allRecords = await context.CompanyPriceHistories
             .Select(x => new { x.CompanyId, x.TradingDate })
@@ -36,6 +42,7 @@ public class DataImporterTests
     public async Task HistoricalData_ShouldNotHave_InvalidOhlc()
     {
         using var context = GetDbContext();
+        if (context == null) return;
         
         var invalidRecords = await context.CompanyPriceHistories
             .Where(h => h.HighPrice < h.LowPrice || 
@@ -52,6 +59,7 @@ public class DataImporterTests
     public async Task HistoricalData_ShouldNotHave_ZeroPrices()
     {
         using var context = GetDbContext();
+        if (context == null) return;
         
         var zeroPrices = await context.CompanyPriceHistories
             .Where(h => h.OpenPrice == 0 && h.HighPrice == 0 && h.LowPrice == 0 && h.Price == 0)
@@ -64,6 +72,7 @@ public class DataImporterTests
     public async Task HistoricalData_ShouldHave_CorrectProvenance()
     {
         using var context = GetDbContext();
+        if (context == null) return;
         
         var anyRecord = await context.CompanyPriceHistories.FirstOrDefaultAsync();
         if (anyRecord != null)

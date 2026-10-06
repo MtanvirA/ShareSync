@@ -19,6 +19,7 @@
         var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
         var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
         document.documentElement.setAttribute("data-theme", theme);
+        try { var u = JSON.parse(localStorage.getItem("sharesync_user") || "{}"); if ((u.role || "").toUpperCase() === "ADMIN") { document.documentElement.classList.add("is-admin-user"); } } catch(_) {}
       })();
     </script>
 
@@ -199,6 +200,7 @@
                 </div>
 
                 <div class="py-2 border-bottom">
+                  <a href="admin.html" class="dropdown-item-link px-3 py-2 align-items-center gap-2 text-danger fw-semibold admin-only-nav" id="adminDropdownLink"><i class="bi bi-shield-lock-fill text-danger"></i><span>Admin Control Panel</span></a>
                   <a href="settings.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
                     <i class="bi bi-person"></i>
                     <span>My Profile & Settings</span>
@@ -317,6 +319,11 @@
             <a href="activity.html" class="sidebar-link">
               <i class="bi bi-clock-history"></i>
               <span>Activity</span>
+            </a>
+
+            <a href="admin.html" class="sidebar-link text-danger fw-semibold admin-only-nav" id="adminNavTabLink">
+              <i class="bi bi-shield-lock-fill text-danger"></i>
+              <span>Admin Control</span>
             </a>
 
 

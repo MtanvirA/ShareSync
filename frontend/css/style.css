@@ -3768,3 +3768,8 @@ input:focus-visible {
   transform: translateX(3px);
   border-color: var(--color-primary-soft);
 }
+
+/* ADMIN NAVIGATION */
+.admin-only-nav { display: none !important; }
+.is-admin-user .admin-only-nav { display: inline-flex !important; }
+.is-admin-user a.dropdown-item-link.admin-only-nav { display: flex !important; }

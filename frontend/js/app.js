@@ -213,6 +213,7 @@ async function setupUserHeader() {
     if (dropdownUserRole) dropdownUserRole.textContent = (u.role || "INVESTOR").toUpperCase();
 
     if ((u.role || "").toUpperCase() === "ADMIN") {
+      document.documentElement.classList.add("is-admin-user");
       const profileDropdown = document.getElementById("profileDropdown");
       if (profileDropdown && !document.getElementById("dropdownAdminLink")) {
         const py2 = profileDropdown.querySelector(".py-2.border-bottom");

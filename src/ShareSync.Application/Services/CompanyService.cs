@@ -95,7 +95,15 @@ public class CompanyService : ICompanyService
             .AsNoTracking()
             .Where(h => h.CompanyId == companyId);
 
-        var now = DateTime.UtcNow;
+        var hasTradingDates = await query.AnyAsync(h => h.TradingDate != null, cancellationToken);
+        if (hasTradingDates)
+        {
+            query = query.Where(h => h.TradingDate != null);
+        }
+
+        var latestDate = await query
+            .MaxAsync(h => (DateTime?)(h.TradingDate ?? h.RecordedAt), cancellationToken) ?? DateTime.UtcNow;
+
         var period = filter?.Period?.Trim().ToUpperInvariant() ?? "ALL";
 
         DateTime? computedStart = filter?.StartDate;
@@ -103,33 +111,37 @@ public class CompanyService : ICompanyService
         {
             computedStart = period switch
             {
-                "1D" => now.AddDays(-1),
-                "1W" => now.AddDays(-7),
-                "1M" => now.AddMonths(-1),
-                "3M" => now.AddMonths(-3),
-                "6M" => now.AddMonths(-6),
-                "1Y" => now.AddYears(-1),
+                "1D" => latestDate.AddDays(-3),
+                "1W" => latestDate.AddDays(-7),
+                "1M" => latestDate.AddMonths(-1),
+                "3M" => latestDate.AddMonths(-3),
+                "6M" => latestDate.AddMonths(-6),
+                "1Y" => latestDate.AddYears(-1),
                 _ => null
             };
         }
 
         if (computedStart.HasValue)
         {
-            query = query.Where(h => h.RecordedAt >= computedStart.Value);
+            query = query.Where(h => (h.TradingDate ?? h.RecordedAt) >= computedStart.Value);
         }
 
         if (filter?.EndDate.HasValue == true)
         {
-            query = query.Where(h => h.RecordedAt <= filter.EndDate.Value);
+            query = query.Where(h => (h.TradingDate ?? h.RecordedAt) <= filter.EndDate.Value);
         }
 
-        var limit = filter?.Limit ?? 200;
+        var limit = filter?.Limit ?? 300;
         if (limit <= 0) limit = 100;
         if (limit > 500) limit = 500;
 
-        var historyList = await query
-            .OrderBy(h => h.RecordedAt)
+        var historyEntities = await query
+            .OrderByDescending(h => h.TradingDate ?? h.RecordedAt)
             .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        var historyList = historyEntities
+            .OrderBy(h => h.TradingDate ?? h.RecordedAt)
             .Select(h => new CompanyPriceHistoryDto
             {
                 PriceHistoryId = h.PriceHistoryId,
@@ -139,9 +151,9 @@ public class CompanyService : ICompanyService
                 HighPrice = h.HighPrice,
                 LowPrice = h.LowPrice,
                 Volume = h.Volume,
-                RecordedAt = h.RecordedAt
+                RecordedAt = h.TradingDate ?? h.RecordedAt
             })
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         decimal? high = historyList.Count > 0 ? historyList.Max(h => h.HighPrice ?? h.Price) : null;
         decimal? low = historyList.Count > 0 ? historyList.Min(h => h.LowPrice ?? h.Price) : null;

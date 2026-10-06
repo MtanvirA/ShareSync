@@ -78,6 +78,22 @@ public class CompaniesController : ControllerBase
         return Ok(ApiResponse<List<DseListedCompanyDto>>.Ok(list));
     }
 
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchDseCompanies([FromQuery] string q, [FromQuery] int limit = 10, CancellationToken cancellationToken = default)
+    {
+        var list = await _dsePriceService.GetDseListedCompaniesAsync(cancellationToken);
+        var term = q?.Trim() ?? "";
+
+        var filtered = list.Where(c => c.Symbol.Contains(term, StringComparison.OrdinalIgnoreCase) || 
+                                       c.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
+                           .OrderBy(c => c.Symbol.StartsWith(term, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                           .ThenBy(c => c.Symbol)
+                           .Take(limit)
+                           .ToList();
+
+        return Ok(ApiResponse<List<DseListedCompanyDto>>.Ok(filtered));
+    }
+
     /// <summary>
     /// Imports and adds any Dhaka Stock Exchange listed company into ShareSync by ticker symbol with live quote and sector reference.
     /// </summary>

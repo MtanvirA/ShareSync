@@ -332,8 +332,7 @@ public class DsePriceService : IDsePriceService
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
-            if (root.TryGetProperty("ok", out var okEl) && okEl.GetBoolean() &&
-                root.TryGetProperty("companies", out var compsEl) && compsEl.ValueKind == JsonValueKind.Array)
+            if (root.TryGetProperty("companies", out var compsEl) && compsEl.ValueKind == JsonValueKind.Array)
             {
                 foreach (var el in compsEl.EnumerateArray())
                 {
@@ -344,7 +343,7 @@ public class DsePriceService : IDsePriceService
                     var sector = el.TryGetProperty("sector", out var secEl) ? secEl.GetString() ?? "Other" : "Other";
                     var category = el.TryGetProperty("category", out var catEl) ? catEl.GetString() : null;
                     decimal? mcap = null;
-                    if (el.TryGetProperty("market_cap_mn", out var mEl) && mEl.TryGetDecimal(out var parsedMcap))
+                    if (el.TryGetProperty("market_cap_mn", out var mEl) && mEl.ValueKind != JsonValueKind.Null && mEl.TryGetDecimal(out var parsedMcap))
                     {
                         mcap = parsedMcap;
                     }
@@ -462,11 +461,73 @@ public class DsePriceService : IDsePriceService
             HighPrice = quote?.HighPrice ?? newCompany.CurrentPrice,
             LowPrice = quote?.LowPrice ?? newCompany.CurrentPrice,
             Volume = quote?.Volume ?? 35000,
+            TradingDate = DateTime.UtcNow.Date,
             RecordedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
         _context.CompanyPriceHistories.Add(historyPoint);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // 6. Attempt to populate historical price records from DSE_Data.csv
+        try
+        {
+            var csvPath = @"E:\Projects\Oracle+WebProgramming\ShareSync\Dhaka Stock Exchange Historical Data (1999-2025)\DSE_Data.csv";
+            if (File.Exists(csvPath))
+            {
+                var dedup = new Dictionary<string, CompanyPriceHistory>();
+                using var reader = new StreamReader(csvPath);
+                string? header = await reader.ReadLineAsync(cancellationToken);
+
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync(cancellationToken);
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var parts = line.Split(',');
+                    if (parts.Length >= 7 && string.Equals(parts[0].Trim(), normalizedSymbol, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var dateParts = parts[1].Trim().Split('-');
+                        if (dateParts.Length != 3) continue;
+                        if (!int.TryParse(dateParts[0], out int y) || !int.TryParse(dateParts[1], out int m) || !int.TryParse(dateParts[2], out int d))
+                            continue;
+
+                        DateTime validDate = (d <= 12 && m <= 12) ? new DateTime(y, d, m) : new DateTime(y, m, d);
+                        if (!decimal.TryParse(parts[5].Trim(), out decimal cl) || cl <= 0) continue;
+                        if (!decimal.TryParse(parts[2].Trim(), out decimal op) || op <= 0) op = cl;
+                        if (!decimal.TryParse(parts[3].Trim(), out decimal hi) || hi <= 0) hi = Math.Max(op, cl);
+                        if (!decimal.TryParse(parts[4].Trim(), out decimal lo) || lo <= 0) lo = Math.Min(op, cl);
+                        long? vol = long.TryParse(parts[6].Trim(), out long v) ? v : null;
+
+                        var key = validDate.ToString("yyyy-MM-dd");
+                        dedup[key] = new CompanyPriceHistory
+                        {
+                            CompanyId = newCompany.CompanyId,
+                            TradingDate = validDate,
+                            RecordedAt = validDate,
+                            Price = cl,
+                            OpenPrice = op,
+                            HighPrice = hi,
+                            LowPrice = lo,
+                            Volume = vol,
+                            Source = "Harvard Dataverse",
+                            SourceDataset = "Dhaka Stock Exchange Historical Data",
+                            SourceDoi = "10.7910/DVN/XIFYT1",
+                            CreatedAt = DateTime.UtcNow
+                        };
+                    }
+                }
+
+                if (dedup.Any())
+                {
+                    await _context.CompanyPriceHistories.AddRangeAsync(dedup.Values, cancellationToken);
+                    await _context.SaveChangesAsync(cancellationToken);
+                    _logger.LogInformation("Loaded {Count} historical price records for {Ticker} from CSV", dedup.Count, normalizedSymbol);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not auto-seed historical prices from CSV for {Ticker}", normalizedSymbol);
+        }
 
         _logger.LogInformation("Successfully imported DSE company {Ticker} ({Name}) at price {Price:C}", newCompany.TickerSymbol, newCompany.CompanyName, newCompany.CurrentPrice);
 

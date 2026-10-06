@@ -482,7 +482,28 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .IsRequired();
 
+            entity.Property(e => e.TradingDate)
+                .HasColumnName("TRADING_DATE")
+                .HasColumnType("DATE");
+
+            entity.Property(e => e.Source)
+                .HasColumnName("SOURCE")
+                .HasMaxLength(100);
+
+            entity.Property(e => e.SourceDataset)
+                .HasColumnName("SOURCE_DATASET")
+                .HasMaxLength(255);
+
+            entity.Property(e => e.SourceDoi)
+                .HasColumnName("SOURCE_DOI")
+                .HasMaxLength(100);
+
+            entity.Property(e => e.ImportBatchId)
+                .HasColumnName("IMPORT_BATCH_ID")
+                .HasMaxLength(100);
+
             entity.HasIndex(e => new { e.CompanyId, e.RecordedAt }, "IDX_PRICE_HIST_COMP_DATE");
+            entity.HasIndex(e => new { e.CompanyId, e.TradingDate }, "UQ_PRICE_HIST_COMP_TRADING_DATE").IsUnique();
 
             entity.HasOne(e => e.Company)
                 .WithMany(c => c.PriceHistories)

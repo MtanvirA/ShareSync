@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<IBenchmarkService, BenchmarkService>();
         services.AddScoped<IActivityTimelineService, ActivityTimelineService>();
         services.AddScoped<ISearchService, SearchService>();
+        services.AddScoped<IInvestmentIntelligenceService, InvestmentIntelligenceService>();
 
         return services;
     }

@@ -10,6 +10,11 @@ public class CompanyPriceHistory
     public decimal? LowPrice { get; set; }
     public long? Volume { get; set; }
     public DateTime RecordedAt { get; set; }
+    public DateTime? TradingDate { get; set; }
+    public string? Source { get; set; }
+    public string? SourceDataset { get; set; }
+    public string? SourceDoi { get; set; }
+    public string? ImportBatchId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Company? Company { get; set; }

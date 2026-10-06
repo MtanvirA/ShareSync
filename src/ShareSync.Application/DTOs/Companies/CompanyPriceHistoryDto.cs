@@ -20,6 +20,7 @@ public class CompanyPriceHistoryResponseDto
     public decimal CurrentPrice { get; set; }
     public string Period { get; set; } = "ALL";
     public int TotalPoints { get; set; }
+    public int TotalSnapshots => TotalPoints;
     public decimal? PeriodHigh { get; set; }
     public decimal? PeriodLow { get; set; }
     public decimal? PeriodChange { get; set; }

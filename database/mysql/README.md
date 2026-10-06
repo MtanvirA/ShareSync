@@ -20,6 +20,7 @@ This directory provides the authoritative **MySQL 8.x** database implementation 
 ```
 database/mysql/
 ├── setup.sql              # Master automated deployment script
+├── reset_demo_data.sql    # Clean reset script restoring demo evaluation baseline
 ├── 01_schema.sql          # 14 application tables, indexes, constraints & holdings view
 ├── 02_seed.sql            # Full demonstration dataset across all 14 tables
 ├── 03_queries.sql         # Interactive viva demonstration queries (JOINs, CTEs, Windows)
@@ -53,6 +54,11 @@ Get-Content database\mysql\05_procedures.sql -Raw | mysql -u root -p sharesync
 Get-Content database\mysql\06_triggers.sql -Raw | mysql -u root -p sharesync
 Get-Content database\mysql\02_seed.sql -Raw | mysql -u root -p sharesync
 Get-Content database\mysql\07_tests.sql -Raw | mysql -u root -p sharesync
+```
+
+To reset the demonstration dataset at any time during teacher evaluations:
+```powershell
+Get-Content database\mysql\reset_demo_data.sql -Raw | mysql -u root -p sharesync
 ```
 
 ### 3. Configure Connection String

@@ -3003,8 +3003,26 @@ async function setupTransactionForm() {
   const companySelect = document.getElementById("company");
   const quantityInput = document.getElementById("quantity");
   const priceInput = document.getElementById("price");
+  const feeInput = document.getElementById("transactionFee");
   const dateInput = document.getElementById("transactionDate");
   const notesInput = document.getElementById("notes");
+  const netImpactVal = document.getElementById("netCashImpactVal");
+
+  function updateNetImpact() {
+    if (!netImpactVal) return;
+    const qty = parseFloat(quantityInput?.value) || 0;
+    const price = parseFloat(priceInput?.value) || 0;
+    const fee = parseFloat(feeInput?.value) || 0;
+    const gross = qty * price;
+    const isBuy = (typeInput?.value || "BUY") === "BUY";
+    const net = isBuy ? gross + fee : Math.max(0, gross - fee);
+    const prefix = isBuy ? "Net outflow: ৳" : "Net inflow: ৳";
+    netImpactVal.textContent = `${prefix}${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  [quantityInput, priceInput, feeInput].forEach(inp => {
+    if (inp) inp.addEventListener("input", updateNetImpact);
+  });
 
   setupInlineValidation(form);
 
@@ -3079,6 +3097,7 @@ async function setupTransactionForm() {
       typeInput.value = button.dataset.type;
 
       updateAvailableShares();
+      updateNetImpact();
     });
   });
 
@@ -3088,6 +3107,7 @@ async function setupTransactionForm() {
     if (titleEl) titleEl.textContent = "Add transaction";
     if (subtitleEl) subtitleEl.textContent = "Record a BUY or SELL transaction.";
     if (typeInput) typeInput.value = "BUY";
+    if (feeInput) feeInput.value = "0.00";
 
     typeButtons.forEach((button) => {
       const isBuy = button.dataset.type === "BUY";
@@ -3098,6 +3118,8 @@ async function setupTransactionForm() {
     if (dateInput) {
       dateInput.value = new Date().toISOString().split("T")[0];
     }
+
+    updateNetImpact();
 
     const hint = document.getElementById("availableSharesHint");
     if (hint) hint.classList.add("d-none");
@@ -3177,6 +3199,12 @@ async function setupTransactionForm() {
       return;
     }
 
+    const fee = feeInput ? (parseFloat(feeInput.value) || 0) : 0;
+    if (isNaN(fee) || fee < 0) {
+      setFieldError(feeInput, "Fee cannot be negative.");
+      return;
+    }
+
     const submitBtn = form.querySelector("button[type='submit']");
     const originalBtnText = submitBtn ? submitBtn.innerHTML : "Save transaction";
     if (submitBtn) {
@@ -3192,6 +3220,7 @@ async function setupTransactionForm() {
         quantity,
         pricePerShare: price,
         price: price,
+        fee: fee,
         transactionDate,
         notes
       };
@@ -3815,7 +3844,7 @@ async function loadTransactionHistory(page = 1) {
 
   tbody.innerHTML = `
     <tr>
-      <td colspan="8" class="text-center py-4 text-muted">
+      <td colspan="11" class="text-center py-4 text-muted">
         <div class="spinner-border spinner-border-sm me-2" role="status"></div>
         Loading transaction records...
       </td>
@@ -3843,7 +3872,7 @@ async function loadTransactionHistory(page = 1) {
     if (!transactions.length) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" class="text-center py-4 text-muted">
+          <td colspan="11" class="text-center py-4 text-muted">
             <i class="bi bi-inbox fs-4 d-block mb-1"></i>
             No transactions found matching your criteria.
           </td>
@@ -3866,8 +3895,22 @@ async function loadTransactionHistory(page = 1) {
       const priceNum = Number(t.pricePerShare ?? t.price ?? 0);
       const qtyNum = Number(t.quantity ?? 0);
       const totalNum = Number(t.totalAmount ?? (qtyNum * priceNum));
+      const feeNum = Number(t.fee ?? 0);
+      const netNum = Number(t.netAmount ?? (isBuy ? totalNum + feeNum : Math.max(0, totalNum - feeNum)));
+
       const priceFormatted = "৳" + priceNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const totalFormatted = "৳" + totalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const feeFormatted = "৳" + feeNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const netFormatted = "৳" + netNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      let realizedBadge = `<span class="text-muted">-</span>`;
+      if (!isBuy && t.realizedProfitLoss !== null && t.realizedProfitLoss !== undefined) {
+        const rVal = Number(t.realizedProfitLoss);
+        const rPos = rVal >= 0;
+        const rSign = rPos ? "+" : "-";
+        const rColor = rPos ? "#10B981" : "#EF4444";
+        realizedBadge = `<strong style="color: ${rColor};">${rSign}৳${Math.abs(rVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>`;
+      }
 
       return `
         <tr>
@@ -3887,6 +3930,9 @@ async function loadTransactionHistory(page = 1) {
           <td>${qtyNum.toLocaleString()}</td>
           <td>${priceFormatted}</td>
           <td>${totalFormatted}</td>
+          <td>${feeFormatted}</td>
+          <td>${netFormatted}</td>
+          <td>${realizedBadge}</td>
           <td>${escapeHtml(t.portfolioName || "-")}</td>
           <td>
             <button type="button" class="btn btn-sm btn-link p-0 text-primary text-decoration-none me-2" onclick="editTransaction(${t.transactionId})" title="Edit transaction">
@@ -3917,7 +3963,7 @@ async function loadTransactionHistory(page = 1) {
     console.error("Failed to load transactions:", err);
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" class="text-center py-4 text-danger">
+        <td colspan="11" class="text-center py-4 text-danger">
           <i class="bi bi-exclamation-triangle fs-4 d-block mb-1"></i>
           Error loading transactions: ${escapeHtml(err.message)}
         </td>
@@ -3997,6 +4043,7 @@ window.editTransaction = async function(transactionId) {
     const companySelect = document.getElementById("company");
     const quantityInput = document.getElementById("quantity");
     const priceInput = document.getElementById("price");
+    const feeInput = document.getElementById("transactionFee");
     const dateInput = document.getElementById("transactionDate");
     const notesInput = document.getElementById("notes");
 
@@ -4007,6 +4054,7 @@ window.editTransaction = async function(transactionId) {
     if (companySelect) companySelect.value = t.companyId;
     if (quantityInput) quantityInput.value = t.quantity;
     if (priceInput) priceInput.value = t.pricePerShare ?? t.price ?? "";
+    if (feeInput) feeInput.value = (t.fee !== undefined && t.fee !== null) ? Number(t.fee).toFixed(2) : "0.00";
     if (dateInput && t.transactionDate) dateInput.value = t.transactionDate.split("T")[0];
     if (notesInput) notesInput.value = t.notes || "";
 
@@ -4016,6 +4064,18 @@ window.editTransaction = async function(transactionId) {
       button.classList.toggle("active", isType);
       button.setAttribute("aria-pressed", isType ? "true" : "false");
     });
+
+    const netImpactVal = document.getElementById("netCashImpactVal");
+    if (netImpactVal) {
+      const qty = parseFloat(quantityInput?.value) || 0;
+      const price = parseFloat(priceInput?.value) || 0;
+      const fee = parseFloat(feeInput?.value) || 0;
+      const gross = qty * price;
+      const isBuy = t.transactionType === "BUY";
+      const net = isBuy ? gross + fee : Math.max(0, gross - fee);
+      const prefix = isBuy ? "Net outflow: ৳" : "Net inflow: ৳";
+      netImpactVal.textContent = `${prefix}${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
 
     if (typeof updateAvailableShares === "function") {
       updateAvailableShares();
@@ -4485,6 +4545,10 @@ async function loadReportSummary(portfolioId) {
   const plEl = document.getElementById("reportSummaryUnrealizedPL");
   const divEl = document.getElementById("reportSummaryDividendIncome");
   const txEl = document.getElementById("reportSummaryTransactions");
+  const realizedPlEl = document.getElementById("reportSummaryRealizedPL");
+  const totalPlEl = document.getElementById("reportSummaryTotalPL");
+  const totalFeesEl = document.getElementById("reportSummaryTotalFees");
+  const netCashFlowEl = document.getElementById("reportSummaryNetCashFlow");
 
   try {
     const url = portfolioId ? `/reports/summary?portfolioId=${portfolioId}` : "/reports/summary";
@@ -4505,6 +4569,26 @@ async function loadReportSummary(portfolioId) {
     }
     if (txEl) {
       txEl.textContent = Number(d.totalTransactionsCount).toLocaleString();
+    }
+    if (realizedPlEl) {
+      const isRPos = (d.totalRealizedProfitLoss || 0) >= 0;
+      const rSign = isRPos ? "+" : "-";
+      realizedPlEl.textContent = `${rSign}৳${Math.abs(d.totalRealizedProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      realizedPlEl.className = isRPos ? "summary-value positive-text" : "summary-value negative-text";
+    }
+    if (totalPlEl) {
+      const isTPos = (d.totalProfitLoss || 0) >= 0;
+      const tSign = isTPos ? "+" : "-";
+      totalPlEl.textContent = `${tSign}৳${Math.abs(d.totalProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      totalPlEl.className = isTPos ? "summary-value positive-text" : "summary-value negative-text";
+    }
+    if (totalFeesEl) {
+      totalFeesEl.textContent = "৳" + Number(d.totalFees || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    if (netCashFlowEl) {
+      const isNPos = (d.netCashFlow || 0) >= 0;
+      const nSign = isNPos ? "+" : "-";
+      netCashFlowEl.textContent = `${nSign}৳${Math.abs(d.netCashFlow || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
   } catch (err) {
     console.error("Failed to load report summary:", err);
@@ -5321,6 +5405,9 @@ async function loadPortfolioDetail(portfolioId) {
     const formattedPL = `${sign}৳${absPL}`;
     const formattedPLPct = `${sign}${Math.abs(d.unrealizedProfitLossPercentage).toFixed(1)}%`;
 
+    const portfolioRealizedPL = document.getElementById("portfolioRealizedProfitLoss");
+    const portfolioNetCashFlow = document.getElementById("portfolioNetCashFlow");
+
     if (totalValEl) totalValEl.textContent = formattedValue;
     if (profitLossEl) {
       profitLossEl.textContent = formattedPL;
@@ -5333,12 +5420,49 @@ async function loadPortfolioDetail(portfolioId) {
     if (totalInvestedEl) totalInvestedEl.textContent = formattedInvested;
     if (holdingsCountEl) holdingsCountEl.textContent = d.holdingsCount;
 
+    if (portfolioRealizedPL) {
+      const isRPos = (d.realizedProfitLoss || 0) >= 0;
+      const rSign = isRPos ? "+" : "-";
+      portfolioRealizedPL.textContent = `${rSign}৳${Math.abs(d.realizedProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      portfolioRealizedPL.className = isRPos ? "positive-text" : "negative-text";
+    }
+    if (portfolioNetCashFlow) {
+      const isNPos = (d.netCashFlow || 0) >= 0;
+      const nSign = isNPos ? "+" : "-";
+      portfolioNetCashFlow.textContent = `${nSign}৳${Math.abs(d.netCashFlow || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
     // Bottom metrics
+    const metricRealizedProfit = document.getElementById("metricRealizedProfit");
+    const metricTotalProfit = document.getElementById("metricTotalProfit");
+    const metricTotalFees = document.getElementById("metricTotalFees");
+    const metricNetCashFlow = document.getElementById("metricNetCashFlow");
+
     if (metricTotalBuyCost) metricTotalBuyCost.textContent = formattedInvested;
     if (metricMarketValue) metricMarketValue.textContent = formattedValue;
     if (metricUnrealizedProfit) {
       metricUnrealizedProfit.textContent = formattedPL;
       metricUnrealizedProfit.className = isProfitable ? "positive-text" : "negative-text";
+    }
+    if (metricRealizedProfit) {
+      const isRPos = (d.realizedProfitLoss || 0) >= 0;
+      const rSign = isRPos ? "+" : "-";
+      metricRealizedProfit.textContent = `${rSign}৳${Math.abs(d.realizedProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      metricRealizedProfit.className = isRPos ? "positive-text" : "negative-text";
+    }
+    if (metricTotalProfit) {
+      const isTPos = (d.totalProfitLoss || 0) >= 0;
+      const tSign = isTPos ? "+" : "-";
+      metricTotalProfit.textContent = `${tSign}৳${Math.abs(d.totalProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      metricTotalProfit.className = isTPos ? "positive-text" : "negative-text";
+    }
+    if (metricTotalFees) {
+      metricTotalFees.textContent = "৳" + Number(d.totalFees || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    if (metricNetCashFlow) {
+      const isNPos = (d.netCashFlow || 0) >= 0;
+      const nSign = isNPos ? "+" : "-";
+      metricNetCashFlow.textContent = `${nSign}৳${Math.abs(d.netCashFlow || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     if (metricReturnPercentage) {
       metricReturnPercentage.textContent = formattedPLPct;
@@ -5350,7 +5474,7 @@ async function loadPortfolioDetail(portfolioId) {
       if (!d.holdings || d.holdings.length === 0) {
         holdingsBody.innerHTML = `
           <tr>
-            <td colspan="6" class="text-center py-4 text-muted">
+            <td colspan="7" class="text-center py-4 text-muted">
               <i class="bi bi-inbox fs-4 d-block mb-1"></i>
               No stock holdings in this portfolio yet.
             </td>
@@ -5362,6 +5486,11 @@ async function loadPortfolioDetail(portfolioId) {
           const hSign = hProfitable ? "+" : "-";
           const hReturnStr = `${hSign}${Math.abs(h.returnPercentage).toFixed(1)}%`;
           const logoText = escapeHtml(h.tickerSymbol.slice(0, 2).toUpperCase());
+
+          const rPos = (h.realizedProfitLoss || 0) >= 0;
+          const rSign = rPos ? "+" : "-";
+          const rStr = h.realizedProfitLoss ? `${rSign}৳${Math.abs(h.realizedProfitLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-";
+          const rClass = h.realizedProfitLoss ? (rPos ? 'positive-text' : 'negative-text') : 'text-muted';
 
           return `
             <tr>
@@ -5384,6 +5513,7 @@ async function loadPortfolioDetail(portfolioId) {
               </td>
               <td>৳${Number(h.marketValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               <td class="${hProfitable ? 'positive-text' : 'negative-text'}">${hReturnStr}</td>
+              <td class="${rClass}">${rStr}</td>
             </tr>
           `;
         }).join("");

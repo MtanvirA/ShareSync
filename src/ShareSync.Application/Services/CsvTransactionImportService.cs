@@ -86,6 +86,7 @@ public class CsvTransactionImportService : ICsvTransactionImportService
                     TransactionType = row.TransactionType,
                     Quantity = row.Quantity,
                     PricePerShare = row.PricePerShare,
+                    Fee = row.Fee,
                     TransactionDate = row.TransactionDate.Value
                 };
 
@@ -101,7 +102,7 @@ public class CsvTransactionImportService : ICsvTransactionImportService
                     ActionType = "INSERT",
                     ActionDate = DateTime.UtcNow,
                     ChangedBy = $"User #{userId} (CSV Import)",
-                    Details = $"[CSV Import] {row.TransactionType} {row.Quantity:N4} shares of {row.CompanyTicker} @ ৳{row.PricePerShare:N2}. Total: ৳{row.TotalAmount:N2}. {row.Notes}".Trim()
+                    Details = $"[CSV Import] {row.TransactionType} {row.Quantity:N4} shares of {row.CompanyTicker} @ ৳{row.PricePerShare:N2} (Fee: ৳{row.Fee:N2}). Total: ৳{row.TotalAmount:N2}. {row.Notes}".Trim()
                 };
 
                 _context.TransactionAudits.Add(audit);
@@ -119,6 +120,8 @@ public class CsvTransactionImportService : ICsvTransactionImportService
                     Quantity = row.Quantity,
                     PricePerShare = row.PricePerShare,
                     TotalAmount = Math.Round(row.Quantity * row.PricePerShare, 2),
+                    Fee = row.Fee,
+                    NetAmount = row.NetAmount,
                     TransactionDate = transaction.TransactionDate
                 });
             }
@@ -157,10 +160,10 @@ public class CsvTransactionImportService : ICsvTransactionImportService
     public string GenerateSampleCsvTemplate()
     {
         var sb = new StringBuilder();
-        sb.AppendLine("transaction_date,company_ticker,transaction_type,quantity,price_per_share,notes");
-        sb.AppendLine("2026-10-01,GP,BUY,100,410.00,Initial position in Grameenphone");
-        sb.AppendLine("2026-10-02,BATBC,BUY,50,518.50,Long-term dividend holding");
-        sb.AppendLine("2026-10-05,GP,SELL,20,425.00,Partial profit taking");
+        sb.AppendLine("transaction_date,company_ticker,transaction_type,quantity,price_per_share,fee,notes");
+        sb.AppendLine("2026-10-01,GP,BUY,100,410.00,15.00,Initial position in Grameenphone");
+        sb.AppendLine("2026-10-02,BATBC,BUY,50,518.50,10.00,Long-term dividend holding");
+        sb.AppendLine("2026-10-05,GP,SELL,20,425.00,5.00,Partial profit taking");
         return sb.ToString();
     }
 
@@ -296,6 +299,7 @@ public class CsvTransactionImportService : ICsvTransactionImportService
             string rawType = SanitizeFormulaInjection(GetColumnValue(rawTokens, headerMap, "type"));
             string rawQty = GetColumnValue(rawTokens, headerMap, "quantity");
             string rawPrice = GetColumnValue(rawTokens, headerMap, "price");
+            string rawFee = GetColumnValue(rawTokens, headerMap, "fee");
             string rawNotes = SanitizeFormulaInjection(GetColumnValue(rawTokens, headerMap, "notes"));
 
             rowPreview.DateString = rawDate;
@@ -486,15 +490,37 @@ public class CsvTransactionImportService : ICsvTransactionImportService
                 rowPreview.PricePerShare = parsedPrice;
             }
 
+            // 5b. Validate Fee (optional, defaults to 0)
+            decimal parsedFee = 0m;
+            bool feeValid = true;
+            if (!string.IsNullOrWhiteSpace(rawFee))
+            {
+                if (!decimal.TryParse(rawFee, NumberStyles.Any, CultureInfo.InvariantCulture, out parsedFee) || parsedFee < 0)
+                {
+                    feeValid = false;
+                    rowPreview.Errors.Add(new CsvRowErrorDto
+                    {
+                        RowNumber = rowNumber,
+                        Field = "fee",
+                        Problem = $"Transaction fee '{rawFee}' must be a non-negative number.",
+                        SuggestedCorrection = "Enter 0 or a positive fee amount (e.g., 10.00)."
+                    });
+                }
+            }
+            rowPreview.Fee = Math.Round(parsedFee, 2);
+
             if (qtyValid && priceValid)
             {
                 rowPreview.TotalAmount = Math.Round(parsedQty * parsedPrice, 2);
+                rowPreview.NetAmount = normalizedType == "BUY"
+                    ? rowPreview.TotalAmount + rowPreview.Fee
+                    : Math.Max(0m, rowPreview.TotalAmount - rowPreview.Fee);
             }
 
             // 6. Check Duplicate Rows within the file
-            if (dateValid && matchedCompany != null && (normalizedType == "BUY" || normalizedType == "SELL") && qtyValid && priceValid)
+            if (dateValid && matchedCompany != null && (normalizedType == "BUY" || normalizedType == "SELL") && qtyValid && priceValid && feeValid)
             {
-                var sig = $"{parsedDate:yyyy-MM-dd}|{matchedCompany.TickerSymbol}|{normalizedType}|{parsedQty}|{parsedPrice}";
+                var sig = $"{parsedDate:yyyy-MM-dd}|{matchedCompany.TickerSymbol}|{normalizedType}|{parsedQty}|{parsedPrice}|{rowPreview.Fee}";
                 if (seenSignatures.TryGetValue(sig, out int firstRow))
                 {
                     rowPreview.Errors.Add(new CsvRowErrorDto
@@ -689,6 +715,10 @@ public class CsvTransactionImportService : ICsvTransactionImportService
             else if (raw is "pricepershare" or "price" or "shareprice" or "rate" or "unitprice")
             {
                 map["price"] = i;
+            }
+            else if (raw is "fee" or "fees" or "commission" or "brokerage" or "txfee")
+            {
+                map["fee"] = i;
             }
             else if (raw is "notes" or "note" or "memo" or "description" or "remarks")
             {

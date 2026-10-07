@@ -142,9 +142,50 @@ public class TransactionService : ITransactionService
                 Quantity = t.Quantity,
                 PricePerShare = t.PricePerShare,
                 TotalAmount = Math.Round(t.Quantity * t.PricePerShare, 2),
+                Fee = Math.Round(t.Fee, 2),
+                NetAmount = t.TransactionType == "BUY"
+                    ? Math.Round(t.Quantity * t.PricePerShare + t.Fee, 2)
+                    : Math.Round(t.Quantity * t.PricePerShare - t.Fee, 2),
                 TransactionDate = t.TransactionDate
             })
             .ToListAsync(cancellationToken);
+
+        // Calculate Realized P/L for SELL transactions on this page
+        var sellItems = items.Where(i => i.TransactionType == "SELL").ToList();
+        if (sellItems.Any())
+        {
+            var sellPairs = sellItems.Select(s => (s.PortfolioId, s.CompanyId)).Distinct().ToList();
+            var portIds = sellPairs.Select(p => p.PortfolioId).Distinct().ToList();
+            var compIds = sellPairs.Select(p => p.CompanyId).Distinct().ToList();
+
+            var buyTxs = await _context.Transactions
+                .AsNoTracking()
+                .Where(t => portIds.Contains(t.PortfolioId) && compIds.Contains(t.CompanyId) && t.TransactionType == "BUY")
+                .ToListAsync(cancellationToken);
+
+            var avgCostMap = buyTxs
+                .GroupBy(b => (b.PortfolioId, b.CompanyId))
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var qty = g.Sum(x => x.Quantity);
+                        var cost = g.Sum(x => x.Quantity * x.PricePerShare);
+                        return qty > 0 ? cost / qty : 0m;
+                    });
+
+            foreach (var s in sellItems)
+            {
+                if (avgCostMap.TryGetValue((s.PortfolioId, s.CompanyId), out var avgCost))
+                {
+                    s.RealizedProfitLoss = Math.Round((s.TotalAmount - s.Fee) - (s.Quantity * avgCost), 2);
+                }
+                else
+                {
+                    s.RealizedProfitLoss = Math.Round(s.TotalAmount - s.Fee, 2);
+                }
+            }
+        }
 
         var pagedResult = new PagedTransactionsDto
         {
@@ -208,7 +249,22 @@ public class TransactionService : ITransactionService
             throw new AppException("You do not have permission to view this transaction.", 403);
         }
 
-        var dto = MapToDto(transaction, transaction.Portfolio.PortfolioName, transaction.Company);
+        decimal? realizedPL = null;
+        if (transaction.TransactionType == "SELL")
+        {
+            var buyTxs = await _context.Transactions
+                .AsNoTracking()
+                .Where(t => t.PortfolioId == transaction.PortfolioId && t.CompanyId == transaction.CompanyId && t.TransactionType == "BUY")
+                .ToListAsync(cancellationToken);
+
+            var totalBuyQty = buyTxs.Sum(t => t.Quantity);
+            var totalBuyCost = buyTxs.Sum(t => t.Quantity * t.PricePerShare);
+            var avgCost = totalBuyQty > 0 ? totalBuyCost / totalBuyQty : 0m;
+            var gross = transaction.Quantity * transaction.PricePerShare;
+            realizedPL = Math.Round((gross - transaction.Fee) - (transaction.Quantity * avgCost), 2);
+        }
+
+        var dto = MapToDto(transaction, transaction.Portfolio.PortfolioName, transaction.Company, realizedPL);
         return ApiResponse<TransactionDto>.Ok(dto);
     }
 
@@ -302,6 +358,12 @@ public class TransactionService : ITransactionService
             throw new AppException("Price per share must be greater than zero.", 400);
         }
 
+        // Fee validation
+        if (request.Fee < 0)
+        {
+            throw new AppException("Fee cannot be negative.", 400);
+        }
+
         // Date validation
         var txDate = request.TransactionDate ?? DateTime.UtcNow;
         if (txDate.Date > DateTime.UtcNow.Date.AddDays(1))
@@ -318,6 +380,7 @@ public class TransactionService : ITransactionService
         var totalSold = existingTransactions.Where(t => t.TransactionType == "SELL").Sum(t => t.Quantity);
         var availableQuantity = totalBought - totalSold;
 
+        decimal? realizedPL = null;
         if (type == "SELL")
         {
             if (request.Quantity > availableQuantity)
@@ -326,6 +389,13 @@ public class TransactionService : ITransactionService
                     $"Cannot execute SELL order: Requested quantity ({request.Quantity:N2}) exceeds available holdings ({availableQuantity:N2}) of {company.TickerSymbol}."
                 );
             }
+
+            var buyTxs = existingTransactions.Where(t => t.TransactionType == "BUY").ToList();
+            var buyQty = buyTxs.Sum(t => t.Quantity);
+            var buyCost = buyTxs.Sum(t => t.Quantity * t.PricePerShare);
+            var avgCost = buyQty > 0 ? buyCost / buyQty : 0m;
+            var gross = request.Quantity * request.PricePerShare;
+            realizedPL = Math.Round((gross - request.Fee) - (request.Quantity * avgCost), 2);
         }
 
         // Atomic transaction execution (Steps 9, 10, 11, 12)
@@ -340,11 +410,16 @@ public class TransactionService : ITransactionService
                 TransactionType = type,
                 Quantity = request.Quantity,
                 PricePerShare = request.PricePerShare,
+                Fee = Math.Round(request.Fee, 2),
                 TransactionDate = txDate
             };
 
             _context.Transactions.Add(transaction);
             await _context.SaveChangesAsync(cancellationToken);
+
+            var grossVal = Math.Round(request.Quantity * request.PricePerShare, 2);
+            var feeVal = Math.Round(request.Fee, 2);
+            var netVal = type == "BUY" ? grossVal + feeVal : grossVal - feeVal;
 
             // 10. Ensure transaction auditing occurs
             var audit = new TransactionAudit
@@ -353,7 +428,7 @@ public class TransactionService : ITransactionService
                 ActionType = "INSERT",
                 ActionDate = DateTime.UtcNow,
                 ChangedBy = $"User #{userId}",
-                Details = $"{type} {request.Quantity:N4} shares of {company.TickerSymbol} @ ৳{request.PricePerShare:N2}. Total: ৳{request.Quantity * request.PricePerShare:N2}. {request.Notes}".Trim()
+                Details = $"{type} {request.Quantity:N4} shares of {company.TickerSymbol} @ ৳{request.PricePerShare:N2} (Fee: ৳{feeVal:N2}, Net: ৳{netVal:N2}). Total: ৳{grossVal:N2}. {request.Notes}".Trim()
             };
 
             _context.TransactionAudits.Add(audit);
@@ -362,7 +437,7 @@ public class TransactionService : ITransactionService
             // 11. Commit only if every operation succeeds
             await dbTransaction.CommitAsync(cancellationToken);
 
-            var dto = MapToDto(transaction, portfolio.PortfolioName, company);
+            var dto = MapToDto(transaction, portfolio.PortfolioName, company, realizedPL);
             return ApiResponse<TransactionDto>.Ok(dto, $"{type} transaction recorded successfully.");
         }
         catch (Exception)
@@ -410,6 +485,11 @@ public class TransactionService : ITransactionService
             throw new AppException("Price per share must be greater than zero.", 400);
         }
 
+        if (request.Fee.HasValue && request.Fee.Value < 0)
+        {
+            throw new AppException("Fee cannot be negative.", 400);
+        }
+
         if (request.TransactionDate.HasValue && request.TransactionDate.Value.Date > DateTime.UtcNow.Date.AddDays(1))
         {
             throw new AppException("Transaction date cannot be in the future.", 400);
@@ -438,9 +518,14 @@ public class TransactionService : ITransactionService
         {
             var oldQty = transaction.Quantity;
             var oldPrice = transaction.PricePerShare;
+            var oldFee = transaction.Fee;
 
             transaction.Quantity = request.Quantity;
             transaction.PricePerShare = request.PricePerShare;
+            if (request.Fee.HasValue)
+            {
+                transaction.Fee = Math.Round(request.Fee.Value, 2);
+            }
             if (request.TransactionDate.HasValue)
             {
                 transaction.TransactionDate = request.TransactionDate.Value;
@@ -448,13 +533,17 @@ public class TransactionService : ITransactionService
 
             await _context.SaveChangesAsync(cancellationToken);
 
+            var grossVal = Math.Round(transaction.Quantity * transaction.PricePerShare, 2);
+            var feeVal = Math.Round(transaction.Fee, 2);
+            var netVal = transaction.TransactionType == "BUY" ? grossVal + feeVal : grossVal - feeVal;
+
             var audit = new TransactionAudit
             {
                 TransactionId = transaction.TransactionId,
                 ActionType = "UPDATE",
                 ActionDate = DateTime.UtcNow,
                 ChangedBy = $"User #{userId}",
-                Details = $"Updated {transaction.TransactionType} {transaction.Company.TickerSymbol}: Qty {oldQty:N4} -> {request.Quantity:N4}, Price ৳{oldPrice:N2} -> ৳{request.PricePerShare:N2}. {request.Notes}".Trim()
+                Details = $"Updated {transaction.TransactionType} {transaction.Company.TickerSymbol}: Qty {oldQty:N4} -> {request.Quantity:N4}, Price ৳{oldPrice:N2} -> ৳{request.PricePerShare:N2}, Fee ৳{oldFee:N2} -> ৳{transaction.Fee:N2} (Net: ৳{netVal:N2}). {request.Notes}".Trim()
             };
 
             _context.TransactionAudits.Add(audit);
@@ -462,7 +551,15 @@ public class TransactionService : ITransactionService
 
             await dbTransaction.CommitAsync(cancellationToken);
 
-            var dto = MapToDto(transaction, transaction.Portfolio.PortfolioName, transaction.Company);
+            decimal? realizedPL = null;
+            if (transaction.TransactionType == "SELL")
+            {
+                var buyCost = otherTxs.Where(t => t.TransactionType == "BUY").Sum(t => t.Quantity * t.PricePerShare);
+                var avgCost = otherBuys > 0 ? buyCost / otherBuys : 0m;
+                realizedPL = Math.Round((grossVal - feeVal) - (transaction.Quantity * avgCost), 2);
+            }
+
+            var dto = MapToDto(transaction, transaction.Portfolio.PortfolioName, transaction.Company, realizedPL);
             return ApiResponse<TransactionDto>.Ok(dto, "Transaction updated successfully.");
         }
         catch (Exception)
@@ -551,8 +648,14 @@ public class TransactionService : ITransactionService
         }
     }
 
-    private static TransactionDto MapToDto(Transaction t, string portfolioName, Company company)
+    private static TransactionDto MapToDto(Transaction t, string portfolioName, Company company, decimal? realizedProfitLoss = null)
     {
+        var total = Math.Round(t.Quantity * t.PricePerShare, 2);
+        var fee = Math.Round(t.Fee, 2);
+        var net = t.TransactionType == "BUY"
+            ? Math.Round(total + fee, 2)
+            : Math.Round(total - fee, 2);
+
         return new TransactionDto
         {
             TransactionId = t.TransactionId,
@@ -564,7 +667,10 @@ public class TransactionService : ITransactionService
             TransactionType = t.TransactionType,
             Quantity = t.Quantity,
             PricePerShare = t.PricePerShare,
-            TotalAmount = Math.Round(t.Quantity * t.PricePerShare, 2),
+            TotalAmount = total,
+            Fee = fee,
+            NetAmount = net,
+            RealizedProfitLoss = realizedProfitLoss,
             TransactionDate = t.TransactionDate
         };
     }

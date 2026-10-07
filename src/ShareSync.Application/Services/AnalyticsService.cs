@@ -109,10 +109,20 @@ public class AnalyticsService : IAnalyticsService
 
             foreach (var sell in sellTxs)
             {
-                totalRealizedPL += (sell.PricePerShare - weightedAvgCost) * sell.Quantity;
+                totalRealizedPL += (sell.PricePerShare - weightedAvgCost) * sell.Quantity - sell.Fee;
             }
         }
         totalRealizedPL = Math.Round(totalRealizedPL, 2);
+
+        // Cumulative fees and cash flow
+        var buyTransactions = transactions.Where(t => t.TransactionType == "BUY").ToList();
+        var sellTransactions = transactions.Where(t => t.TransactionType == "SELL").ToList();
+        var cumulativeBuyGross = buyTransactions.Sum(t => t.Quantity * t.PricePerShare);
+        var totalBuyFees = buyTransactions.Sum(t => t.Fee);
+        var totalSellProceeds = sellTransactions.Sum(t => t.Quantity * t.PricePerShare);
+        var totalSellFees = sellTransactions.Sum(t => t.Fee);
+        var totalFees = Math.Round(totalBuyFees + totalSellFees, 2);
+        var netCashFlow = Math.Round((totalSellProceeds - totalSellFees) - (cumulativeBuyGross + totalBuyFees), 2);
 
         // 5. Dividend Income & Yield Contribution
         decimal totalDividends = 0m;
@@ -291,7 +301,8 @@ public class AnalyticsService : IAnalyticsService
             { "PortfolioValue", "Sum of (CurrentQuantity * CurrentPrice) for all active holdings." },
             { "InvestedCapital", "Sum of (CurrentQuantity * WeightedAverageBuyPrice) for all active holdings." },
             { "UnrealizedProfitLoss", "PortfolioValue - InvestedCapital" },
-            { "RealizedProfitLoss", "Sum of ((SellPrice - WeightedAverageBuyPrice) * QuantitySold) for all executed SELL transactions." },
+            { "RealizedProfitLoss", "Sum of ((SellPrice - WeightedAverageBuyPrice) * QuantitySold - SellFee) for all executed SELL transactions." },
+            { "NetCashFlow", "(Gross Sale Proceeds - Sell Fees) - (Gross Purchase Cost + Buy Fees)" },
             { "DividendIncome", "Sum of (SharesHeld * DividendPerShare) for corporate distributions credited to active positions." },
             { "TotalReturn", "UnrealizedProfitLoss + RealizedProfitLoss + DividendIncome" },
             { "TotalReturnPercentage", "(TotalReturn / InvestedCapital) * 100" },
@@ -310,6 +321,8 @@ public class AnalyticsService : IAnalyticsService
             UnrealizedProfitLoss = totalUnrealizedPL,
             UnrealizedReturnPercentage = unrealizedReturnPct,
             RealizedProfitLoss = totalRealizedPL,
+            TotalFees = totalFees,
+            NetCashFlow = netCashFlow,
             DividendIncome = totalDividends,
             DividendYield = dividendYield,
             TotalReturn = totalReturn,
@@ -455,7 +468,8 @@ public class AnalyticsService : IAnalyticsService
                 { "PortfolioValue", "Sum of (CurrentQuantity * CurrentPrice) for all active holdings." },
                 { "InvestedCapital", "Sum of (CurrentQuantity * WeightedAverageBuyPrice) for all active holdings." },
                 { "UnrealizedProfitLoss", "PortfolioValue - InvestedCapital" },
-                { "RealizedProfitLoss", "Sum of ((SellPrice - WeightedAverageBuyPrice) * QuantitySold) for all executed SELL transactions." },
+                { "RealizedProfitLoss", "Sum of ((SellPrice - WeightedAverageBuyPrice) * QuantitySold - SellFee) for all executed SELL transactions." },
+                { "NetCashFlow", "(Gross Sale Proceeds - Sell Fees) - (Gross Purchase Cost + Buy Fees)" },
                 { "DividendIncome", "Sum of (SharesHeld * DividendPerShare) for corporate distributions credited to active positions." },
                 { "TotalReturn", "UnrealizedProfitLoss + RealizedProfitLoss + DividendIncome" },
                 { "LargestHoldingPercentage", "(Largest Company Position Value / Total Portfolio Value) * 100" },

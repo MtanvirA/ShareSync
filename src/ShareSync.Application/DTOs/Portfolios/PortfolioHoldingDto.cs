@@ -10,6 +10,8 @@ public class PortfolioHoldingDto
     public decimal CurrentPrice { get; set; }
     public decimal MarketValue { get; set; }
     public decimal UnrealizedProfitLoss { get; set; }
+    public decimal RealizedProfitLoss { get; set; }
+    public decimal TotalProfitLoss => Math.Round(UnrealizedProfitLoss + RealizedProfitLoss, 2);
     public decimal ReturnPercentage { get; set; }
     public decimal AllocationPercentage { get; set; }
 }

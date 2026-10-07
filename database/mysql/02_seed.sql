@@ -98,23 +98,23 @@ VALUES
 -- ============================================================
 -- 7. TRANSACTIONS
 -- ============================================================
-INSERT INTO transactions (transaction_id, portfolio_id, company_id, transaction_type, quantity, price_per_share, transaction_date)
+INSERT INTO transactions (transaction_id, portfolio_id, company_id, transaction_type, quantity, price_per_share, fee, transaction_date)
 VALUES
-(1,  1, 1, 'BUY',  300.0000, 365.00, DATE_SUB(NOW(), INTERVAL 70 DAY)),
-(2,  1, 1, 'BUY',  200.0000, 372.50, DATE_SUB(NOW(), INTERVAL 50 DAY)),
-(3,  1, 1, 'SELL', 100.0000, 385.00, DATE_SUB(NOW(), INTERVAL 20 DAY)),
-(4,  1, 2, 'BUY',  400.0000, 218.00, DATE_SUB(NOW(), INTERVAL 65 DAY)),
-(5,  1, 2, 'BUY',  250.0000, 222.00, DATE_SUB(NOW(), INTERVAL 35 DAY)),
-(6,  1, 4, 'BUY',  1500.0000, 58.50, DATE_SUB(NOW(), INTERVAL 60 DAY)),
-(7,  1, 4, 'BUY',  1000.0000, 60.00, DATE_SUB(NOW(), INTERVAL 30 DAY)),
-(8,  2, 3, 'BUY',  300.0000, 448.00, DATE_SUB(NOW(), INTERVAL 55 DAY)),
-(9,  2, 3, 'BUY',  150.0000, 455.00, DATE_SUB(NOW(), INTERVAL 25 DAY)),
-(10, 2, 1, 'BUY',  250.0000, 368.00, DATE_SUB(NOW(), INTERVAL 45 DAY)),
-(11, 2, 7, 'BUY',  1200.0000, 68.50, DATE_SUB(NOW(), INTERVAL 40 DAY)),
-(12, 3, 5, 'BUY',  500.0000, 138.00, DATE_SUB(NOW(), INTERVAL 40 DAY)),
-(13, 3, 8, 'BUY',  150.0000, 680.00, DATE_SUB(NOW(), INTERVAL 30 DAY)),
-(14, 4, 1, 'BUY',  200.0000, 370.00, DATE_SUB(NOW(), INTERVAL 65 DAY)),
-(15, 4, 2, 'BUY',  300.0000, 220.00, DATE_SUB(NOW(), INTERVAL 50 DAY));
+(1,  1, 1, 'BUY',  300.0000, 365.00, 15.00, DATE_SUB(NOW(), INTERVAL 70 DAY)),
+(2,  1, 1, 'BUY',  200.0000, 372.50, 10.00, DATE_SUB(NOW(), INTERVAL 50 DAY)),
+(3,  1, 1, 'SELL', 100.0000, 385.00,  8.00, DATE_SUB(NOW(), INTERVAL 20 DAY)),
+(4,  1, 2, 'BUY',  400.0000, 218.00, 12.00, DATE_SUB(NOW(), INTERVAL 65 DAY)),
+(5,  1, 2, 'BUY',  250.0000, 222.00, 10.00, DATE_SUB(NOW(), INTERVAL 35 DAY)),
+(6,  1, 4, 'BUY',  1500.0000, 58.50, 20.00, DATE_SUB(NOW(), INTERVAL 60 DAY)),
+(7,  1, 4, 'BUY',  1000.0000, 60.00, 15.00, DATE_SUB(NOW(), INTERVAL 30 DAY)),
+(8,  2, 3, 'BUY',  300.0000, 448.00, 25.00, DATE_SUB(NOW(), INTERVAL 55 DAY)),
+(9,  2, 3, 'BUY',  150.0000, 455.00, 15.00, DATE_SUB(NOW(), INTERVAL 25 DAY)),
+(10, 2, 1, 'BUY',  250.0000, 368.00, 15.00, DATE_SUB(NOW(), INTERVAL 45 DAY)),
+(11, 2, 7, 'BUY',  1200.0000, 68.50, 18.00, DATE_SUB(NOW(), INTERVAL 40 DAY)),
+(12, 3, 5, 'BUY',  500.0000, 138.00, 12.00, DATE_SUB(NOW(), INTERVAL 40 DAY)),
+(13, 3, 8, 'BUY',  150.0000, 680.00, 20.00, DATE_SUB(NOW(), INTERVAL 30 DAY)),
+(14, 4, 1, 'BUY',  200.0000, 370.00, 10.00, DATE_SUB(NOW(), INTERVAL 65 DAY)),
+(15, 4, 2, 'BUY',  300.0000, 220.00, 15.00, DATE_SUB(NOW(), INTERVAL 50 DAY));
 
 -- ============================================================
 -- 8. DIVIDENDS

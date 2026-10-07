@@ -5,8 +5,12 @@ public class DashboardSummaryDto
     public decimal TotalPortfolioValue { get; set; }
     public decimal TotalInvested { get; set; }
     public decimal TotalUnrealizedProfitLoss { get; set; }
+    public decimal TotalRealizedProfitLoss { get; set; }
+    public decimal TotalProfitLoss => Math.Round(TotalUnrealizedProfitLoss + TotalRealizedProfitLoss, 2);
     public decimal ProfitLossPercentage { get; set; }
     public decimal TotalDividendIncome { get; set; }
+    public decimal TotalFees { get; set; }
+    public decimal NetCashFlow { get; set; }
     public int PortfoliosCount { get; set; }
     public int HoldingsCount { get; set; }
 }
@@ -23,6 +27,9 @@ public class DashboardRecentTransactionDto
     public decimal Quantity { get; set; }
     public decimal PricePerShare { get; set; }
     public decimal TotalValue { get; set; }
+    public decimal Fee { get; set; }
+    public decimal NetAmount { get; set; }
+    public decimal? RealizedProfitLoss { get; set; }
     public DateTime TransactionDate { get; set; }
 }
 

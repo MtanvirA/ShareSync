@@ -19,6 +19,7 @@ CREATE PROCEDURE sp_record_transaction (
     IN  p_transaction_type VARCHAR(10),
     IN  p_quantity         DECIMAL(14,4),
     IN  p_price_per_share  DECIMAL(14,2),
+    IN  p_fee              DECIMAL(14,2),
     IN  p_changed_by       VARCHAR(100),
     OUT p_transaction_id   INT,
     OUT p_status           VARCHAR(20),
@@ -55,6 +56,13 @@ proc_label: BEGIN
     IF p_price_per_share <= 0 THEN
         SET p_status = 'ERROR';
         SET p_message = 'Price per share must be strictly positive.';
+        SET p_transaction_id = NULL;
+        LEAVE proc_label;
+    END IF;
+
+    IF p_fee IS NOT NULL AND p_fee < 0 THEN
+        SET p_status = 'ERROR';
+        SET p_message = 'Fee cannot be negative.';
         SET p_transaction_id = NULL;
         LEAVE proc_label;
     END IF;
@@ -104,6 +112,7 @@ proc_label: BEGIN
         transaction_type,
         quantity,
         price_per_share,
+        fee,
         transaction_date
     ) VALUES (
         p_portfolio_id,
@@ -111,6 +120,7 @@ proc_label: BEGIN
         v_type,
         p_quantity,
         p_price_per_share,
+        COALESCE(p_fee, 0.00),
         CURRENT_TIMESTAMP
     );
 

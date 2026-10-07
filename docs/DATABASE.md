@@ -35,6 +35,7 @@ The authoritative database for this branch is **MySQL 8.x** utilizing the **Inno
    - `ck_transactions_type`: `transaction_type IN ('BUY', 'SELL')`
    - `ck_transactions_quantity`: `quantity > 0`
    - `ck_transactions_price`: `price_per_share > 0`
+   - `ck_transactions_fee`: `fee >= 0` (LF-27 non-negative transaction fee constraint)
    - `ck_transaction_audit_action`: `action_type IN ('INSERT', 'UPDATE', 'DELETE')`
    - `ck_alerts_type`: `alert_type IN ('PRICE_ABOVE', 'PRICE_BELOW', 'PORTFOLIO_VALUE_ABOVE', 'PORTFOLIO_VALUE_BELOW')`
    - `ck_alerts_threshold`: `threshold_value > 0`
@@ -68,9 +69,11 @@ SELECT * FROM vw_portfolio_holdings;
 ### 4.2 Stored Functions
 - **`fn_get_weighted_avg_price(p_portfolio_id, p_company_id)`**: Returns volume-weighted average buy price (`DECIMAL(14,2)`).
 - **`fn_calculate_unrealized_pl(p_portfolio_id, p_company_id)`**: Calculates mark-to-market unrealized gain or loss (`DECIMAL(20,2)`).
+- **`fn_calculate_realized_pl(p_portfolio_id, p_company_id)`**: (LF-26) Calculates realized profit or loss on closed/sold positions using cumulative volume-weighted average cost: `(Gross Sale - Sell Fee) - (Sold Qty * WAC)`.
+- **`fn_calculate_net_cash_flow(p_portfolio_id)`**: (LF-27) Computes net cash movement across all executions: `Total Net Sale Inflow - Total Net Purchase Outflow`.
 
 ### 4.3 Stored Procedures
-- **`sp_record_transaction(...)`**: Enforces strict oversell checks on `SELL` orders, inserts into `transactions` atomically, and outputs the generated ID.
+- **`sp_record_transaction(...)`**: Enforces strict oversell checks on `SELL` orders, supports transaction fees (`p_fee DECIMAL(14,2) DEFAULT 0.00`), inserts into `transactions` atomically, and outputs the generated ID.
 - **`sp_generate_portfolio_snapshot(...)`**: Aggregates total portfolio valuation from active holdings and executes `ON DUPLICATE KEY UPDATE` into `portfolio_snapshots`.
 
 ### 4.4 Audit Triggers

@@ -8,6 +8,7 @@ public class Transaction
     public string TransactionType { get; set; } = "BUY"; // "BUY" or "SELL"
     public decimal Quantity { get; set; }
     public decimal PricePerShare { get; set; }
+    public decimal Fee { get; set; } = 0.00m;
     public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
 
     public Portfolio? Portfolio { get; set; }

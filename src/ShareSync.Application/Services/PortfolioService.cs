@@ -83,6 +83,9 @@ public class PortfolioService : IPortfolioService
             TotalInvested = summary.TotalInvested,
             UnrealizedProfitLoss = summary.UnrealizedProfitLoss,
             UnrealizedProfitLossPercentage = summary.UnrealizedProfitLossPercentage,
+            RealizedProfitLoss = summary.RealizedProfitLoss,
+            TotalFees = summary.TotalFees,
+            NetCashFlow = summary.NetCashFlow,
             HoldingsCount = summary.HoldingsCount,
             TransactionsCount = summary.TransactionsCount,
             Holdings = holdings
@@ -263,6 +266,13 @@ public class PortfolioService : IPortfolioService
             var unrealizedPL = currentMarketValue - costBasis;
             var returnPct = costBasis > 0 ? (unrealizedPL / costBasis) * 100 : 0;
 
+            // Realized P/L for shares of this company sold in this portfolio
+            decimal companyRealizedPL = 0m;
+            foreach (var s in sellTxs)
+            {
+                companyRealizedPL += (s.Quantity * s.PricePerShare - s.Fee) - (s.Quantity * avgBuyPrice);
+            }
+
             holdings.Add(new PortfolioHoldingDto
             {
                 CompanyId = company.CompanyId,
@@ -273,6 +283,7 @@ public class PortfolioService : IPortfolioService
                 CurrentPrice = company.CurrentPrice,
                 MarketValue = Math.Round(currentMarketValue, 2),
                 UnrealizedProfitLoss = Math.Round(unrealizedPL, 2),
+                RealizedProfitLoss = Math.Round(companyRealizedPL, 2),
                 ReturnPercentage = Math.Round(returnPct, 2)
             });
         }
@@ -298,6 +309,41 @@ public class PortfolioService : IPortfolioService
         var unrealizedPL = totalValue - totalInvested;
         var plPct = totalInvested > 0 ? Math.Round((unrealizedPL / totalInvested) * 100, 2) : 0;
 
+        // Calculate Realized P/L across ALL sell transactions in the portfolio (including closed positions)
+        decimal totalRealizedPL = 0m;
+        var groupedByComp = transactions.GroupBy(t => t.CompanyId);
+        foreach (var group in groupedByComp)
+        {
+            var buyTxs = group.Where(t => t.TransactionType == "BUY").ToList();
+            var sellTxs = group.Where(t => t.TransactionType == "SELL").ToList();
+            if (!sellTxs.Any()) continue;
+
+            var totalBuyQty = buyTxs.Sum(t => t.Quantity);
+            var totalBuyCost = buyTxs.Sum(t => t.Quantity * t.PricePerShare);
+            var avgBuyPrice = totalBuyQty > 0 ? totalBuyCost / totalBuyQty : 0m;
+
+            foreach (var s in sellTxs)
+            {
+                totalRealizedPL += (s.Quantity * s.PricePerShare - s.Fee) - (s.Quantity * avgBuyPrice);
+            }
+        }
+        totalRealizedPL = Math.Round(totalRealizedPL, 2);
+
+        // Cumulative cash flow & fees calculation
+        var buyTransactions = transactions.Where(t => t.TransactionType == "BUY").ToList();
+        var sellTransactions = transactions.Where(t => t.TransactionType == "SELL").ToList();
+
+        var cumulativeBuyCost = buyTransactions.Sum(t => t.Quantity * t.PricePerShare);
+        var totalBuyFees = buyTransactions.Sum(t => t.Fee);
+        var totalBuyOutflow = cumulativeBuyCost + totalBuyFees;
+
+        var totalSellProceeds = sellTransactions.Sum(t => t.Quantity * t.PricePerShare);
+        var totalSellFees = sellTransactions.Sum(t => t.Fee);
+        var totalSellInflow = totalSellProceeds - totalSellFees;
+
+        var totalFees = Math.Round(totalBuyFees + totalSellFees, 2);
+        var netCashFlow = Math.Round(totalSellInflow - totalBuyOutflow, 2);
+
         return new PortfolioSummaryDto
         {
             PortfolioId = portfolio.PortfolioId,
@@ -308,6 +354,9 @@ public class PortfolioService : IPortfolioService
             TotalInvested = Math.Round(totalInvested, 2),
             UnrealizedProfitLoss = Math.Round(unrealizedPL, 2),
             UnrealizedProfitLossPercentage = plPct,
+            RealizedProfitLoss = totalRealizedPL,
+            TotalFees = totalFees,
+            NetCashFlow = netCashFlow,
             HoldingsCount = holdings.Count,
             TransactionsCount = transactions.Count
         };

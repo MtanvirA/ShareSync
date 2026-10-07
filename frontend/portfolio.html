@@ -486,6 +486,18 @@
             </div>
 
             <div class="portfolio-stat">
+              <span> Realized P/L </span>
+
+              <strong id="portfolioRealizedProfitLoss"> ৳0.00 </strong>
+            </div>
+
+            <div class="portfolio-stat">
+              <span> Net cash flow </span>
+
+              <strong id="portfolioNetCashFlow"> ৳0.00 </strong>
+            </div>
+
+            <div class="portfolio-stat">
               <span> Holdings </span>
 
               <strong id="portfolioHoldingsCount"> 0 </strong>
@@ -533,13 +545,15 @@
 
                     <th>Market value</th>
 
-                    <th>Return</th>
+                    <th>Unrealized return</th>
+
+                    <th>Realized P/L</th>
                   </tr>
                 </thead>
 
                 <tbody id="portfolioHoldingsBody">
                   <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">
+                    <td colspan="7" class="text-center py-4 text-muted">
                       <div class="spinner-border spinner-border-sm me-2" role="status"></div>
                       Loading portfolio holdings...
                     </td>
@@ -582,6 +596,30 @@
                   <span> Unrealized profit </span>
 
                   <strong class="positive-text" id="metricUnrealizedProfit"> ৳0.00 </strong>
+                </div>
+
+                <div class="metric-row">
+                  <span> Realized profit/loss </span>
+
+                  <strong id="metricRealizedProfit"> ৳0.00 </strong>
+                </div>
+
+                <div class="metric-row">
+                  <span> Total profit/loss </span>
+
+                  <strong id="metricTotalProfit"> ৳0.00 </strong>
+                </div>
+
+                <div class="metric-row">
+                  <span> Total fees paid </span>
+
+                  <strong id="metricTotalFees"> ৳0.00 </strong>
+                </div>
+
+                <div class="metric-row">
+                  <span> Net cash flow </span>
+
+                  <strong id="metricNetCashFlow"> ৳0.00 </strong>
                 </div>
 
                 <div class="metric-row">

@@ -12,6 +12,8 @@ public class CsvTransactionRowPreviewDto
     public decimal Quantity { get; set; }
     public decimal PricePerShare { get; set; }
     public decimal TotalAmount { get; set; }
+    public decimal Fee { get; set; }
+    public decimal NetAmount { get; set; }
     public string? Notes { get; set; }
     public bool IsValid { get; set; }
     public List<CsvRowErrorDto> Errors { get; set; } = new();

@@ -10,6 +10,10 @@ public class PortfolioSummaryDto
     public decimal TotalInvested { get; set; }
     public decimal UnrealizedProfitLoss { get; set; }
     public decimal UnrealizedProfitLossPercentage { get; set; }
+    public decimal RealizedProfitLoss { get; set; }
+    public decimal TotalProfitLoss => Math.Round(UnrealizedProfitLoss + RealizedProfitLoss, 2);
+    public decimal TotalFees { get; set; }
+    public decimal NetCashFlow { get; set; }
     public int HoldingsCount { get; set; }
     public int TransactionsCount { get; set; }
 }

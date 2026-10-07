@@ -12,6 +12,9 @@ public class PortfolioAnalyticsDto
     public decimal UnrealizedProfitLoss { get; set; }
     public decimal UnrealizedReturnPercentage { get; set; }
     public decimal RealizedProfitLoss { get; set; }
+    public decimal TotalProfitLoss => Math.Round(UnrealizedProfitLoss + RealizedProfitLoss, 2);
+    public decimal TotalFees { get; set; }
+    public decimal NetCashFlow { get; set; }
     public decimal DividendIncome { get; set; }
     public decimal DividendYield { get; set; }
     public decimal TotalReturn { get; set; }

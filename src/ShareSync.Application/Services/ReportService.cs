@@ -360,14 +360,63 @@ public class ReportService : IReportService
             Quantity = t.Quantity,
             PricePerShare = t.PricePerShare,
             TotalTransactionValue = Math.Round(t.Quantity * t.PricePerShare, 2),
+            Fee = Math.Round(t.Fee, 2),
+            NetAmount = t.TransactionType == "BUY"
+                ? Math.Round(t.Quantity * t.PricePerShare + t.Fee, 2)
+                : Math.Round(t.Quantity * t.PricePerShare - t.Fee, 2),
             TransactionDate = t.TransactionDate
         }).ToList();
 
-        var buyItems = items.Where(i => i.TransactionType == "BUY").ToList();
+        // Calculate Realized P/L for SELL items
         var sellItems = items.Where(i => i.TransactionType == "SELL").ToList();
+        if (sellItems.Any())
+        {
+            var sellPairs = sellItems.Select(s => (s.PortfolioId, s.CompanyId)).Distinct().ToList();
+            var portIds = sellPairs.Select(p => p.PortfolioId).Distinct().ToList();
+            var compIds = sellPairs.Select(p => p.CompanyId).Distinct().ToList();
+
+            var allBuys = await _context.Transactions
+                .AsNoTracking()
+                .Where(t => portIds.Contains(t.PortfolioId) && compIds.Contains(t.CompanyId) && t.TransactionType == "BUY")
+                .ToListAsync(cancellationToken);
+
+            var avgCostMap = allBuys
+                .GroupBy(b => (b.PortfolioId, b.CompanyId))
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var qty = g.Sum(x => x.Quantity);
+                        var cost = g.Sum(x => x.Quantity * x.PricePerShare);
+                        return qty > 0 ? cost / qty : 0m;
+                    });
+
+            foreach (var s in sellItems)
+            {
+                if (avgCostMap.TryGetValue((s.PortfolioId, s.CompanyId), out var avgCost))
+                {
+                    s.RealizedProfitLoss = Math.Round((s.TotalTransactionValue - s.Fee) - (s.Quantity * avgCost), 2);
+                }
+                else
+                {
+                    s.RealizedProfitLoss = Math.Round(s.TotalTransactionValue - s.Fee, 2);
+                }
+            }
+        }
+
+        var buyItems = items.Where(i => i.TransactionType == "BUY").ToList();
 
         var totalBuyVal = Math.Round(buyItems.Sum(i => i.TotalTransactionValue), 2);
+        var totalBuyFees = Math.Round(buyItems.Sum(i => i.Fee), 2);
+        var totalBuyOutflow = Math.Round(totalBuyVal + totalBuyFees, 2);
+
         var totalSellVal = Math.Round(sellItems.Sum(i => i.TotalTransactionValue), 2);
+        var totalSellFees = Math.Round(sellItems.Sum(i => i.Fee), 2);
+        var totalSellInflow = Math.Round(totalSellVal - totalSellFees, 2);
+
+        var totalFees = Math.Round(totalBuyFees + totalSellFees, 2);
+        var netCashFlow = Math.Round(totalSellInflow - totalBuyOutflow, 2);
+        var totalRealizedPL = Math.Round(sellItems.Sum(i => i.RealizedProfitLoss ?? 0m), 2);
 
         var report = new TransactionHistoryReportDto
         {
@@ -375,8 +424,14 @@ public class ReportService : IReportService
             BuyCount = buyItems.Count,
             SellCount = sellItems.Count,
             TotalBuyValue = totalBuyVal,
+            TotalBuyFees = totalBuyFees,
+            TotalBuyOutflow = totalBuyOutflow,
             TotalSellValue = totalSellVal,
-            NetCashFlow = totalSellVal - totalBuyVal,
+            TotalSellFees = totalSellFees,
+            TotalSellInflow = totalSellInflow,
+            TotalFees = totalFees,
+            TotalRealizedProfitLoss = totalRealizedPL,
+            NetCashFlow = netCashFlow,
             Transactions = items
         };
 
@@ -728,16 +783,50 @@ public class ReportService : IReportService
             .Select(p => p.PortfolioId)
             .ToListAsync(cancellationToken);
 
-        var txCount = await _context.Transactions
+        var userTxs = await _context.Transactions
             .AsNoTracking()
-            .CountAsync(t => userPortfolioIds.Contains(t.PortfolioId), cancellationToken);
+            .Where(t => userPortfolioIds.Contains(t.PortfolioId))
+            .ToListAsync(cancellationToken);
+
+        decimal totalRealizedPL = 0m;
+        var groupedByComp = userTxs.GroupBy(t => (t.PortfolioId, t.CompanyId));
+        foreach (var group in groupedByComp)
+        {
+            var buyTxs = group.Where(t => t.TransactionType == "BUY").ToList();
+            var sellTxs = group.Where(t => t.TransactionType == "SELL").ToList();
+            if (!sellTxs.Any()) continue;
+
+            var totalBuyQty = buyTxs.Sum(t => t.Quantity);
+            var totalBuyCost = buyTxs.Sum(t => t.Quantity * t.PricePerShare);
+            var avgBuyPrice = totalBuyQty > 0 ? totalBuyCost / totalBuyQty : 0m;
+
+            foreach (var s in sellTxs)
+            {
+                totalRealizedPL += (s.Quantity * s.PricePerShare - s.Fee) - (s.Quantity * avgBuyPrice);
+            }
+        }
+        totalRealizedPL = Math.Round(totalRealizedPL, 2);
+
+        var buyList = userTxs.Where(t => t.TransactionType == "BUY").ToList();
+        var sellList = userTxs.Where(t => t.TransactionType == "SELL").ToList();
+
+        var buyCostTotal = buyList.Sum(t => t.Quantity * t.PricePerShare);
+        var buyFeesTotal = buyList.Sum(t => t.Fee);
+        var sellProceedsTotal = sellList.Sum(t => t.Quantity * t.PricePerShare);
+        var sellFeesTotal = sellList.Sum(t => t.Fee);
+
+        var totalFees = Math.Round(buyFeesTotal + sellFeesTotal, 2);
+        var netCashFlow = Math.Round((sellProceedsTotal - sellFeesTotal) - (buyCostTotal + buyFeesTotal), 2);
 
         var summary = new ReportSummaryDto
         {
             TotalPortfolioValue = holdings?.TotalMarketValue ?? 0m,
             TotalUnrealizedProfitLoss = holdings?.TotalUnrealizedProfitLoss ?? 0m,
+            TotalRealizedProfitLoss = totalRealizedPL,
+            TotalFees = totalFees,
+            NetCashFlow = netCashFlow,
             TotalDividendIncome = dividends?.TotalIncome ?? 0m,
-            TotalTransactionsCount = txCount
+            TotalTransactionsCount = userTxs.Count
         };
 
         return ApiResponse<ReportSummaryDto>.Ok(summary);

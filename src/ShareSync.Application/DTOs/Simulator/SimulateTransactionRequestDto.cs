@@ -7,4 +7,5 @@ public class SimulateTransactionRequestDto
     public string TransactionType { get; set; } = "BUY";
     public decimal Quantity { get; set; }
     public decimal HypotheticalPrice { get; set; }
+    public decimal Fee { get; set; } = 0.00m;
 }

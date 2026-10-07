@@ -178,6 +178,7 @@ CREATE TABLE transactions (
     transaction_type VARCHAR(10)    NOT NULL,
     quantity         DECIMAL(14,4)  NOT NULL,
     price_per_share  DECIMAL(14,2)  NOT NULL,
+    fee              DECIMAL(14,2)  NOT NULL DEFAULT 0.00,
     transaction_date TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_transactions
@@ -191,6 +192,9 @@ CREATE TABLE transactions (
 
     CONSTRAINT ck_transactions_price
         CHECK (price_per_share > 0),
+
+    CONSTRAINT ck_transactions_fee
+        CHECK (fee >= 0),
 
     CONSTRAINT fk_transactions_portfolio
         FOREIGN KEY (portfolio_id)

@@ -94,4 +94,59 @@ BEGIN
     RETURN ROUND(v_current_market_val - v_total_cost_basis, 2);
 END //
 
+-- ============================================================
+-- 3. fn_calculate_realized_pl
+-- LF-26: Calculates realized profit/loss using weighted-average cost rule
+-- Realized P/L = (Net Sale Proceeds) - (Cost Basis of Shares Sold)
+-- ============================================================
+DROP FUNCTION IF EXISTS fn_calculate_realized_pl //
+CREATE FUNCTION fn_calculate_realized_pl (
+    p_portfolio_id INT,
+    p_company_id   INT
+) RETURNS DECIMAL(20,2)
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_total_realized_pl DECIMAL(20,2) DEFAULT 0.00;
+
+    SELECT COALESCE(SUM(
+        (t.quantity * t.price_per_share - COALESCE(t.fee, 0.00)) - 
+        (t.quantity * fn_get_weighted_avg_price(t.portfolio_id, t.company_id))
+    ), 0.00)
+    INTO v_total_realized_pl
+    FROM transactions t
+    WHERE t.portfolio_id = p_portfolio_id
+      AND t.transaction_type = 'SELL'
+      AND (p_company_id IS NULL OR t.company_id = p_company_id);
+
+    RETURN ROUND(v_total_realized_pl, 2);
+END //
+
+-- ============================================================
+-- 4. fn_calculate_net_cash_flow
+-- LF-27: Calculates net cash flow for a portfolio:
+-- Net Cash Flow = Total Net Sale Inflow - Total Net Purchase Outflow
+-- ============================================================
+DROP FUNCTION IF EXISTS fn_calculate_net_cash_flow //
+CREATE FUNCTION fn_calculate_net_cash_flow (
+    p_portfolio_id INT
+) RETURNS DECIMAL(20,2)
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_total_sell_inflow  DECIMAL(20,2) DEFAULT 0.00;
+    DECLARE v_total_buy_outflow  DECIMAL(20,2) DEFAULT 0.00;
+
+    SELECT
+        COALESCE(SUM(CASE WHEN transaction_type = 'SELL' THEN (quantity * price_per_share - COALESCE(fee, 0.00)) ELSE 0.00 END), 0.00),
+        COALESCE(SUM(CASE WHEN transaction_type = 'BUY'  THEN (quantity * price_per_share + COALESCE(fee, 0.00)) ELSE 0.00 END), 0.00)
+    INTO
+        v_total_sell_inflow,
+        v_total_buy_outflow
+    FROM transactions
+    WHERE portfolio_id = p_portfolio_id;
+
+    RETURN ROUND(v_total_sell_inflow - v_total_buy_outflow, 2);
+END //
+
 DELIMITER ;

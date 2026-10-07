@@ -790,6 +790,30 @@
                   </div>
                 </div>
 
+                <!-- Transaction Fee (LF-27) -->
+                <div class="form-field">
+                  <label for="transactionFee">
+                    Fee / Commission
+                    <span>(optional)</span>
+                  </label>
+
+                  <div class="input-with-prefix">
+                    <span> ৳ </span>
+
+                    <input
+                      type="number"
+                      id="transactionFee"
+                      min="0"
+                      step="0.01"
+                      value="0.00"
+                      placeholder="e.g. 15.00"
+                    />
+                  </div>
+                  <small id="netCashImpactHint" class="text-muted d-block mt-1" style="font-size: 11px;">
+                    Net cash impact: <strong id="netCashImpactVal" class="text-primary">৳0.00</strong>
+                  </small>
+                </div>
+
                 <!-- Date -->
 
                 <div class="form-field">
@@ -952,7 +976,10 @@
                     <th>Type</th>
                     <th style="cursor: pointer;" id="thSortQty" title="Click to sort by quantity">Quantity <i class="bi bi-arrow-down-up" style="font-size: 10px;"></i></th>
                     <th style="cursor: pointer;" id="thSortPrice" title="Click to sort by price">Price <i class="bi bi-arrow-down-up" style="font-size: 10px;"></i></th>
-                    <th style="cursor: pointer;" id="thSortTotal" title="Click to sort by transaction value">Total <i class="bi bi-arrow-down-up" style="font-size: 10px;"></i></th>
+                    <th style="cursor: pointer;" id="thSortTotal" title="Click to sort by transaction value">Gross <i class="bi bi-arrow-down-up" style="font-size: 10px;"></i></th>
+                    <th>Fee</th>
+                    <th>Net Amount</th>
+                    <th>Realized P/L</th>
                     <th>Portfolio</th>
                     <th>Actions</th>
                   </tr>
@@ -960,7 +987,7 @@
 
                 <tbody id="transactionTableBody">
                   <tr>
-                    <td colspan="8" class="text-center py-4 text-muted">
+                    <td colspan="11" class="text-center py-4 text-muted">
                       <div class="spinner-border spinner-border-sm me-2" role="status"></div>
                       Loading transaction records...
                     </td>

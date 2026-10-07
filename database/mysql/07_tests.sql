@@ -83,16 +83,18 @@ ORDER BY audit_id DESC
 LIMIT 3;
 
 -- ============================================================
--- TEST 5: STORED FUNCTION EXECUTION
+-- TEST 5: STORED FUNCTION EXECUTION (LF-26 & LF-27)
 -- ============================================================
 SELECT 
     fn_get_weighted_avg_price(1, 1) AS gp_weighted_avg_price,
-    fn_calculate_unrealized_pl(1, 1) AS gp_unrealized_profit_loss;
+    fn_calculate_unrealized_pl(1, 1) AS gp_unrealized_profit_loss,
+    fn_calculate_realized_pl(1, 1) AS gp_realized_profit_loss,
+    fn_calculate_net_cash_flow(1) AS portfolio_1_net_cash_flow;
 
 -- ============================================================
 -- TEST 6: STORED PROCEDURE EXECUTION & RETURN VALUES
 -- ============================================================
-CALL sp_record_transaction(1, 2, 'BUY', 25.0000, 225.00, 'test_runner', @v_id, @v_status, @v_msg);
+CALL sp_record_transaction(1, 2, 'BUY', 25.0000, 225.00, 10.00, 'test_runner', @v_id, @v_status, @v_msg);
 SELECT @v_id AS new_tx_id, @v_status AS status, @v_msg AS msg;
 
 -- Cleanup the test row

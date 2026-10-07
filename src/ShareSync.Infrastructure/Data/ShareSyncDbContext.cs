@@ -269,6 +269,7 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
                 t.HasCheckConstraint("CK_TRANSACTIONS_TYPE", "TRANSACTION_TYPE IN ('BUY', 'SELL')");
                 t.HasCheckConstraint("CK_TRANSACTIONS_QUANTITY", "QUANTITY > 0");
                 t.HasCheckConstraint("CK_TRANSACTIONS_PRICE", "PRICE_PER_SHARE > 0");
+                t.HasCheckConstraint("CK_TRANSACTIONS_FEE", "FEE >= 0");
             });
             entity.HasKey(e => e.TransactionId).HasName("PK_TRANSACTIONS");
 
@@ -297,6 +298,12 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.PricePerShare)
                 .HasColumnName("PRICE_PER_SHARE")
                 .HasPrecision(14, 2)
+                .IsRequired();
+
+            entity.Property(e => e.Fee)
+                .HasColumnName("FEE")
+                .HasPrecision(14, 2)
+                .HasDefaultValue(0.00m)
                 .IsRequired();
 
             entity.Property(e => e.TransactionDate)

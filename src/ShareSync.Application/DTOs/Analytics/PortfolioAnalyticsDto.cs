@@ -20,6 +20,14 @@ public class PortfolioAnalyticsDto
     public decimal TotalReturn { get; set; }
     public decimal TotalReturnPercentage { get; set; }
 
+    // LF-28 Inflation-Adjusted (Real) Return Metrics
+    public string BaseCurrency { get; set; } = "BDT";
+    public decimal? InflationRate { get; set; }
+    public string? InflationPeriod { get; set; }
+    public decimal? RealReturn { get; set; }
+    public decimal? RealReturnPercentage { get; set; }
+    public string InflationStatus { get; set; } = "Unavailable";
+
     // 2. Portfolio Concentration & Risk Metrics
     public decimal TopHoldingWeight { get; set; }
     public decimal LargestHoldingWeight => TopHoldingWeight;
@@ -32,17 +40,20 @@ public class PortfolioAnalyticsDto
     public int TotalHoldingsCount { get; set; }
     public int TotalSectorsCount { get; set; }
 
-    // 3. Sector Allocation
+    // 3. Asset Type Allocation (LF-29 Multi-Asset)
+    public List<AnalyticsAssetTypeDto> AssetTypeAllocation { get; set; } = new();
+
+    // 4. Sector Allocation
     public List<AnalyticsSectorDto> SectorAllocation { get; set; } = new();
 
-    // 4. Company Allocation
+    // 5. Company Allocation
     public List<AnalyticsCompanyDto> CompanyAllocation { get; set; } = new();
 
-    // 5. Top Gainers & Losers
+    // 6. Top Gainers & Losers
     public List<AnalyticsPerformanceItemDto> TopGainers { get; set; } = new();
     public List<AnalyticsPerformanceItemDto> TopLosers { get; set; } = new();
 
-    // 6. Historical Performance Chart
+    // 7. Historical Performance Chart
     public AnalyticsPerformanceChartDto HistoricalPerformance { get; set; } = new();
 
     // 7. Explicit Accounting Formulas (Financial Transparency)
@@ -96,4 +107,15 @@ public class AnalyticsPerformanceChartDto
     public decimal NetChangePercentage { get; set; }
     public List<string> Labels { get; set; } = new();
     public List<decimal> Values { get; set; } = new();
+}
+
+public class AnalyticsAssetTypeDto
+{
+    public string AssetType { get; set; } = string.Empty;
+    public decimal MarketValue { get; set; }
+    public decimal InvestedValue { get; set; }
+    public decimal UnrealizedProfitLoss { get; set; }
+    public decimal AllocationPercentage { get; set; }
+    public decimal Percentage => AllocationPercentage;
+    public int HoldingsCount { get; set; }
 }

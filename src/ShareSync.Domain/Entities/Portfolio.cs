@@ -6,6 +6,7 @@ public class Portfolio
     public int UserId { get; set; }
     public string PortfolioName { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string Currency { get; set; } = "BDT";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public AppUser? User { get; set; }

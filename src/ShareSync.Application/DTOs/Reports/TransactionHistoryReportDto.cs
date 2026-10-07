@@ -8,6 +8,9 @@ public class TransactionHistoryReportItemDto
     public int CompanyId { get; set; }
     public string CompanyName { get; set; } = string.Empty;
     public string TickerSymbol { get; set; } = string.Empty;
+    public string AssetType { get; set; } = "EQUITY";
+    public string Currency { get; set; } = "BDT";
+    public decimal ExchangeRate { get; set; } = 1.0000m;
     public string TransactionType { get; set; } = string.Empty; // BUY / SELL
     public decimal Quantity { get; set; }
     public decimal PricePerShare { get; set; }

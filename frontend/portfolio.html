@@ -441,6 +441,14 @@
                     placeholder="e.g. High growth and dividend investments"
                   />
                 </div>
+
+                <div class="form-field">
+                  <label for="portfolioFormCurrency"> Base Currency </label>
+                  <select id="portfolioFormCurrency" class="form-select form-select-sm" style="height: 38px;">
+                    <option value="BDT" selected>BDT (৳ - Bangladeshi Taka)</option>
+                    <option value="USD">USD ($ - United States Dollar)</option>
+                  </select>
+                </div>
               </div>
 
               <div class="form-actions mt-3">
@@ -535,7 +543,11 @@
               <table class="holdings-table portfolio-table">
                 <thead>
                   <tr>
-                    <th>Company</th>
+                    <th>Asset</th>
+
+                    <th>Type</th>
+
+                    <th>Currency</th>
 
                     <th>Shares</th>
 
@@ -553,7 +565,7 @@
 
                 <tbody id="portfolioHoldingsBody">
                   <tr>
-                    <td colspan="7" class="text-center py-4 text-muted">
+                    <td colspan="9" class="text-center py-4 text-muted">
                       <div class="spinner-border spinner-border-sm me-2" role="status"></div>
                       Loading portfolio holdings...
                     </td>
@@ -573,9 +585,9 @@
             <article class="dashboard-card">
               <div class="card-header">
                 <div>
-                  <h2>Performance</h2>
+                  <h2>Performance & Real Return</h2>
 
-                  <p>Portfolio metrics</p>
+                  <p>Nominal return vs Inflation-adjusted purchasing power</p>
                 </div>
               </div>
 
@@ -623,9 +635,21 @@
                 </div>
 
                 <div class="metric-row">
-                  <span> Return </span>
+                  <span> Nominal Return </span>
 
                   <strong class="positive-text" id="metricReturnPercentage"> 0.0% </strong>
+                </div>
+
+                <div class="metric-row">
+                  <span> Inflation Rate (Cumulative) </span>
+
+                  <strong id="metricInflationRate"> 0.0% </strong>
+                </div>
+
+                <div class="metric-row" style="background: var(--color-surface-hover); border-radius: 6px; padding: 6px 8px;">
+                  <span><i class="bi bi-shield-check text-success me-1"></i> <strong>Real Return (Purchasing Power)</strong></span>
+
+                  <strong id="metricRealReturnPercentage" class="fw-bold"> 0.0% </strong>
                 </div>
               </div>
             </article>

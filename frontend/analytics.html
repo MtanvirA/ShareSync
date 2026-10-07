@@ -581,13 +581,25 @@
                             </div>
                         </div>
 
-                        <!-- Total Return -->
+                        <!-- Total Return (Nominal) -->
                         <div class="col-xl col-md-6 col-sm-12">
                             <div class="analytics-card h-100" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(124, 58, 237, 0.05)); border-color: rgba(37, 99, 235, 0.2);">
                                 <div class="metric-label text-primary">Total Economic Return</div>
                                 <div class="metric-value" id="kpiTotalReturn">৳0.00</div>
                                 <div class="metric-sub">
-                                    Total Return: <span class="badge" id="kpiTotalReturnBadge">0.00%</span>
+                                    Nominal Return: <span class="badge" id="kpiTotalReturnBadge">0.00%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Real Return (Inflation-Adjusted) -->
+                        <div class="col-xl col-md-6 col-sm-12">
+                            <div class="analytics-card h-100" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(5, 150, 105, 0.06)); border-color: rgba(16, 185, 129, 0.25);">
+                                <div class="metric-label text-success"><i class="bi bi-shield-check me-1"></i>Real Return (Purchasing Power)</div>
+                                <div class="metric-value text-success" id="kpiRealReturn">৳0.00</div>
+                                <div class="metric-sub">
+                                    Real Return: <span class="badge bg-success-subtle text-success border border-success-subtle" id="kpiRealReturnBadge">0.00%</span>
+                                    <small class="text-muted d-block mt-1" id="kpiInflationDetail">Inflation: 0.0%</small>
                                 </div>
                             </div>
                         </div>

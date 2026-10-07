@@ -20,6 +20,8 @@ public interface IApplicationDbContext
     DbSet<Notification> Notifications { get; }
     DbSet<PortfolioGoal> PortfolioGoals { get; }
     DbSet<PortfolioHoldingView> PortfolioHoldings { get; }
+    DbSet<InflationRate> InflationRates { get; }
+    DbSet<CurrencyExchangeRate> CurrencyExchangeRates { get; }
 
     Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade Database { get; }
 

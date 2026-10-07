@@ -8,6 +8,8 @@ public class Company
     public int SectorId { get; set; }
     public decimal CurrentPrice { get; set; }
     public decimal? MarketCap { get; set; }
+    public string AssetType { get; set; } = "EQUITY";
+    public string Currency { get; set; } = "BDT";
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

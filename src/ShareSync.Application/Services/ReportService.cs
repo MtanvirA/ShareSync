@@ -11,10 +11,22 @@ namespace ShareSync.Application.Services;
 public class ReportService : IReportService
 {
     private readonly IApplicationDbContext _context;
+    private readonly IInflationService _inflationService;
+    private readonly ICurrencyService _currencyService;
 
     public ReportService(IApplicationDbContext context)
+        : this(context, new InflationService(context), new CurrencyService(context))
+    {
+    }
+
+    public ReportService(
+        IApplicationDbContext context,
+        IInflationService inflationService,
+        ICurrencyService currencyService)
     {
         _context = context;
+        _inflationService = inflationService;
+        _currencyService = currencyService;
     }
 
     public async Task<ApiResponse<PortfolioHoldingsReportDto>> GetHoldingsReportAsync(
@@ -60,15 +72,32 @@ public class ReportService : IReportService
             .ToListAsync(cancellationToken);
 
         List<PortfolioHoldingsReportItemDto> items;
+        var exchangeRates = await _currencyService.GetAllRatesAsync(cancellationToken);
 
         if (viewHoldings.Any())
         {
+            var compIds = viewHoldings.Select(vh => vh.CompanyId).Distinct().ToList();
+            var companies = await _context.Companies
+                .AsNoTracking()
+                .Where(c => compIds.Contains(c.CompanyId))
+                .ToDictionaryAsync(c => c.CompanyId, cancellationToken);
+
             items = viewHoldings.Select(h =>
             {
                 var invested = Math.Round(h.CurrentQuantity * h.WeightedAverageBuyPrice, 2);
                 var plPct = invested > 0
                     ? Math.Round((h.UnrealizedProfitLoss / invested) * 100, 2)
                     : 0m;
+
+                var comp = companies.GetValueOrDefault(h.CompanyId);
+                var aType = comp?.AssetType ?? "EQUITY";
+                var aCurr = comp?.Currency ?? "BDT";
+                var fxRate = 1.0m;
+                if (!aCurr.Equals("BDT", StringComparison.OrdinalIgnoreCase))
+                {
+                    var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals("BDT", StringComparison.OrdinalIgnoreCase));
+                    if (r != null) fxRate = r.Rate;
+                }
 
                 return new PortfolioHoldingsReportItemDto
                 {
@@ -80,6 +109,9 @@ public class ReportService : IReportService
                     CurrentQuantity = h.CurrentQuantity,
                     WeightedAverageBuyPrice = Math.Round(h.WeightedAverageBuyPrice, 2),
                     CurrentMarketPrice = Math.Round(h.CurrentPrice, 2),
+                    AssetType = aType,
+                    Currency = aCurr,
+                    ExchangeRate = fxRate,
                     InvestedValue = invested,
                     CurrentMarketValue = Math.Round(h.CurrentMarketValue, 2),
                     UnrealizedProfitLoss = Math.Round(h.UnrealizedProfitLoss, 2),
@@ -116,8 +148,19 @@ public class ReportService : IReportService
                 var totalBuyCost = buyTxs.Sum(t => t.Quantity * t.PricePerShare);
                 var avgBuyPrice = buyQty > 0 ? totalBuyCost / buyQty : 0m;
                 var currentPrice = company.CurrentPrice;
-                var marketVal = netQty * currentPrice;
-                var investedVal = netQty * avgBuyPrice;
+                var aType = company.AssetType ?? "EQUITY";
+                var aCurr = company.Currency ?? "BDT";
+                var portCurr = portfolio.Currency ?? "BDT";
+
+                var fxRate = 1.0m;
+                if (!string.Equals(aCurr, portCurr, StringComparison.OrdinalIgnoreCase))
+                {
+                    var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals(portCurr, StringComparison.OrdinalIgnoreCase));
+                    if (r != null) fxRate = r.Rate;
+                }
+
+                var marketVal = netQty * currentPrice * fxRate;
+                var investedVal = netQty * avgBuyPrice * fxRate;
                 var unrealizedPL = marketVal - investedVal;
                 var plPct = investedVal > 0 ? (unrealizedPL / investedVal) * 100 : 0m;
 
@@ -131,6 +174,9 @@ public class ReportService : IReportService
                     CurrentQuantity = netQty,
                     WeightedAverageBuyPrice = Math.Round(avgBuyPrice, 2),
                     CurrentMarketPrice = Math.Round(currentPrice, 2),
+                    AssetType = aType,
+                    Currency = aCurr,
+                    ExchangeRate = fxRate,
                     InvestedValue = Math.Round(investedVal, 2),
                     CurrentMarketValue = Math.Round(marketVal, 2),
                     UnrealizedProfitLoss = Math.Round(unrealizedPL, 2),
@@ -296,6 +342,25 @@ public class ReportService : IReportService
             report.NetChangePercentage = 0;
         }
 
+        // Calculate Inflation-Adjusted Return for Performance Report
+        var baseCurrency = targetPortfolio.Currency ?? "BDT";
+        report.BaseCurrency = baseCurrency;
+        var country = baseCurrency.Equals("USD", StringComparison.OrdinalIgnoreCase) ? "US" : "BD";
+
+        var startYear = startDate?.Year ?? (snapshots.Any() ? snapshots.First().SnapshotDate.Year : DateTime.UtcNow.Year);
+        var endYear = DateTime.UtcNow.Year;
+
+        var realReturnCalc = await _inflationService.CalculateRealReturnAsync(
+            report.NominalReturnPercentage,
+            startYear,
+            endYear,
+            country,
+            cancellationToken);
+
+        report.InflationRate = realReturnCalc.InflationRate;
+        report.RealReturnPercentage = realReturnCalc.RealReturn;
+        report.InflationStatus = realReturnCalc.Status;
+
         return ApiResponse<PortfolioPerformanceReportDto>.Ok(report);
     }
 
@@ -348,23 +413,41 @@ public class ReportService : IReportService
             .ThenByDescending(t => t.TransactionId)
             .ToListAsync(cancellationToken);
 
-        var items = transactions.Select(t => new TransactionHistoryReportItemDto
+        var exchangeRates = await _currencyService.GetAllRatesAsync(cancellationToken);
+
+        var items = transactions.Select(t =>
         {
-            TransactionId = t.TransactionId,
-            PortfolioId = t.PortfolioId,
-            PortfolioName = t.Portfolio?.PortfolioName ?? string.Empty,
-            CompanyId = t.CompanyId,
-            CompanyName = t.Company?.CompanyName ?? string.Empty,
-            TickerSymbol = t.Company?.TickerSymbol ?? string.Empty,
-            TransactionType = t.TransactionType,
-            Quantity = t.Quantity,
-            PricePerShare = t.PricePerShare,
-            TotalTransactionValue = Math.Round(t.Quantity * t.PricePerShare, 2),
-            Fee = Math.Round(t.Fee, 2),
-            NetAmount = t.TransactionType == "BUY"
-                ? Math.Round(t.Quantity * t.PricePerShare + t.Fee, 2)
-                : Math.Round(t.Quantity * t.PricePerShare - t.Fee, 2),
-            TransactionDate = t.TransactionDate
+            var aType = t.Company?.AssetType ?? "EQUITY";
+            var aCurr = t.Company?.Currency ?? "BDT";
+            var portCurr = t.Portfolio?.Currency ?? "BDT";
+            decimal fxRate = 1.0m;
+            if (!string.Equals(aCurr, portCurr, StringComparison.OrdinalIgnoreCase))
+            {
+                var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals(portCurr, StringComparison.OrdinalIgnoreCase));
+                if (r != null) fxRate = r.Rate;
+            }
+
+            return new TransactionHistoryReportItemDto
+            {
+                TransactionId = t.TransactionId,
+                PortfolioId = t.PortfolioId,
+                PortfolioName = t.Portfolio?.PortfolioName ?? string.Empty,
+                CompanyId = t.CompanyId,
+                CompanyName = t.Company?.CompanyName ?? string.Empty,
+                TickerSymbol = t.Company?.TickerSymbol ?? string.Empty,
+                AssetType = aType,
+                Currency = aCurr,
+                ExchangeRate = fxRate,
+                TransactionType = t.TransactionType,
+                Quantity = t.Quantity,
+                PricePerShare = t.PricePerShare,
+                TotalTransactionValue = Math.Round(t.Quantity * t.PricePerShare, 2),
+                Fee = Math.Round(t.Fee, 2),
+                NetAmount = t.TransactionType == "BUY"
+                    ? Math.Round(t.Quantity * t.PricePerShare + t.Fee, 2)
+                    : Math.Round(t.Quantity * t.PricePerShare - t.Fee, 2),
+                TransactionDate = t.TransactionDate
+            };
         }).ToList();
 
         // Calculate Realized P/L for SELL items

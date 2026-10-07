@@ -23,6 +23,8 @@ DROP TABLE IF EXISTS portfolios;
 DROP TABLE IF EXISTS companies;
 DROP TABLE IF EXISTS sectors;
 DROP TABLE IF EXISTS app_users;
+DROP TABLE IF EXISTS currency_exchange_rates;
+DROP TABLE IF EXISTS inflation_rates;
 
 -- ============================================================
 -- 1. APP_USERS
@@ -65,7 +67,7 @@ CREATE TABLE sectors (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 3. COMPANIES
+-- 3. COMPANIES (Securities / Multi-Asset)
 -- ============================================================
 CREATE TABLE companies (
     company_id    INT AUTO_INCREMENT,
@@ -74,6 +76,8 @@ CREATE TABLE companies (
     sector_id     INT            NOT NULL,
     current_price DECIMAL(14,2)  NOT NULL,
     market_cap    DECIMAL(20,2),
+    asset_type    VARCHAR(20)    NOT NULL DEFAULT 'EQUITY',
+    currency      VARCHAR(10)    NOT NULL DEFAULT 'BDT',
     is_active     TINYINT(1)     NOT NULL DEFAULT 1,
     created_at    TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -89,6 +93,12 @@ CREATE TABLE companies (
     CONSTRAINT ck_companies_market_cap
         CHECK (market_cap IS NULL OR market_cap >= 0),
 
+    CONSTRAINT ck_companies_asset_type
+        CHECK (asset_type IN ('EQUITY', 'ETF', 'MUTUAL_FUND', 'CASH')),
+
+    CONSTRAINT ck_companies_currency
+        CHECK (currency IN ('BDT', 'USD')),
+
     CONSTRAINT ck_companies_active
         CHECK (is_active IN (0, 1)),
 
@@ -99,13 +109,14 @@ CREATE TABLE companies (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 4. PORTFOLIOS
+-- 4. PORTFOLIOS (Multi-Currency)
 -- ============================================================
 CREATE TABLE portfolios (
     portfolio_id   INT AUTO_INCREMENT,
     user_id        INT          NOT NULL,
     portfolio_name VARCHAR(100) NOT NULL,
     description    VARCHAR(255),
+    currency       VARCHAR(10)  NOT NULL DEFAULT 'BDT',
     created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_portfolios
@@ -113,6 +124,9 @@ CREATE TABLE portfolios (
 
     CONSTRAINT uq_portfolios_user_name
         UNIQUE (user_id, portfolio_name),
+
+    CONSTRAINT ck_portfolios_currency
+        CHECK (currency IN ('BDT', 'USD')),
 
     CONSTRAINT fk_portfolios_user
         FOREIGN KEY (user_id)
@@ -434,7 +448,50 @@ CREATE TABLE portfolio_goals (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 15. PERFORMANCE & REPORTING INDEXES
+-- 15. INFLATION_RATES (LF-28 Real Return Calculation)
+-- ============================================================
+CREATE TABLE inflation_rates (
+    rate_id        INT AUTO_INCREMENT,
+    country_code   VARCHAR(10)   NOT NULL,
+    year           INT           NOT NULL,
+    inflation_rate DECIMAL(6,2)  NOT NULL,
+    source         VARCHAR(100)  NOT NULL,
+    created_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_inflation_rates
+        PRIMARY KEY (rate_id),
+
+    CONSTRAINT uq_inflation_rates_country_year
+        UNIQUE (country_code, year),
+
+    CONSTRAINT ck_inflation_rates_year
+        CHECK (year >= 1900 AND year <= 2100)
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 16. CURRENCY_EXCHANGE_RATES (LF-29 Multi-Currency Valuation)
+-- ============================================================
+CREATE TABLE currency_exchange_rates (
+    rate_id        INT AUTO_INCREMENT,
+    from_currency  VARCHAR(10)   NOT NULL,
+    to_currency    VARCHAR(10)   NOT NULL,
+    exchange_rate  DECIMAL(14,4) NOT NULL,
+    effective_date DATE          NOT NULL,
+    source         VARCHAR(100)  NOT NULL,
+    created_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_currency_exchange_rates
+        PRIMARY KEY (rate_id),
+
+    CONSTRAINT uq_currency_exchange_rates
+        UNIQUE (from_currency, to_currency, effective_date),
+
+    CONSTRAINT ck_currency_exchange_rates_rate
+        CHECK (exchange_rate > 0)
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 17. PERFORMANCE & REPORTING INDEXES
 -- ============================================================
 CREATE INDEX idx_transactions_portfolio_date ON transactions (portfolio_id, transaction_date);
 CREATE INDEX idx_transactions_company ON transactions (company_id);

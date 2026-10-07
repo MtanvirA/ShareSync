@@ -11,6 +11,9 @@ public class PortfolioHoldingsReportItemDto
     public decimal WeightedAverageBuyPrice { get; set; }
     public decimal WeightedAveragePurchasePrice => WeightedAverageBuyPrice;
     public decimal CurrentMarketPrice { get; set; }
+    public string AssetType { get; set; } = "EQUITY";
+    public string Currency { get; set; } = "BDT";
+    public decimal ExchangeRate { get; set; } = 1.0m;
     public decimal InvestedValue { get; set; }
     public decimal CurrentMarketValue { get; set; }
     public decimal UnrealizedProfitLoss { get; set; }

@@ -9,4 +9,6 @@ public class CompanyDto
     public string SectorName { get; set; } = string.Empty;
     public decimal CurrentPrice { get; set; }
     public decimal? MarketCap { get; set; }
+    public string AssetType { get; set; } = "EQUITY";
+    public string Currency { get; set; } = "BDT";
 }

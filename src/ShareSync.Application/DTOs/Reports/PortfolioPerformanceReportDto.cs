@@ -17,6 +17,11 @@ public class PortfolioPerformanceReportDto
     public decimal CurrentValue { get; set; }
     public decimal NetChange { get; set; }
     public decimal NetChangePercentage { get; set; }
+    public decimal NominalReturnPercentage => NetChangePercentage;
+    public string BaseCurrency { get; set; } = "BDT";
+    public decimal? InflationRate { get; set; }
+    public decimal? RealReturnPercentage { get; set; }
+    public string? InflationStatus { get; set; }
     public List<string> ChartLabels { get; set; } = new();
     public List<decimal> ChartValues { get; set; } = new();
     public List<PerformanceSnapshotItemDto> Snapshots { get; set; } = new();

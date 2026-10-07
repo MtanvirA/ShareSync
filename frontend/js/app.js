@@ -4918,8 +4918,9 @@ async function loadActiveReportTable(reportType, portfolioId, period) {
 async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
   headEl.innerHTML = `
     <tr>
-      <th>Company</th>
-      <th>Ticker</th>
+      <th>Asset</th>
+      <th>Type</th>
+      <th>Currency</th>
       <th>Quantity</th>
       <th>Avg. Cost</th>
       <th>Market Price</th>
@@ -4935,7 +4936,7 @@ async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
   const rows = res.data?.holdings || [];
 
   if (!rows.length) {
-    bodyEl.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">No holdings found for the selected portfolio.</td></tr>`;
+    bodyEl.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">No holdings found for the selected portfolio.</td></tr>`;
     return;
   }
 
@@ -4945,6 +4946,9 @@ async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
     const plClass = isPos ? "positive-text" : "negative-text";
     const logo = escapeHtml(r.tickerSymbol.slice(0, 2).toUpperCase());
     const avgCost = r.weightedAverageBuyPrice ?? r.weightedAveragePurchasePrice ?? 0;
+    const aType = r.assetType || "EQUITY";
+    const aCurr = r.currency || "BDT";
+    const currSym = aCurr === "USD" ? "$" : "৳";
 
     return `
       <tr>
@@ -4953,14 +4957,15 @@ async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
             <span class="company-logo">${logo}</span>
             <div class="company-details">
               <strong>${escapeHtml(r.companyName)}</strong>
-              <small>${escapeHtml(r.sectorName || "Equity")}</small>
+              <small>${escapeHtml(r.tickerSymbol)}</small>
             </div>
           </div>
         </td>
-        <td><strong>${escapeHtml(r.tickerSymbol)}</strong></td>
+        <td><span class="badge bg-secondary-subtle text-body border px-2 py-1" style="font-size: 11px;">${escapeHtml(aType)}</span></td>
+        <td><span class="badge bg-body-secondary text-body px-2 py-1" style="font-size: 11px;">${escapeHtml(aCurr)}</span></td>
         <td>${Number(r.currentQuantity || 0).toLocaleString()}</td>
-        <td>৳${Number(avgCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td>৳${Number(r.currentMarketPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>${currSym}${Number(avgCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>${currSym}${Number(r.currentMarketPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td>৳${Number(r.investedValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td>৳${Number(r.currentMarketValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td class="${plClass}"><strong>${sign}৳${Number(Math.abs(r.unrealizedProfitLoss || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
@@ -4977,7 +4982,7 @@ async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
       <th>Portfolio</th>
       <th>Portfolio Value</th>
       <th>Change from Prev</th>
-      <th>% Change</th>
+      <th>Nominal % Change</th>
     </tr>
   `;
 
@@ -4985,16 +4990,35 @@ async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
   if (portfolioId) params.append("portfolioId", portfolioId);
   if (period) params.append("period", period);
   const res = await apiRequest(`/reports/performance?${params.toString()}`);
-  const rows = res.data?.snapshots || [];
+  const data = res.data;
+  const rows = data?.snapshots || [];
 
   if (!rows.length) {
     bodyEl.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No snapshot records found for the selected criteria.</td></tr>`;
     return;
   }
 
-  const pName = res.data?.portfolioName || "Portfolio";
+  const pName = data?.portfolioName || "Portfolio";
+  const baseCurr = data?.baseCurrency || "BDT";
+  const currSym = baseCurr === "USD" ? "$" : "৳";
 
-  bodyEl.innerHTML = rows.map(r => {
+  let headerBanner = "";
+  if (data?.realReturnPercentage !== null && data?.realReturnPercentage !== undefined) {
+    const isRealPos = data.realReturnPercentage >= 0;
+    headerBanner = `
+      <tr style="background: var(--color-surface-hover);">
+        <td colspan="5" class="py-2 px-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 small">
+            <span><strong>Nominal Return:</strong> ${(data.nominalReturnPercentage || 0).toFixed(2)}%</span>
+            <span><strong>Inflation Rate:</strong> ${(data.inflationRate || 0).toFixed(2)}%</span>
+            <span class="${isRealPos ? 'positive-text fw-bold' : 'negative-text fw-bold'}"><i class="bi bi-shield-check text-success me-1"></i><strong>Inflation-Adjusted Real Return:</strong> ${isRealPos ? '+' : ''}${data.realReturnPercentage.toFixed(2)}%</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  bodyEl.innerHTML = headerBanner + rows.map(r => {
     let changeText = "-";
     let changePctText = "-";
     let changeClass = "text-muted";
@@ -5003,7 +5027,7 @@ async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
       const isChgPos = r.changeFromPrevious >= 0;
       const chgSign = isChgPos ? "+" : "-";
       changeClass = isChgPos ? "positive-text" : "negative-text";
-      changeText = `${chgSign}৳${Math.abs(r.changeFromPrevious).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      changeText = `${chgSign}${currSym}${Math.abs(r.changeFromPrevious).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       changePctText = `${chgSign}${Math.abs(r.percentageChange || 0).toFixed(2)}%`;
     }
 
@@ -5013,7 +5037,7 @@ async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
       <tr>
         <td><strong>${escapeHtml(dateStr)}</strong></td>
         <td>${escapeHtml(pName)}</td>
-        <td><strong>৳${r.portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+        <td><strong>${currSym}${r.portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
         <td class="${changeClass}">${changeText}</td>
         <td class="${changeClass}">${changePctText}</td>
       </tr>
@@ -5027,10 +5051,10 @@ async function renderTransactionsReport(portfolioId, period, headEl, bodyEl) {
       <th>Tx ID</th>
       <th>Date</th>
       <th>Portfolio</th>
-      <th>Company</th>
-      <th>Ticker</th>
+      <th>Asset</th>
       <th>Type</th>
-      <th>Quantity</th>
+      <th>Curr</th>
+      <th>Qty</th>
       <th>Price / Share</th>
       <th>Total Value</th>
     </tr>
@@ -5051,18 +5075,20 @@ async function renderTransactionsReport(portfolioId, period, headEl, bodyEl) {
     const isBuy = r.transactionType === "BUY";
     const badgeClass = isBuy ? "buy-badge" : "sell-badge";
     const dateStr = new Date(r.transactionDate).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    const aCurr = r.currency || "BDT";
+    const currSym = aCurr === "USD" ? "$" : "৳";
 
     return `
       <tr>
         <td>#${r.transactionId}</td>
         <td>${escapeHtml(dateStr)}</td>
         <td>${escapeHtml(r.portfolioName)}</td>
-        <td>${escapeHtml(r.companyName)}</td>
-        <td><strong>${escapeHtml(r.tickerSymbol)}</strong></td>
+        <td><strong>${escapeHtml(r.tickerSymbol)}</strong> <small class="text-muted">(${escapeHtml(r.assetType || 'EQUITY')})</small></td>
         <td><span class="transaction-badge ${badgeClass}">${escapeHtml(r.transactionType)}</span></td>
+        <td><span class="badge bg-body-secondary text-body px-2 py-1" style="font-size: 11px;">${escapeHtml(aCurr)}</span></td>
         <td>${Number(r.quantity || 0).toLocaleString()}</td>
-        <td>৳${Number(r.pricePerShare || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td><strong>৳${Number(r.totalTransactionValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+        <td>${currSym}${Number(r.pricePerShare || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td><strong>${currSym}${Number(r.totalTransactionValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
       </tr>
     `;
   }).join("");
@@ -5438,8 +5464,10 @@ async function loadPortfolioDetail(portfolioId) {
     const metricTotalFees = document.getElementById("metricTotalFees");
     const metricNetCashFlow = document.getElementById("metricNetCashFlow");
 
-    if (metricTotalBuyCost) metricTotalBuyCost.textContent = formattedInvested;
-    if (metricMarketValue) metricMarketValue.textContent = formattedValue;
+    const currSymbol = d.currency === "USD" ? "$" : "৳";
+
+    if (metricTotalBuyCost) metricTotalBuyCost.textContent = `${currSymbol}${Number(d.totalInvested || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (metricMarketValue) metricMarketValue.textContent = `${currSymbol}${Number(d.totalValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     if (metricUnrealizedProfit) {
       metricUnrealizedProfit.textContent = formattedPL;
       metricUnrealizedProfit.className = isProfitable ? "positive-text" : "negative-text";
@@ -5447,26 +5475,44 @@ async function loadPortfolioDetail(portfolioId) {
     if (metricRealizedProfit) {
       const isRPos = (d.realizedProfitLoss || 0) >= 0;
       const rSign = isRPos ? "+" : "-";
-      metricRealizedProfit.textContent = `${rSign}৳${Math.abs(d.realizedProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      metricRealizedProfit.textContent = `${rSign}${currSymbol}${Math.abs(d.realizedProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       metricRealizedProfit.className = isRPos ? "positive-text" : "negative-text";
     }
     if (metricTotalProfit) {
       const isTPos = (d.totalProfitLoss || 0) >= 0;
       const tSign = isTPos ? "+" : "-";
-      metricTotalProfit.textContent = `${tSign}৳${Math.abs(d.totalProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      metricTotalProfit.textContent = `${tSign}${currSymbol}${Math.abs(d.totalProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       metricTotalProfit.className = isTPos ? "positive-text" : "negative-text";
     }
     if (metricTotalFees) {
-      metricTotalFees.textContent = "৳" + Number(d.totalFees || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      metricTotalFees.textContent = `${currSymbol}${Number(d.totalFees || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     if (metricNetCashFlow) {
       const isNPos = (d.netCashFlow || 0) >= 0;
       const nSign = isNPos ? "+" : "-";
-      metricNetCashFlow.textContent = `${nSign}৳${Math.abs(d.netCashFlow || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      metricNetCashFlow.textContent = `${nSign}${currSymbol}${Math.abs(d.netCashFlow || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     if (metricReturnPercentage) {
       metricReturnPercentage.textContent = formattedPLPct;
       metricReturnPercentage.className = isProfitable ? "positive-text" : "negative-text";
+    }
+
+    const metricInflationRate = document.getElementById("metricInflationRate");
+    const metricRealReturnPercentage = document.getElementById("metricRealReturnPercentage");
+    if (metricInflationRate) {
+      metricInflationRate.textContent = d.inflationRate !== null && d.inflationRate !== undefined
+        ? `${d.inflationRate.toFixed(2)}%`
+        : "N/A";
+    }
+    if (metricRealReturnPercentage) {
+      if (d.realReturnPercentage !== null && d.realReturnPercentage !== undefined) {
+        const isRealPos = d.realReturnPercentage >= 0;
+        metricRealReturnPercentage.textContent = `${isRealPos ? '+' : ''}${d.realReturnPercentage.toFixed(2)}%`;
+        metricRealReturnPercentage.className = isRealPos ? "positive-text fw-bold" : "negative-text fw-bold";
+      } else {
+        metricRealReturnPercentage.textContent = "Data unavailable";
+        metricRealReturnPercentage.className = "text-muted small";
+      }
     }
 
     // Holdings Table
@@ -5474,9 +5520,9 @@ async function loadPortfolioDetail(portfolioId) {
       if (!d.holdings || d.holdings.length === 0) {
         holdingsBody.innerHTML = `
           <tr>
-            <td colspan="7" class="text-center py-4 text-muted">
+            <td colspan="9" class="text-center py-4 text-muted">
               <i class="bi bi-inbox fs-4 d-block mb-1"></i>
-              No stock holdings in this portfolio yet.
+              No asset holdings in this portfolio yet.
             </td>
           </tr>
         `;
@@ -5489,8 +5535,14 @@ async function loadPortfolioDetail(portfolioId) {
 
           const rPos = (h.realizedProfitLoss || 0) >= 0;
           const rSign = rPos ? "+" : "-";
-          const rStr = h.realizedProfitLoss ? `${rSign}৳${Math.abs(h.realizedProfitLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-";
+          const rStr = h.realizedProfitLoss ? `${rSign}${currSymbol}${Math.abs(h.realizedProfitLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-";
           const rClass = h.realizedProfitLoss ? (rPos ? 'positive-text' : 'negative-text') : 'text-muted';
+
+          const assetBadgeColor = h.assetType === "EQUITY" ? "bg-primary" :
+                                 h.assetType === "ETF" ? "bg-success" :
+                                 h.assetType === "MUTUAL_FUND" ? "bg-info" : "bg-secondary";
+          const itemCurr = h.currency || "BDT";
+          const itemSymbol = itemCurr === "USD" ? "$" : "৳";
 
           return `
             <tr>
@@ -5503,15 +5555,17 @@ async function loadPortfolioDetail(portfolioId) {
                   </div>
                 </div>
               </td>
+              <td><span class="badge ${assetBadgeColor} text-white px-2 py-1" style="font-size: 11px;">${escapeHtml(h.assetType || 'EQUITY')}</span></td>
+              <td><span class="badge bg-body-secondary text-body px-2 py-1" style="font-size: 11px;">${escapeHtml(itemCurr)}</span></td>
               <td>${Number(h.shares || 0).toLocaleString()}</td>
-              <td>৳${Number(h.averageBuyPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td>${itemSymbol}${Number(h.averageBuyPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               <td>
-                ৳${Number(h.currentPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${itemSymbol}${Number(h.currentPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 <button type="button" class="price-history-btn ms-1" onclick="openPriceHistoryModal(${h.companyId}, '${escapeHtml(h.tickerSymbol)}', '${escapeHtml(h.companyName)}', ${h.currentPrice})" title="View Price Trend &amp; History">
                   <i class="bi bi-graph-up"></i>
                 </button>
               </td>
-              <td>৳${Number(h.marketValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td>${currSymbol}${Number(h.marketValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               <td class="${hProfitable ? 'positive-text' : 'negative-text'}">${hReturnStr}</td>
               <td class="${rClass}">${rStr}</td>
             </tr>
@@ -7280,6 +7334,45 @@ function renderAnalyticsKPIs(d) {
   if (totBadgeEl) {
     totBadgeEl.className = `badge ${isTotUp ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle"}`;
     totBadgeEl.textContent = `${totSign}${Math.abs(totPct).toFixed(2)}%`;
+  }
+
+  // 6. Real Return (Purchasing Power)
+  const realRet = d.realReturn !== null && d.realReturn !== undefined ? d.realReturn : null;
+  const realPct = d.realReturnPercentage !== null && d.realReturnPercentage !== undefined ? d.realReturnPercentage : null;
+  const realRetEl = document.getElementById("kpiRealReturn");
+  const realBadgeEl = document.getElementById("kpiRealReturnBadge");
+  const infDetailEl = document.getElementById("kpiInflationDetail");
+
+  if (realRetEl) {
+    if (realRet !== null) {
+      const isRealUp = realRet >= 0;
+      const rSign = isRealUp ? "+" : "-";
+      realRetEl.className = `metric-value ${isRealUp ? "text-success" : "text-danger"}`;
+      realRetEl.textContent = `${rSign}${formatBDT(Math.abs(realRet))}`;
+    } else {
+      realRetEl.className = "metric-value text-muted fs-6";
+      realRetEl.textContent = "Unavailable";
+    }
+  }
+
+  if (realBadgeEl) {
+    if (realPct !== null) {
+      const isRealUp = realPct >= 0;
+      const rSign = isRealUp ? "+" : "-";
+      realBadgeEl.className = `badge ${isRealUp ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle"}`;
+      realBadgeEl.textContent = `${rSign}${Math.abs(realPct).toFixed(2)}%`;
+    } else {
+      realBadgeEl.className = "badge bg-secondary-subtle text-muted border";
+      realBadgeEl.textContent = "N/A";
+    }
+  }
+
+  if (infDetailEl) {
+    if (d.inflationRate !== null && d.inflationRate !== undefined) {
+      infDetailEl.textContent = `Inflation: ${d.inflationRate.toFixed(2)}% (${d.inflationPeriod || 'Cumulative'})`;
+    } else {
+      infDetailEl.textContent = d.inflationStatus || "Inflation data unavailable";
+    }
   }
 }
 

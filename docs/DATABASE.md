@@ -4,14 +4,14 @@ The authoritative database for this branch is **MySQL 8.x** utilizing the **Inno
 
 ---
 
-## 1. Complete Relational Table Schema (14 Tables)
+## 1. Complete Relational Table Schema (16 Tables)
 
 | # | Table Name | Purpose | Primary Key | Key Foreign Keys |
 |---|---|---|---|---|
 | 1 | `app_users` | Investor & Administrator credentials and roles | `user_id` (INT AUTO_INCREMENT) | None |
 | 2 | `sectors` | Industry classifications | `sector_id` (INT AUTO_INCREMENT) | None |
-| 3 | `companies` | Traded stock listings & current market prices | `company_id` (INT AUTO_INCREMENT) | `sector_id` &rarr; `sectors` |
-| 4 | `portfolios` | Multi-portfolio wealth management containers | `portfolio_id` (INT AUTO_INCREMENT) | `user_id` &rarr; `app_users` |
+| 3 | `companies` | Traded stock listings & securities (`asset_type`, `currency`) | `company_id` (INT AUTO_INCREMENT) | `sector_id` &rarr; `sectors` |
+| 4 | `portfolios` | Multi-portfolio containers with base currency (`currency`) | `portfolio_id` (INT AUTO_INCREMENT) | `user_id` &rarr; `app_users` |
 | 5 | `watchlists` | Investor watchlists | `watchlist_id` (INT AUTO_INCREMENT) | `user_id` &rarr; `app_users` |
 | 6 | `watchlist_items` | Companies tracked in watchlists with target prices | Composite `(watchlist_id, company_id)` | `watchlist_id`, `company_id` |
 | 7 | `transactions` | Ledger of BUY & SELL executions | `transaction_id` (INT AUTO_INCREMENT) | `portfolio_id`, `company_id` |
@@ -22,6 +22,8 @@ The authoritative database for this branch is **MySQL 8.x** utilizing the **Inno
 | 12 | `alerts` | Price & portfolio valuation threshold alerts | `alert_id` (INT AUTO_INCREMENT) | `user_id`, `company_id`, `portfolio_id` |
 | 13 | `notifications` | Notification center for alerts and corporate events | `notification_id` (INT AUTO_INCREMENT) | `user_id` &rarr; `app_users` |
 | 14 | `portfolio_goals` | Financial investment targets (value, return, income)| `goal_id` (INT AUTO_INCREMENT) | `user_id`, `portfolio_id` |
+| 15 | `inflation_rates` | Annual consumer price index inflation rates (LF-28) | `rate_id` (INT AUTO_INCREMENT) | None |
+| 16 | `currency_exchange_rates` | Foreign currency exchange rate pairs (LF-29) | `rate_id` (INT AUTO_INCREMENT) | None |
 
 ---
 
@@ -31,11 +33,18 @@ The authoritative database for this branch is **MySQL 8.x** utilizing the **Inno
    - `uq_app_users_email` on `app_users(email)`
    - `uq_companies_ticker` on `companies(ticker_symbol)`
    - `uq_portfolio_snapshot_date` on `portfolio_snapshots(portfolio_id, snapshot_date)`
+   - `uq_inflation_country_year` on `inflation_rates(country_code, year)`
+   - `uq_exchange_pair_date` on `currency_exchange_rates(from_currency, to_currency, effective_date)`
 2. **Check Constraints:**
    - `ck_transactions_type`: `transaction_type IN ('BUY', 'SELL')`
    - `ck_transactions_quantity`: `quantity > 0`
    - `ck_transactions_price`: `price_per_share > 0`
    - `ck_transactions_fee`: `fee >= 0` (LF-27 non-negative transaction fee constraint)
+   - `ck_companies_asset_type`: `asset_type IN ('EQUITY', 'ETF', 'MUTUAL_FUND', 'CASH')`
+   - `ck_companies_currency`: `currency IN ('BDT', 'USD')`
+   - `ck_portfolios_currency`: `currency IN ('BDT', 'USD')`
+   - `ck_inflation_rates_year`: `year BETWEEN 1900 AND 2100`
+   - `ck_currency_exchange_rates_rate`: `exchange_rate > 0`
    - `ck_transaction_audit_action`: `action_type IN ('INSERT', 'UPDATE', 'DELETE')`
    - `ck_alerts_type`: `alert_type IN ('PRICE_ABOVE', 'PRICE_BELOW', 'PORTFOLIO_VALUE_ABOVE', 'PORTFOLIO_VALUE_BELOW')`
    - `ck_alerts_threshold`: `threshold_value > 0`

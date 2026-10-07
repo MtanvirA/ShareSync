@@ -51,16 +51,21 @@ VALUES
 -- ============================================================
 -- 3. COMPANIES
 -- ============================================================
-INSERT INTO companies (company_id, company_name, ticker_symbol, sector_id, current_price, market_cap, is_active, created_at)
+INSERT INTO companies (company_id, company_name, ticker_symbol, sector_id, current_price, market_cap, asset_type, currency, is_active, created_at)
 VALUES
-(1, 'Grameenphone Ltd.', 'GP', 1, 382.50, 516480000000.00, 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
-(2, 'Square Pharmaceuticals PLC', 'SQUAREPHARMA', 2, 228.40, 202450000000.00, 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
-(3, 'British American Tobacco Bangladesh', 'BATBC', 3, 465.20, 251200000000.00, 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
-(4, 'BRAC Bank PLC', 'BRACBANK', 4, 62.75, 96800000000.00, 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
-(5, 'Beximco Pharmaceuticals Ltd.', 'BXPHARMA', 2, 142.10, 63400000000.00, 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
-(6, 'Renata PLC', 'RENATA', 2, 785.00, 89100000000.00, 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
-(7, 'LafargeHolcim Bangladesh Ltd.', 'LHBL', 7, 71.30, 82800000000.00, 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
-(8, 'Walton Hi-Tech Industries PLC', 'WALTONHIL', 7, 692.50, 209800000000.00, 1, DATE_SUB(NOW(), INTERVAL 120 DAY));
+(1, 'Grameenphone Ltd.', 'GP', 1, 382.50, 516480000000.00, 'EQUITY', 'BDT', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(2, 'Square Pharmaceuticals PLC', 'SQUAREPHARMA', 2, 228.40, 202450000000.00, 'EQUITY', 'BDT', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(3, 'British American Tobacco Bangladesh', 'BATBC', 3, 465.20, 251200000000.00, 'EQUITY', 'BDT', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(4, 'BRAC Bank PLC', 'BRACBANK', 4, 62.75, 96800000000.00, 'EQUITY', 'BDT', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(5, 'Beximco Pharmaceuticals Ltd.', 'BXPHARMA', 2, 142.10, 63400000000.00, 'EQUITY', 'BDT', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(6, 'Renata PLC', 'RENATA', 2, 785.00, 89100000000.00, 'EQUITY', 'BDT', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(7, 'LafargeHolcim Bangladesh Ltd.', 'LHBL', 7, 71.30, 82800000000.00, 'EQUITY', 'BDT', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(8, 'Walton Hi-Tech Industries PLC', 'WALTONHIL', 7, 692.50, 209800000000.00, 'EQUITY', 'BDT', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(9, 'DSE 30 Shariah Index ETF', 'DSE30ETF', 4, 105.50, 1500000000.00, 'ETF', 'BDT', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(10, 'Grameen One Scheme Two Mutual Fund', 'GRAMEEN1MF', 4, 18.20, 3200000000.00, 'MUTUAL_FUND', 'BDT', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(11, 'BDT Liquid Cash Reserve', 'CASH-BDT', 4, 1.00, 1000000000.00, 'CASH', 'BDT', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(12, 'SPDR S&P 500 ETF Trust', 'SPY', 5, 580.00, 560000000000.00, 'ETF', 'USD', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+(13, 'USD Treasury Cash Reserve', 'CASH-USD', 4, 1.00, 1000000000.00, 'CASH', 'USD', 1, DATE_SUB(NOW(), INTERVAL 120 DAY));
 
 -- ============================================================
 -- 4. PORTFOLIOS
@@ -229,3 +234,33 @@ VALUES
 (3, 'INSERT', DATE_SUB(NOW(), INTERVAL 20 DAY), 'investor@sharesync.com', 'Profit taking SELL: 100 GP shares @ 385.00'),
 (4, 'INSERT', DATE_SUB(NOW(), INTERVAL 65 DAY), 'investor@sharesync.com', 'Initial BUY order: 400 SQUAREPHARMA @ 218.00'),
 (NULL, 'DELETE', DATE_SUB(NOW(), INTERVAL 10 DAY), 'investor@sharesync.com', 'Trigger: Deleted test tx #99: BUY 50 shares @ 350.00 (Historical audit record preserved)');
+
+-- ============================================================
+-- 15. INFLATION_RATES (Historical CPI Inflation Data)
+-- Source: Bangladesh Bureau of Statistics (BBS) / Bangladesh Bank & US BLS
+-- ============================================================
+INSERT INTO inflation_rates (country_code, year, inflation_rate, source)
+VALUES
+('BD', 2020, 5.65, 'Bangladesh Bureau of Statistics (BBS) / Bangladesh Bank'),
+('BD', 2021, 5.56, 'Bangladesh Bureau of Statistics (BBS) / Bangladesh Bank'),
+('BD', 2022, 6.15, 'Bangladesh Bureau of Statistics (BBS) / Bangladesh Bank'),
+('BD', 2023, 9.02, 'Bangladesh Bureau of Statistics (BBS) / Bangladesh Bank'),
+('BD', 2024, 9.73, 'Bangladesh Bureau of Statistics (BBS) / Bangladesh Bank'),
+('BD', 2025, 10.20, 'Bangladesh Bureau of Statistics (BBS) / Bangladesh Bank (Est.)'),
+('US', 2020, 1.23, 'U.S. Bureau of Labor Statistics (BLS)'),
+('US', 2021, 4.70, 'U.S. Bureau of Labor Statistics (BLS)'),
+('US', 2022, 8.00, 'U.S. Bureau of Labor Statistics (BLS)'),
+('US', 2023, 4.12, 'U.S. Bureau of Labor Statistics (BLS)'),
+('US', 2024, 2.97, 'U.S. Bureau of Labor Statistics (BLS)'),
+('US', 2025, 2.80, 'U.S. Bureau of Labor Statistics (BLS) (Est.)');
+
+-- ============================================================
+-- 16. CURRENCY_EXCHANGE_RATES
+-- Source: Bangladesh Bank Official Interbank Foreign Exchange Rate
+-- ============================================================
+INSERT INTO currency_exchange_rates (from_currency, to_currency, exchange_rate, effective_date, source)
+VALUES
+('USD', 'BDT', 122.5000, '2026-01-01', 'Bangladesh Bank Interbank Closing Rate'),
+('BDT', 'USD', 0.008163, '2026-01-01', 'Bangladesh Bank Interbank Inverse Rate'),
+('BDT', 'BDT', 1.0000,   '2026-01-01', 'Statutory Base Currency Parity'),
+('USD', 'USD', 1.0000,   '2026-01-01', 'Statutory Foreign Currency Parity');

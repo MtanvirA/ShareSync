@@ -26,8 +26,8 @@ public class CompanyService : ICompanyService
         IDividendService dividendService)
     {
         _context = context;
-        _reportService = reportService ?? new ReportService(context);
-        _dividendService = dividendService ?? new DividendService(context);
+        _reportService = reportService;
+        _dividendService = dividendService;
     }
 
     public async Task<ApiResponse<List<CompanyDto>>> GetAllCompaniesAsync(CancellationToken cancellationToken = default)

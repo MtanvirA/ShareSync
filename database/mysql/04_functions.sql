@@ -149,4 +149,28 @@ BEGIN
     RETURN ROUND(v_total_sell_inflow - v_total_buy_outflow, 2);
 END //
 
+-- ============================================================
+-- 5. fn_calculate_real_return
+-- LF-28: Calculates inflation-adjusted (real) return percentage
+-- Real Return = (((1 + Nominal Return / 100) / (1 + Inflation Rate / 100)) - 1) * 100
+-- ============================================================
+DROP FUNCTION IF EXISTS fn_calculate_real_return //
+CREATE FUNCTION fn_calculate_real_return (
+    p_nominal_return DECIMAL(14,4),
+    p_inflation_rate DECIMAL(6,2)
+) RETURNS DECIMAL(14,4)
+DETERMINISTIC
+CONTAINS SQL
+BEGIN
+    IF p_inflation_rate IS NULL OR p_nominal_return IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    IF (1.0000 + (p_inflation_rate / 100.0000)) = 0 THEN
+        RETURN 0.0000;
+    END IF;
+
+    RETURN ROUND((((1.0000 + (p_nominal_return / 100.0000)) / (1.0000 + (p_inflation_rate / 100.0000))) - 1.0000) * 100.0000, 4);
+END //
+
 DELIMITER ;

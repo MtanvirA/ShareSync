@@ -20,92 +20,93 @@
     /* Brand & Accent Tokens */
     --color-primary: #0F172A;
     --color-primary-dark: #0B1220;
-    --color-primary-soft: #E8EEF6;
+    --color-primary-soft: #E2E8F0;
     --color-accent: #1D4ED8;
-    --color-accent-soft: #EAF2FF;
+    --color-accent-hover: #1E40AF;
+    --color-accent-soft: #EFF6FF;
     --color-chart-purple: #7C3AED;
-    --color-chart-amber: #B7791F;
+    --color-chart-amber: #D97706;
 
     /* Canvas & Surface Layers */
-    --color-background: #F3F6F9;
+    --color-background: #F1F5F9;
     --color-surface: #FFFFFF;
     --color-surface-soft: #F8FAFC;
     --color-surface-hover: #F1F5F9;
     --color-surface-elevated: #FFFFFF;
 
     /* Borders & Structural Dividers */
-    --color-border: #DDE5EE;
-    --color-border-dark: #C9D3DF;
+    --color-border: #E2E8F0;
+    --color-border-dark: #CBD5E1;
     --color-divider: #E2E8F0;
 
     /* Light Mode Typography Hierarchy (WCAG AAA compliant on white) */
-    --color-text: #111827;              /* Deep slate primary text */
-    --color-text-secondary: #475569;    /* Mid-tone slate secondary text */
-    --color-text-muted: #64748B;        /* Neutral slate supporting text */
+    --color-text: #0F172A;              /* Deep slate primary text (>15:1 contrast) */
+    --color-text-secondary: #334155;    /* Slate-700 secondary text (>8:1 contrast) */
+    --color-text-muted: #64748B;        /* Neutral slate supporting text (>4.5:1 contrast) */
     --color-muted: var(--color-text-muted);
 
     /* Sidebar Navigation */
-    --color-sidebar: #0D1726;
-    --color-sidebar-text: #E5EEF7;
-    --color-sidebar-link: #C7D2E0;
-    --color-sidebar-muted: #8FA3BA;
-    --color-sidebar-hover: rgba(255, 255, 255, 0.06);
-    --color-sidebar-active-bg: rgba(255, 255, 255, 0.1);
+    --color-sidebar: #0F172A;
+    --color-sidebar-text: #F8FAFC;
+    --color-sidebar-link: #CBD5E1;
+    --color-sidebar-muted: #94A3B8;
+    --color-sidebar-hover: rgba(255, 255, 255, 0.08);
+    --color-sidebar-active-bg: rgba(255, 255, 255, 0.12);
 
     /* Financial State Semantics */
-    --color-positive: #167A4A;
-    --color-positive-soft: #EAF7EE;
+    --color-positive: #15803D;
+    --color-positive-soft: #DCFCE7;
     --color-profit: var(--color-positive);
 
-    --color-negative: #C0392B;
-    --color-negative-soft: #FCECEC;
+    --color-negative: #DC2626;
+    --color-negative-soft: #FEE2E2;
 
-    --color-warning: #B7791F;
-    --color-warning-soft: #FFF4DB;
+    --color-warning: #B45309;
+    --color-warning-soft: #FEF3C7;
 
     /* Button Colors */
-    --color-btn-primary-bg: #0F172A;
-    --color-btn-primary-hover: #1E293B;
+    --color-btn-primary-bg: #1D4ED8;
+    --color-btn-primary-hover: #1E40AF;
     --color-btn-primary-text: #FFFFFF;
 
     /* Card & Table Hovers */
-    --color-card-hover-bg: #F8FBFF;
-    --color-card-hover-border: #D6E3F9;
-    --color-table-row-hover: #F8FBFF;
+    --color-card-hover-bg: #FFFFFF;
+    --color-card-hover-border: #93C5FD;
+    --color-table-row-hover: #F8FAFC;
 
     /* Form Inputs */
     --color-input-bg: #FFFFFF;
-    --color-input-border: #DDE5EE;
+    --color-input-border: #CBD5E1;
     --color-input-focus-border: #1D4ED8;
-    --color-input-focus-ring: rgba(29, 78, 216, 0.15);
+    --color-input-focus-ring: rgba(29, 78, 216, 0.18);
+    --color-placeholder: #94A3B8;
 
     /* Shell & Navigation */
-    --color-topbar-bg: rgba(255, 255, 255, 0.96);
-    --color-topbar-border: #DDE5EE;
-    --color-sidebar-bg: #F8FAFC;
+    --color-topbar-bg: rgba(255, 255, 255, 0.98);
+    --color-topbar-border: #E2E8F0;
+    --color-sidebar-bg: #FFFFFF;
 
     /* Chart Wrappers */
     --color-chart-wrapper-bg: rgba(248, 250, 252, 0.85);
-    --color-chart-wrapper-border: #DDE5EE;
+    --color-chart-wrapper-border: #E2E8F0;
     --color-chart-wrapper-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 
     /* Elevation Scales */
-    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
     --shadow-card:
-        0 1px 1px rgba(15, 23, 42, 0.03),
-        0 6px 16px rgba(15, 23, 42, 0.04);
+        0 1px 3px rgba(15, 23, 42, 0.06),
+        0 1px 2px rgba(15, 23, 42, 0.04);
     --shadow-md:
-        0 4px 6px -1px rgba(15, 23, 42, 0.06),
-        0 2px 4px -2px rgba(15, 23, 42, 0.04);
+        0 4px 12px rgba(15, 23, 42, 0.07);
     --shadow-dropdown:
-        0 8px 24px rgba(15, 23, 42, 0.1);
+        0 10px 28px rgba(15, 23, 42, 0.12);
     --shadow-lg:
-        0 20px 25px -5px rgba(15, 23, 42, 0.1),
-        0 8px 10px -6px rgba(15, 23, 42, 0.06);
+        0 20px 32px -4px rgba(15, 23, 42, 0.14);
 
     /* Radii */
-    --radius-card: 10px;
     --radius-small: 8px;
+    --radius-card: 10px;
+    --radius-large: 14px;
     --radius-pill: 9999px;
 
     /* Spacing Rhythm Scale (4px baseline grid) */
@@ -131,24 +132,25 @@
 /* =========================================
    DARK THEME (PROFESSIONAL SLATE OBSIDIAN)
 ========================================= */
-/* THEME: Dark Mode */
-/* ACCESSIBILITY: Text Contrast */
+/* THEME: Dark Mode Contrast Enhancement */
+/* ACCESSIBILITY: Dark Mode Text Contrast */
 [data-theme="dark"],
 [data-bs-theme="dark"] {
     /* Cohesive Brand Accent: Refined Sapphire Blue */
     --color-primary: #3B82F6;
     --color-primary-dark: #2563EB;
-    --color-primary-soft: rgba(59, 130, 246, 0.15);
+    --color-primary-soft: rgba(59, 130, 246, 0.16);
     --color-accent: #60A5FA;
-    --color-accent-soft: rgba(59, 130, 246, 0.15);
-    --color-chart-purple: #8B5CF6;
-    --color-chart-amber: #F59E0B;
+    --color-accent-hover: #93C5FD;
+    --color-accent-soft: rgba(59, 130, 246, 0.16);
+    --color-chart-purple: #A78BFA;
+    --color-chart-amber: #FBBF24;
 
     /* Seamless Slate/Charcoal Canvas */
-    --color-background: #090D16;        /* Deep obsidian midnight canvas */
-    --color-surface: #111726;           /* Soft elevated card/table surface */
+    --color-background: #0B111E;        /* Deep obsidian midnight canvas */
+    --color-surface: #111827;           /* Soft elevated card/table surface */
     --color-surface-soft: #162035;      /* Secondary surface / table headers / badges */
-    --color-surface-hover: #1A243B;     /* Distinct interactive hover surface */
+    --color-surface-hover: #1E2B45;     /* Distinct interactive hover surface */
     --color-surface-elevated: #162035;  /* Dropdowns and modals */
 
     /* Soft, balanced borders that melt naturally into the dark background */
@@ -157,7 +159,7 @@
     --color-divider: rgba(255, 255, 255, 0.10);
 
     /* WCAG AA Compliant Text Contrast against Dark Canvas (#111726) */
-    --color-text: #F8FAFC;             /* Crisp near-white primary text (>13:1 contrast) */
+    --color-text: #F8FAFC;             /* Crisp near-white primary text (>14:1 contrast) */
     --color-text-secondary: #CBD5E1;   /* Balanced light slate secondary text (>8.5:1 contrast) */
     --color-text-muted: #94A3B8;       /* Legible slate metadata/helper text (>5.5:1 contrast) */
     --color-muted: var(--color-text-muted);
@@ -168,8 +170,8 @@
     --color-sidebar-text: #F8FAFC;
     --color-sidebar-link: #CBD5E1;
     --color-sidebar-muted: #94A3B8;
-    --color-sidebar-hover: rgba(255, 255, 255, 0.07);
-    --color-sidebar-active-bg: rgba(59, 130, 246, 0.18);
+    --color-sidebar-hover: rgba(255, 255, 255, 0.08);
+    --color-sidebar-active-bg: rgba(59, 130, 246, 0.20);
 
     /* Balanced Financial States */
     --color-positive: #10B981;         /* Emerald profit (>6:1 contrast) */
@@ -188,19 +190,20 @@
     --color-btn-primary-text: #FFFFFF;
 
     /* Card & Table Hovers */
-    --color-card-hover-bg: #151D2F;
+    --color-card-hover-bg: #141C2E;
     --color-card-hover-border: rgba(96, 165, 250, 0.45);
-    --color-table-row-hover: rgba(255, 255, 255, 0.04);
+    --color-table-row-hover: rgba(255, 255, 255, 0.045);
 
     /* Inputs */
     --color-input-bg: #0C1220;
-    --color-input-border: rgba(255, 255, 255, 0.14);
+    --color-input-border: rgba(255, 255, 255, 0.15);
     --color-input-focus-border: #60A5FA;
     --color-input-focus-ring: rgba(96, 165, 250, 0.28);
+    --color-placeholder: #94A3B8;
 
     /* Topbar & Navbar */
-    --color-topbar-bg: rgba(9, 13, 22, 0.96);
-    --color-topbar-border: rgba(255, 255, 255, 0.09);
+    --color-topbar-bg: rgba(11, 17, 30, 0.96);
+    --color-topbar-border: rgba(255, 255, 255, 0.10);
 
     /* Chart Wrappers */
     --color-chart-wrapper-bg: rgba(11, 15, 25, 0.60);
@@ -4315,6 +4318,212 @@ input:focus-visible {
   }
 }
 
+
+/* =========================================
+   PHASE 1: VISUAL FOUNDATION, SPACING & CONTRAST
+   System-wide Visual Hierarchy, Spacing Rhythm & Contrast
+========================================= */
+
+/* SPACING: Standard Layout Rhythm Scale */
+.content-container {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 32px 48px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .content-container {
+    padding: 16px 16px 36px;
+  }
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.summary-grid {
+  gap: 16px !important;
+  margin-bottom: 24px !important;
+}
+
+.summary-card {
+  padding: 20px 20px 18px !important;
+}
+
+.dashboard-card {
+  padding: 20px 22px !important;
+}
+
+/* TYPOGRAPHY: Financial Data Hierarchy */
+h1, .h1 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  color: var(--color-text);
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+h2, .h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  color: var(--color-text);
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+h3, .h3, h4, .h4 {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text);
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+p, .page-description {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+/* Tabular Financial Figures */
+.tabular-nums,
+.portfolio-value,
+.summary-value,
+.metric-value,
+.stat-value,
+.table td,
+.price-stat-item strong,
+.transaction-amount,
+.dividend-amount {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ACCESSIBILITY: Visible Focus Indicators */
+:focus-visible {
+  outline: 2px solid var(--color-accent) !important;
+  outline-offset: 2px !important;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.btn:focus-visible,
+.form-check-input:focus-visible,
+.profile:focus-visible {
+  outline: 2px solid var(--color-accent) !important;
+  outline-offset: 2px !important;
+}
+
+/* COMPONENT: Card Elevation and Depth */
+.summary-card,
+.dashboard-card,
+.portfolio-value-card,
+.analytics-card,
+.chart-container-card,
+.report-chart-card,
+.goal-card,
+.timeline-card,
+.app-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* THEME: Light Mode Harmonization */
+[data-theme="light"],
+:root:not([data-theme="dark"]) {
+  --color-card-hover-border: #93C5FD;
+}
+
+/* ACCESSIBILITY: Dark Mode Text Contrast */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] .h1,
+[data-theme="dark"] .h2,
+[data-theme="dark"] .h3,
+[data-theme="dark"] .h4,
+[data-theme="dark"] .h5,
+[data-theme="dark"] .h6 {
+  color: var(--color-text) !important;
+}
+
+[data-theme="dark"] p,
+[data-theme="dark"] .page-description,
+[data-theme="dark"] .card-subtitle,
+[data-theme="dark"] .text-secondary,
+[data-theme="dark"] .text-body-secondary {
+  color: var(--color-text-secondary) !important;
+}
+
+[data-theme="dark"] small,
+[data-theme="dark"] .text-muted,
+[data-theme="dark"] .form-text,
+[data-theme="dark"] .last-updated,
+[data-theme="dark"] .table-scroll-hint,
+[data-theme="dark"] .summary-meta.neutral,
+[data-theme="dark"] .score-max {
+  color: var(--color-text-muted) !important;
+}
+
+[data-theme="dark"] .form-label {
+  color: var(--color-text) !important;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+  background-color: var(--color-input-bg) !important;
+  border-color: var(--color-input-border) !important;
+  color: var(--color-text) !important;
+}
+
+[data-theme="dark"] .form-control::placeholder,
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--color-text-muted) !important;
+  opacity: 1 !important;
+}
+
+[data-theme="dark"] .table th {
+  background-color: var(--color-surface-soft) !important;
+  color: var(--color-text-secondary) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+[data-theme="dark"] .table td {
+  color: var(--color-text) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+[data-theme="dark"] .table tbody tr:hover td {
+  background-color: var(--color-surface-hover) !important;
+}
+
+[data-theme="dark"] .empty-state-title {
+  color: var(--color-text) !important;
+}
+
+[data-theme="dark"] .empty-state-text {
+  color: var(--color-text-secondary) !important;
+}
 
 /* =========================================
    ACADEMIC FEATURE REFERENCE ANCHORS

@@ -4055,3 +4055,254 @@ input:focus-visible {
 .admin-only-nav { display: none !important; }
 .is-admin-user .admin-only-nav { display: inline-flex !important; }
 .is-admin-user a.dropdown-item-link.admin-only-nav { display: flex !important; }
+
+
+/* =========================================
+   COMPONENT-LEVEL VISUAL REFINEMENTS (PHASE 2)
+========================================= */
+
+/* COMPONENT: Portfolio Summary Card */
+/* COMPONENT: Analytics Metric Card */
+.portfolio-value-card {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: var(--radius-card) !important;
+  padding: 24px !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .portfolio-value-card {
+  background: linear-gradient(135deg, #131E35 0%, #0D1629 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.32) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(59, 130, 246, 0.15) !important;
+}
+
+.portfolio-value-card .portfolio-value {
+  font-family: var(--font-display) !important;
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.15 !important;
+  font-variant-numeric: tabular-nums !important;
+  margin: 6px 0 !important;
+}
+
+/* Tabular Figures for All Financial Numerals */
+.tabular-nums,
+.portfolio-value,
+.metric-value,
+.summary-value,
+.stat-value,
+.table td,
+.price-stat-item strong,
+.transaction-amount,
+.dividend-amount {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* COMPONENT: Search Bar */
+/* COMPONENT: Company Search */
+.global-search-container {
+  max-width: 440px;
+}
+
+.global-search-container .input-group {
+  border-radius: 8px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.global-search-container .input-group-text {
+  background: var(--color-surface-soft) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+  border-radius: 8px 0 0 8px;
+  padding: 0 12px;
+}
+
+.global-search-container input {
+  height: 38px;
+  font-size: 13px;
+  background: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+  border-radius: 0 8px 8px 0;
+}
+
+/* COMPONENT: DSE Market Table */
+/* COMPONENT: Portfolio Holdings Table */
+/* COMPONENT: Report Table */
+/* RESPONSIVE: Table Overflow */
+.table-responsive {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table th {
+  padding: 11px 14px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--color-text-secondary) !important;
+  background-color: var(--color-surface-soft) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 12px 14px !important;
+  font-size: 13px !important;
+  color: var(--color-text) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.table tbody tr:hover td {
+  background-color: var(--color-surface-hover) !important;
+}
+
+.table-scroll-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+/* COMPONENT: Chart Container */
+/* CHART: Portfolio Performance */
+/* CHART: Benchmark Comparison */
+/* CHART: Investment Intelligence */
+.chart-container-card,
+.chart-wrapper,
+.report-chart-container,
+.price-history-chart-wrapper {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-card) !important;
+  padding: 20px 24px !important;
+  box-shadow: var(--shadow-card) !important;
+  position: relative;
+  min-height: 320px;
+}
+
+/* NAVIGATION: Active Tab */
+.nav-tabs {
+  border-bottom: 1px solid var(--color-border) !important;
+  gap: 4px;
+}
+
+.nav-tabs .nav-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: 9px 16px;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  background: transparent !important;
+  transition: all 0.15s ease;
+  border-radius: 6px 6px 0 0;
+}
+
+.nav-tabs .nav-link:hover {
+  color: var(--color-text) !important;
+  background: var(--color-surface-soft) !important;
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--color-accent) !important;
+  font-weight: 600;
+  border-bottom: 2px solid var(--color-accent) !important;
+  background: transparent !important;
+}
+
+/* FORM: Transaction Form */
+/* FORM: Goal Form */
+.form-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 14px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* MODAL: Company Details */
+.modal-header {
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--color-border) !important;
+  background: var(--color-surface) !important;
+}
+
+.modal-body {
+  padding: 22px !important;
+}
+
+.modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--color-border) !important;
+  background: var(--color-surface-soft) !important;
+}
+
+/* ACCESSIBILITY: Dark Mode Contrast */
+/* Empty States */
+.empty-state {
+  text-align: center;
+  padding: 44px 24px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-soft);
+}
+
+.empty-state-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 14px;
+}
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.empty-state-text {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  max-width: 380px;
+  margin: 0 auto 16px;
+  line-height: 1.45;
+}
+
+/* RESPONSIVE: Card Grid */
+@media (max-width: 1200px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

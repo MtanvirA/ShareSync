@@ -1,5 +1,6 @@
 // ============================================================
 // FEATURE: Investment Intelligence Engine (LF-31)
+// COMPONENT: Company Search
 // UI: Investment Intelligence Interactive View Controller
 // 
 // Connects UI search autocomplete, 5-year quantitative analytics API,

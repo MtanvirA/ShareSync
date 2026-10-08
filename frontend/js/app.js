@@ -536,6 +536,8 @@ function setupLastUpdated() {
   pageHeader.appendChild(updated);
 }
 
+// RESPONSIVE: Mobile Navigation
+// Builds responsive sticky bottom navigation dock for mobile devices
 function setupMobileNavigation() {
   const links = [...document.querySelectorAll(".sidebar-section:first-child .sidebar-link")];
 
@@ -4340,6 +4342,8 @@ function setupTransactionFilters() {
   loadTransactionHistory(1);
 }
 
+// UI: Watchlist Filter
+// Filters watchlist items based on distance to target price
 function setupWatchlistFilter() {
   const filter = document.getElementById("watchlistFilter");
   const table = document.querySelector(".watchlist-table");
@@ -6985,6 +6989,7 @@ async function loadAnalyticsData(portfolioId, period) {
 
 // =========================================
 // WEB FEATURE 5: BENCHMARK COMPARISON
+// CHART: Benchmark Comparison
 // =========================================
 
 let currentBenchmarkCode = "DSEX";
@@ -10125,6 +10130,8 @@ async function setupGoalsPage() {
     if (portfoliosLinkedEl) portfoliosLinkedEl.textContent = `Linked to ${uniquePortfolios} portfolio${uniquePortfolios === 1 ? "" : "s"}`;
   }
 
+  // UI: Goal Progress
+  // Renders portfolio goal progress cards with dynamic progress bars
   function renderGoals() {
     updateKpis(goalsCache);
 

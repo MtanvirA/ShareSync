@@ -22,6 +22,7 @@ public interface IApplicationDbContext
     DbSet<PortfolioHoldingView> PortfolioHoldings { get; }
     DbSet<InflationRate> InflationRates { get; }
     DbSet<CurrencyExchangeRate> CurrencyExchangeRates { get; }
+    DbSet<BenchmarkPriceHistory> BenchmarkPriceHistories { get; }
 
     Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade Database { get; }
 

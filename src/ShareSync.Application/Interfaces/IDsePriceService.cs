@@ -9,6 +9,10 @@ public class DseQuoteData
     public decimal? HighPrice { get; set; }
     public decimal? LowPrice { get; set; }
     public long? Volume { get; set; }
+    public DateTime? QuoteTimestamp { get; set; }
+    public string Source { get; set; } = "StockChartBD Live API";
+    public string Status { get; set; } = "LIVE"; // LIVE, STALE, FALLBACK
+    public string ValidationState { get; set; } = "VALID";
 }
 
 public class DsePriceUpdateResultDto
@@ -17,6 +21,7 @@ public class DsePriceUpdateResultDto
     public int HistoryCount { get; set; }
     public DateTime SyncedAt { get; set; }
     public Dictionary<string, decimal> UpdatedPrices { get; set; } = new();
+    public Dictionary<string, string> PriceProvenance { get; set; } = new();
 }
 
 public class DseListedCompanyDto

@@ -26,11 +26,15 @@ desktop.ini
 
 ## Scratch / Temporary test files
 scratch/
+archive/
 *.tmp
+*.bak
+*.orig
 
 ## Configuration & Environment Secrets
 appsettings.Development.json
 *.local.json
+Credentials.txt
 
 ## Datasets & Large External Files
 *.csv

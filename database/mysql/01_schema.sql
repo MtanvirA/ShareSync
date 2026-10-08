@@ -25,6 +25,7 @@ DROP TABLE IF EXISTS sectors;
 DROP TABLE IF EXISTS app_users;
 DROP TABLE IF EXISTS currency_exchange_rates;
 DROP TABLE IF EXISTS inflation_rates;
+DROP TABLE IF EXISTS benchmark_price_history;
 
 -- ============================================================
 -- 1. APP_USERS
@@ -491,12 +492,53 @@ CREATE TABLE currency_exchange_rates (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 17. PERFORMANCE & REPORTING INDEXES
+-- 17. BENCHMARK_PRICE_HISTORY (LF-30 Database-Backed Benchmark History)
+-- ============================================================
+CREATE TABLE benchmark_price_history (
+    benchmark_price_history_id INT AUTO_INCREMENT,
+    benchmark_code             VARCHAR(20)   NOT NULL,
+    benchmark_name             VARCHAR(100)  NOT NULL,
+    trading_date               DATE          NOT NULL,
+    close_value                DECIMAL(14,2) NOT NULL,
+    open_value                 DECIMAL(14,2),
+    high_value                 DECIMAL(14,2),
+    low_value                  DECIMAL(14,2),
+    volume                     BIGINT,
+    source                     VARCHAR(100)  NOT NULL DEFAULT 'Dhaka Stock Exchange',
+    source_dataset             VARCHAR(255),
+    source_doi                 VARCHAR(100),
+    created_at                 TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_benchmark_price_history
+        PRIMARY KEY (benchmark_price_history_id),
+
+    CONSTRAINT uq_bench_code_date
+        UNIQUE (benchmark_code, trading_date),
+
+    CONSTRAINT ck_bench_close
+        CHECK (close_value > 0),
+
+    CONSTRAINT ck_bench_open
+        CHECK (open_value IS NULL OR open_value > 0),
+
+    CONSTRAINT ck_bench_high
+        CHECK (high_value IS NULL OR high_value > 0),
+
+    CONSTRAINT ck_bench_low
+        CHECK (low_value IS NULL OR low_value > 0),
+
+    CONSTRAINT ck_bench_volume
+        CHECK (volume IS NULL OR volume >= 0)
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 18. PERFORMANCE & REPORTING INDEXES
 -- ============================================================
 CREATE INDEX idx_transactions_portfolio_date ON transactions (portfolio_id, transaction_date);
 CREATE INDEX idx_transactions_company ON transactions (company_id);
 CREATE INDEX idx_dividends_company_dates ON dividends (company_id, payment_date);
 CREATE INDEX idx_price_hist_comp_date ON company_price_history (company_id, recorded_at);
+CREATE INDEX idx_bench_code_date ON benchmark_price_history (benchmark_code, trading_date);
 CREATE INDEX idx_alerts_user ON alerts (user_id, is_active);
 CREATE INDEX idx_alerts_price_eval ON alerts (is_active, company_id, alert_type);
 CREATE INDEX idx_alerts_port_eval ON alerts (is_active, portfolio_id, alert_type);
@@ -539,3 +581,47 @@ JOIN portfolios p ON t.portfolio_id = p.portfolio_id
 JOIN companies c ON t.company_id = c.company_id
 GROUP BY t.portfolio_id, p.portfolio_name, t.company_id, c.company_name, c.ticker_symbol, c.current_price
 HAVING SUM(CASE WHEN t.transaction_type = 'BUY' THEN t.quantity WHEN t.transaction_type = 'SELL' THEN -t.quantity ELSE 0 END) > 0;
+
+-- ============================================================
+-- 17. STAGING TABLES (Historical Data Reconciliation - Phase 2)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS historical_price_staging (
+    staging_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    trading_code VARCHAR(50) NOT NULL,
+    company_id INT NULL,
+    trading_date DATE NOT NULL,
+    open_price DECIMAL(14,2) NULL,
+    high_price DECIMAL(14,2) NULL,
+    low_price DECIMAL(14,2) NULL,
+    close_price DECIMAL(14,2) NOT NULL,
+    volume BIGINT NULL,
+    source VARCHAR(100) NOT NULL,
+    source_dataset VARCHAR(255) NULL,
+    source_doi VARCHAR(100) NULL,
+    import_batch_id VARCHAR(100) NOT NULL,
+    validation_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    validation_notes VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_hps_code (trading_code),
+    INDEX idx_hps_status (validation_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS benchmark_price_staging (
+    staging_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    benchmark_code VARCHAR(50) NOT NULL,
+    trading_date DATE NOT NULL,
+    open_value DECIMAL(14,2) NULL,
+    high_value DECIMAL(14,2) NULL,
+    low_value DECIMAL(14,2) NULL,
+    close_value DECIMAL(14,2) NOT NULL,
+    volume BIGINT NULL,
+    source VARCHAR(100) NOT NULL,
+    source_dataset VARCHAR(255) NULL,
+    source_doi VARCHAR(100) NULL,
+    import_batch_id VARCHAR(100) NOT NULL,
+    validation_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    validation_notes VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_bps_code (benchmark_code),
+    INDEX idx_bps_status (validation_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

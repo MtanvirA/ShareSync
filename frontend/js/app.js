@@ -1672,6 +1672,41 @@ async function setupSettingsPage() {
     });
   }
 
+  // 6b. MFA Foundation Handlers (LF-32)
+  const generateMfaKeyBtn = document.getElementById("generateMfaKeyBtn");
+  if (generateMfaKeyBtn) {
+    generateMfaKeyBtn.addEventListener("click", async () => {
+      try {
+        generateMfaKeyBtn.disabled = true;
+        const res = await apiRequest("/auth/mfa/generate", { method: "POST" });
+        if (res && res.data) {
+          const setupDiv = document.getElementById("mfaSetupDetails");
+          const keyInput = document.getElementById("mfaSecretKeyDisplay");
+          const uriInput = document.getElementById("mfaUriDisplay");
+          if (keyInput) keyInput.value = res.data.secretKey || "";
+          if (uriInput) uriInput.value = res.data.totpUri || "";
+          if (setupDiv) setupDiv.classList.remove("d-none");
+          showToast("MFA key generated successfully.", "success");
+        }
+      } catch (err) {
+        showToast("Error generating MFA key: " + (err.message || err), "danger");
+      } finally {
+        generateMfaKeyBtn.disabled = false;
+      }
+    });
+  }
+
+  const copyMfaKeyBtn = document.getElementById("copyMfaKeyBtn");
+  if (copyMfaKeyBtn) {
+    copyMfaKeyBtn.addEventListener("click", () => {
+      const keyInput = document.getElementById("mfaSecretKeyDisplay");
+      if (keyInput && keyInput.value) {
+        navigator.clipboard.writeText(keyInput.value);
+        showToast("Secret key copied to clipboard!", "success");
+      }
+    });
+  }
+
   // 6. Data & Export Handlers
   const exportCsvBtn = document.getElementById("exportTransactionsCsvBtn");
   if (exportCsvBtn) {
@@ -3008,6 +3043,91 @@ async function setupTransactionForm() {
   const notesInput = document.getElementById("notes");
   const netImpactVal = document.getElementById("netCashImpactVal");
 
+  const secCard = document.getElementById("txSecurityInfoCard");
+  const assetBadge = document.getElementById("txAssetTypeBadge");
+  const currBadge = document.getElementById("txCurrencyBadge");
+  const fxInfo = document.getElementById("txFxRateInfo");
+  const fxRateVal = document.getElementById("txFxRateVal");
+  const baseCurrVal = document.getElementById("txBaseCurrencyVal");
+  const pricePrefix = document.getElementById("txPricePrefix");
+
+  let exchangeRatesCache = [];
+
+  function getExchangeRate(fromCurr, toCurr = "BDT") {
+    if (!fromCurr || fromCurr.toUpperCase() === toCurr.toUpperCase()) return 1.0;
+    const direct = exchangeRatesCache.find(r => 
+      r.fromCurrency && r.toCurrency &&
+      r.fromCurrency.toUpperCase() === fromCurr.toUpperCase() && 
+      r.toCurrency.toUpperCase() === toCurr.toUpperCase()
+    );
+    if (direct) return Number(direct.exchangeRate || direct.rate);
+    const inverse = exchangeRatesCache.find(r => 
+      r.fromCurrency && r.toCurrency &&
+      r.fromCurrency.toUpperCase() === toCurr.toUpperCase() && 
+      r.toCurrency.toUpperCase() === fromCurr.toUpperCase()
+    );
+    if (inverse && Number(inverse.exchangeRate || inverse.rate) > 0) {
+      return 1.0 / Number(inverse.exchangeRate || inverse.rate);
+    }
+    if (fromCurr.toUpperCase() === "USD" && toCurr.toUpperCase() === "BDT") return 121.50;
+    return 1.0;
+  }
+
+  function getSelectedCompany() {
+    if (!companySelect || !companySelect.value) return null;
+    const compId = parseInt(companySelect.value, 10);
+    return allCompaniesCache.find(c => c.companyId === compId) || null;
+  }
+
+  function updateSecurityInfo() {
+    const company = getSelectedCompany();
+    if (!company) {
+      if (secCard) secCard.classList.add("d-none");
+      if (pricePrefix) pricePrefix.textContent = " ৳ ";
+      updateNetImpact();
+      return;
+    }
+
+    const aType = (company.assetType || "EQUITY").toUpperCase();
+    const curr = (company.currency || "BDT").toUpperCase();
+
+    if (secCard) secCard.classList.remove("d-none");
+
+    if (assetBadge) {
+      assetBadge.textContent = aType;
+      const badgeClass = aType === "EQUITY" ? "bg-primary" :
+                         aType === "ETF" ? "bg-success" :
+                         aType === "MUTUAL_FUND" ? "bg-info" : "bg-secondary";
+      assetBadge.className = `badge ${badgeClass} text-white px-2 py-1`;
+    }
+
+    if (currBadge) {
+      currBadge.textContent = curr;
+    }
+
+    if (pricePrefix) {
+      pricePrefix.textContent = curr === "USD" ? " $ " : " ৳ ";
+    }
+
+    if (curr !== "BDT") {
+      const rate = getExchangeRate(curr, "BDT");
+      if (fxInfo) {
+        fxInfo.classList.remove("d-none");
+        fxInfo.classList.add("d-flex");
+      }
+      if (fxRateVal) {
+        fxRateVal.textContent = `1 ${curr} = ${rate.toFixed(2)} BDT`;
+      }
+    } else {
+      if (fxInfo) {
+        fxInfo.classList.add("d-none");
+        fxInfo.classList.remove("d-flex");
+      }
+    }
+
+    updateNetImpact();
+  }
+
   function updateNetImpact() {
     if (!netImpactVal) return;
     const qty = parseFloat(quantityInput?.value) || 0;
@@ -3016,8 +3136,28 @@ async function setupTransactionForm() {
     const gross = qty * price;
     const isBuy = (typeInput?.value || "BUY") === "BUY";
     const net = isBuy ? gross + fee : Math.max(0, gross - fee);
-    const prefix = isBuy ? "Net outflow: ৳" : "Net inflow: ৳";
-    netImpactVal.textContent = `${prefix}${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const company = getSelectedCompany();
+    const curr = (company?.currency || "BDT").toUpperCase();
+    const isForeign = curr !== "BDT";
+    const sym = curr === "USD" ? "$" : "৳";
+
+    if (isForeign) {
+      const rate = getExchangeRate(curr, "BDT");
+      const baseGross = gross * rate;
+      const baseNet = net * rate;
+      if (baseCurrVal) {
+        baseCurrVal.textContent = `৳${baseGross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      const prefix = isBuy ? "Net outflow:" : "Net inflow:";
+      netImpactVal.textContent = `${prefix} ${sym}${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (≈ ৳${baseNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+    } else {
+      if (baseCurrVal) {
+        baseCurrVal.textContent = `৳${gross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      const prefix = isBuy ? "Net outflow: ৳" : "Net inflow: ৳";
+      netImpactVal.textContent = `${prefix}${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
   }
 
   [quantityInput, priceInput, feeInput].forEach(inp => {
@@ -3049,13 +3189,21 @@ async function setupTransactionForm() {
     console.error("Failed to load portfolios for transactions:", err);
   }
 
+  // Load currencies exchange rates (LF-29)
+  try {
+    const fxRes = await apiRequest("/currencies/rates");
+    exchangeRatesCache = fxRes.data || [];
+  } catch (err) {
+    console.warn("Failed to load exchange rates for transactions:", err);
+  }
+
   // Load companies for dropdowns
   try {
     const res = await apiRequest("/companies");
     allCompaniesCache = res.data || [];
     if (companySelect) {
       companySelect.innerHTML = '<option value="">Select company</option>' +
-        allCompaniesCache.map(c => `<option value="${c.companyId}" data-price="${c.currentPrice}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
+        allCompaniesCache.map(c => `<option value="${c.companyId}" data-price="${c.currentPrice}" data-asset-type="${escapeHtml(c.assetType || 'EQUITY')}" data-currency="${escapeHtml(c.currency || 'BDT')}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
     }
 
     const companyFilter = document.getElementById("transactionCompanyFilter");
@@ -3067,13 +3215,14 @@ async function setupTransactionForm() {
     console.error("Failed to load companies for transactions:", err);
   }
 
-  // Auto-fill price & check available shares on company change
+  // Auto-fill price & check available shares on company change + update security info (LF-29)
   if (companySelect) {
     companySelect.addEventListener("change", () => {
       const selected = companySelect.options[companySelect.selectedIndex];
       if (selected && selected.dataset.price && (!idInput.value || !priceInput.value)) {
         priceInput.value = selected.dataset.price;
       }
+      updateSecurityInfo();
       updateAvailableShares();
     });
   }
@@ -3119,7 +3268,7 @@ async function setupTransactionForm() {
       dateInput.value = new Date().toISOString().split("T")[0];
     }
 
-    updateNetImpact();
+    updateSecurityInfo();
 
     const hint = document.getElementById("availableSharesHint");
     if (hint) hint.classList.add("d-none");
@@ -4051,7 +4200,10 @@ window.editTransaction = async function(transactionId) {
     if (titleEl) titleEl.textContent = "Edit transaction";
     if (subtitleEl) subtitleEl.textContent = `Update transaction #${t.transactionId}`;
     if (portfolioSelect) portfolioSelect.value = t.portfolioId;
-    if (companySelect) companySelect.value = t.companyId;
+    if (companySelect) {
+      companySelect.value = t.companyId;
+      companySelect.dispatchEvent(new Event("change"));
+    }
     if (quantityInput) quantityInput.value = t.quantity;
     if (priceInput) priceInput.value = t.pricePerShare ?? t.price ?? "";
     if (feeInput) feeInput.value = (t.fee !== undefined && t.fee !== null) ? Number(t.fee).toFixed(2) : "0.00";
@@ -6884,6 +7036,20 @@ async function loadBenchmarkComparison(portfolioId, benchmarkCode, period) {
     const res = await apiRequest(url);
     const data = res.data;
     if (!data) return;
+
+    // LF-30: Conditional Benchmark Fallback Badge Visibility
+    const fallbackBadge = document.getElementById("benchmarkFallbackBadge");
+    if (fallbackBadge) {
+      if (data.isFallback) {
+        fallbackBadge.classList.remove("d-none");
+        const tipText = data.benchmarkSource
+          ? `Database historical benchmark observations were unavailable. Using ${data.benchmarkSource}.`
+          : "Database historical benchmark observations were unavailable and a fallback reference model is being used.";
+        fallbackBadge.setAttribute("title", tipText);
+      } else {
+        fallbackBadge.classList.add("d-none");
+      }
+    }
 
     if (noticeEl && data.dataLimitationNotice) {
       noticeEl.textContent = data.dataLimitationNotice;

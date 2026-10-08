@@ -37,6 +37,11 @@ public class AuthService : IAuthService
             throw new AppException("An account with this email address already exists.", 409);
         }
 
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6)
+        {
+            throw new AppException("Password must be at least 6 characters long.", 400);
+        }
+
         var user = new AppUser
         {
             Name = request.Name.Trim(),
@@ -172,6 +177,11 @@ public class AuthService : IAuthService
         if (!string.IsNullOrEmpty(request.ConfirmNewPassword) && request.NewPassword != request.ConfirmNewPassword)
         {
             throw new AppException("New password and confirmation password do not match.", 400);
+        }
+
+        if (request.CurrentPassword == request.NewPassword)
+        {
+            throw new AppException("New password must be different from current password.", 400);
         }
 
         var user = await _context.Users

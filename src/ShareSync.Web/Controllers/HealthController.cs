@@ -64,7 +64,7 @@ public class HealthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Database connectivity check failed.");
-            return StatusCode(500, ApiResponse.Fail($"Database connectivity check failed: {ex.Message}"));
+            return StatusCode(500, ApiResponse.Fail("Database connectivity check failed. Please check server logs."));
         }
     }
 }

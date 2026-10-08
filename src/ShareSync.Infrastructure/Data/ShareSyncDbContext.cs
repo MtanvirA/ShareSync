@@ -28,6 +28,7 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
     public DbSet<PortfolioHoldingView> PortfolioHoldings => Set<PortfolioHoldingView>();
     public DbSet<InflationRate> InflationRates => Set<InflationRate>();
     public DbSet<CurrencyExchangeRate> CurrencyExchangeRates => Set<CurrencyExchangeRate>();
+    public DbSet<BenchmarkPriceHistory> BenchmarkPriceHistories => Set<BenchmarkPriceHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -845,6 +846,85 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
                 .IsRequired();
 
             entity.HasIndex(e => new { e.FromCurrency, e.ToCurrency, e.EffectiveDate }, "UQ_CURRENCY_EXCHANGE_RATES").IsUnique();
+        });
+
+        // 17. BENCHMARK_PRICE_HISTORY (LF-30 Database-Backed Benchmark History)
+        modelBuilder.Entity<BenchmarkPriceHistory>(entity =>
+        {
+            entity.ToTable("BENCHMARK_PRICE_HISTORY", t =>
+            {
+                t.HasCheckConstraint("CK_BENCH_CLOSE", "CLOSE_VALUE > 0");
+                t.HasCheckConstraint("CK_BENCH_OPEN", "OPEN_VALUE IS NULL OR OPEN_VALUE > 0");
+                t.HasCheckConstraint("CK_BENCH_HIGH", "HIGH_VALUE IS NULL OR HIGH_VALUE > 0");
+                t.HasCheckConstraint("CK_BENCH_LOW", "LOW_VALUE IS NULL OR LOW_VALUE > 0");
+                t.HasCheckConstraint("CK_BENCH_VOLUME", "VOLUME IS NULL OR VOLUME >= 0");
+            });
+
+            entity.HasKey(e => e.BenchmarkPriceHistoryId).HasName("PK_BENCHMARK_PRICE_HISTORY");
+
+            entity.Property(e => e.BenchmarkPriceHistoryId)
+                .HasColumnName("BENCHMARK_PRICE_HISTORY_ID")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.BenchmarkCode)
+                .HasColumnName("BENCHMARK_CODE")
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(e => e.BenchmarkName)
+                .HasColumnName("BENCHMARK_NAME")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(e => e.TradingDate)
+                .HasColumnName("TRADING_DATE")
+                .HasColumnType("date")
+                .IsRequired();
+
+            entity.Property(e => e.CloseValue)
+                .HasColumnName("CLOSE_VALUE")
+                .HasPrecision(14, 2)
+                .IsRequired();
+
+            entity.Property(e => e.OpenValue)
+                .HasColumnName("OPEN_VALUE")
+                .HasPrecision(14, 2);
+
+            entity.Property(e => e.HighValue)
+                .HasColumnName("HIGH_VALUE")
+                .HasPrecision(14, 2);
+
+            entity.Property(e => e.LowValue)
+                .HasColumnName("LOW_VALUE")
+                .HasPrecision(14, 2);
+
+            entity.Property(e => e.Volume)
+                .HasColumnName("VOLUME");
+
+            entity.Property(e => e.Source)
+                .HasColumnName("SOURCE")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(e => e.SourceDataset)
+                .HasColumnName("SOURCE_DATASET")
+                .HasMaxLength(255);
+
+            entity.Property(e => e.SourceDoi)
+                .HasColumnName("SOURCE_DOI")
+                .HasMaxLength(100);
+
+            entity.Property(e => e.ImportBatchId)
+                .HasColumnName("IMPORT_BATCH_ID")
+                .HasMaxLength(100);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("CREATED_AT")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            entity.HasIndex(e => new { e.BenchmarkCode, e.TradingDate }, "UQ_BENCH_CODE_DATE").IsUnique();
+            entity.HasIndex(e => new { e.BenchmarkCode, e.TradingDate }, "IDX_BENCH_CODE_DATE");
         });
     }
 }

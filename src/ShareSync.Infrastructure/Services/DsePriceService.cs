@@ -1,7 +1,9 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ShareSync.Application.Common.Helpers;
 using ShareSync.Application.Common.Interfaces;
 using ShareSync.Application.Common.Models;
 using ShareSync.Application.Interfaces;
@@ -50,78 +52,140 @@ public class DsePriceService : IDsePriceService
 
     public async Task<DseQuoteData?> FetchQuoteDetailsAsync(string tickerSymbol, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(tickerSymbol))
+        var normalizedTicker = MarketDataPathResolver.NormalizeTicker(tickerSymbol);
+        if (string.IsNullOrWhiteSpace(normalizedTicker))
         {
             return null;
         }
 
-        var normalizedTicker = tickerSymbol.Trim().ToUpperInvariant();
         var url = $"https://stockchartbd.com/api/v1.php?endpoint=quote&symbol={Uri.EscapeDataString(normalizedTicker)}";
+        const int maxAttempts = 2;
 
-        try
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            using var response = await _httpClient.GetAsync(url, cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                _logger.LogWarning("DSE quote fetch for {Ticker} returned HTTP {StatusCode}", normalizedTicker, response.StatusCode);
+                using var response = await _httpClient.GetAsync(url, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("DSE quote fetch for {Ticker} returned HTTP {StatusCode} (Attempt {Attempt}/{Max})",
+                        normalizedTicker, response.StatusCode, attempt, maxAttempts);
+
+                    if (attempt < maxAttempts && (int)response.StatusCode >= 500)
+                    {
+                        await Task.Delay(300, cancellationToken);
+                        continue;
+                    }
+                    return null;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("ok", out var okEl) && okEl.GetBoolean() &&
+                    root.TryGetProperty("quote", out var quoteEl))
+                {
+                    decimal price = 0;
+                    decimal? openPrice = null;
+                    decimal? highPrice = null;
+                    decimal? lowPrice = null;
+                    long? volume = null;
+
+                    if (quoteEl.TryGetProperty("close", out var closeEl) && closeEl.TryGetDecimal(out var parsedClose))
+                    {
+                        price = parsedClose;
+                    }
+
+                    if (quoteEl.TryGetProperty("open", out var openEl) && openEl.TryGetDecimal(out var parsedOpen))
+                    {
+                        openPrice = parsedOpen;
+                        if (price <= 0) price = parsedOpen;
+                    }
+
+                    if (quoteEl.TryGetProperty("high", out var highEl) && highEl.TryGetDecimal(out var parsedHigh))
+                    {
+                        highPrice = parsedHigh;
+                    }
+
+                    if (quoteEl.TryGetProperty("low", out var lowEl) && lowEl.TryGetDecimal(out var parsedLow))
+                    {
+                        lowPrice = parsedLow;
+                    }
+
+                    if (quoteEl.TryGetProperty("volume", out var volEl) && volEl.TryGetInt64(out var parsedVol) && parsedVol >= 0)
+                    {
+                        volume = parsedVol;
+                    }
+
+                    DateTime? quoteTimestamp = null;
+                    if (quoteEl.TryGetProperty("time", out var timeEl) || quoteEl.TryGetProperty("timestamp", out timeEl) || quoteEl.TryGetProperty("date", out timeEl) || quoteEl.TryGetProperty("updated_at", out timeEl))
+                    {
+                        if (timeEl.ValueKind == JsonValueKind.String && DateTime.TryParse(timeEl.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDt))
+                        {
+                            quoteTimestamp = parsedDt;
+                        }
+                        else if (timeEl.ValueKind == JsonValueKind.Number && timeEl.TryGetInt64(out var unixSec))
+                        {
+                            quoteTimestamp = DateTimeOffset.FromUnixTimeSeconds(unixSec).UtcDateTime;
+                        }
+                    }
+                    else if (root.TryGetProperty("timestamp", out var rootTimeEl) || root.TryGetProperty("time", out rootTimeEl) || root.TryGetProperty("date", out rootTimeEl))
+                    {
+                        if (rootTimeEl.ValueKind == JsonValueKind.String && DateTime.TryParse(rootTimeEl.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedRootDt))
+                        {
+                            quoteTimestamp = parsedRootDt;
+                        }
+                        else if (rootTimeEl.ValueKind == JsonValueKind.Number && rootTimeEl.TryGetInt64(out var unixSec))
+                        {
+                            quoteTimestamp = DateTimeOffset.FromUnixTimeSeconds(unixSec).UtcDateTime;
+                        }
+                    }
+
+                    // Validate timestamp plausibility (reject future timestamps, detect stale)
+                    if (!MarketDataPathResolver.ValidateQuoteTimestamp(quoteTimestamp, DateTime.UtcNow, out string quoteStatus, out string? tsError))
+                    {
+                        _logger.LogWarning("DSE quote for {Ticker} rejected due to timestamp anomaly: {Error}", normalizedTicker, tsError);
+                        return null;
+                    }
+
+                    // Validate price plausibility and harmonize OHLC
+                    if (MarketDataPathResolver.ValidateAndHarmonizeOhlc(price, ref openPrice, ref highPrice, ref lowPrice))
+                    {
+                        return new DseQuoteData
+                        {
+                            Price = price,
+                            OpenPrice = openPrice,
+                            HighPrice = highPrice,
+                            LowPrice = lowPrice,
+                            Volume = volume,
+                            QuoteTimestamp = quoteTimestamp,
+                            Source = "StockChartBD Live API",
+                            Status = quoteStatus,
+                            ValidationState = "VALID"
+                        };
+                    }
+                    else
+                    {
+                        _logger.LogWarning("DSE quote for {Ticker} failed sanity checks: Close={Price}", normalizedTicker, price);
+                    }
+                }
                 return null;
             }
-
-            var json = await response.Content.ReadAsStringAsync(cancellationToken);
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-
-            if (root.TryGetProperty("ok", out var okEl) && okEl.GetBoolean() &&
-                root.TryGetProperty("quote", out var quoteEl))
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                decimal price = 0;
-                decimal? openPrice = null;
-                decimal? highPrice = null;
-                decimal? lowPrice = null;
-                long? volume = null;
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to retrieve live DSE quote for ticker {Ticker} (Attempt {Attempt}/{Max}): {Message}",
+                    normalizedTicker, attempt, maxAttempts, ex.Message);
 
-                if (quoteEl.TryGetProperty("close", out var closeEl) && closeEl.TryGetDecimal(out var parsedClose) && parsedClose > 0)
+                if (attempt < maxAttempts)
                 {
-                    price = parsedClose;
-                }
-
-                if (quoteEl.TryGetProperty("open", out var openEl) && openEl.TryGetDecimal(out var parsedOpen) && parsedOpen > 0)
-                {
-                    openPrice = parsedOpen;
-                    if (price <= 0) price = parsedOpen;
-                }
-
-                if (quoteEl.TryGetProperty("high", out var highEl) && highEl.TryGetDecimal(out var parsedHigh) && parsedHigh > 0)
-                {
-                    highPrice = parsedHigh;
-                }
-
-                if (quoteEl.TryGetProperty("low", out var lowEl) && lowEl.TryGetDecimal(out var parsedLow) && parsedLow > 0)
-                {
-                    lowPrice = parsedLow;
-                }
-
-                if (quoteEl.TryGetProperty("volume", out var volEl) && volEl.TryGetInt64(out var parsedVol) && parsedVol >= 0)
-                {
-                    volume = parsedVol;
-                }
-
-                if (price > 0)
-                {
-                    return new DseQuoteData
-                    {
-                        Price = price,
-                        OpenPrice = openPrice,
-                        HighPrice = highPrice,
-                        LowPrice = lowPrice,
-                        Volume = volume
-                    };
+                    await Task.Delay(350, cancellationToken);
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to retrieve live DSE quote for ticker {Ticker}: {Message}", normalizedTicker, ex.Message);
         }
 
         return null;
@@ -131,6 +195,7 @@ public class DsePriceService : IDsePriceService
     {
         var companies = await _context.Companies.ToListAsync(cancellationToken);
         var syncTime = DateTime.UtcNow;
+        var todayDate = syncTime.Date;
         var result = new DsePriceUpdateResultDto
         {
             SyncedAt = syncTime
@@ -148,9 +213,23 @@ public class DsePriceService : IDsePriceService
         {
             try
             {
+                // Politeness delay to prevent rate limiting external DSE service
+                await Task.Delay(30, cancellationToken);
+
                 var quote = await FetchQuoteDetailsAsync(company.TickerSymbol, cancellationToken);
-                if (quote != null && quote.Price > 0)
+                if (quote != null && MarketDataPathResolver.IsValidPrice(quote.Price))
                 {
+                    // Plausibility reconciliation & deviation guard: protect against corrupt 100x or 0.01x flash anomalies
+                    if (company.CurrentPrice > 0 && !MarketDataPathResolver.ReconcilePriceMovement(company.CurrentPrice, quote.Price, out var reconResult, out var reconMsg))
+                    {
+                        _logger.LogWarning(
+                            "Reconciliation rejected for {Ticker}: {Message}. Preserving existing price {OldPrice:C}.",
+                            company.TickerSymbol, reconMsg, company.CurrentPrice);
+                        result.UpdatedPrices[company.TickerSymbol] = company.CurrentPrice;
+                        result.PriceProvenance[company.TickerSymbol] = "REJECTED_ANOMALY";
+                        continue;
+                    }
+
                     // 1. Update current price if changed
                     if (company.CurrentPrice != quote.Price)
                     {
@@ -163,30 +242,48 @@ public class DsePriceService : IDsePriceService
                     }
 
                     result.UpdatedPrices[company.TickerSymbol] = quote.Price;
+                    result.PriceProvenance[company.TickerSymbol] = quote.Status == "STALE" ? "STALE" : "LIVE";
 
-                    // 2. Duplicate Prevention Strategy:
-                    // Check if an identical price history snapshot was already recorded for this company
-                    // within the 10-minute synchronization interval.
-                    var latestHistory = await _context.CompanyPriceHistories
-                        .Where(h => h.CompanyId == company.CompanyId)
-                        .OrderByDescending(h => h.RecordedAt)
-                        .FirstOrDefaultAsync(cancellationToken);
+                    // 2. Canonical Daily Upsert & Idempotency:
+                    // Check if a price history record already exists for this company on today's trading date or within recent window
+                    var existingToday = await _context.CompanyPriceHistories
+                        .FirstOrDefaultAsync(h => h.CompanyId == company.CompanyId &&
+                            (h.TradingDate == todayDate || (h.TradingDate == null && (syncTime - h.RecordedAt) < TimeSpan.FromMinutes(10))),
+                            cancellationToken);
 
-                    bool isDuplicate = latestHistory != null &&
-                                       latestHistory.Price == quote.Price &&
-                                       (syncTime - latestHistory.RecordedAt) < TimeSpan.FromMinutes(10);
+                    string feedDataset = quote.Status == "STALE" ? "DSE Delayed/Stale Feed" : "DSE Real-Time Market Feed";
 
-                    if (!isDuplicate)
+                    if (existingToday != null)
+                    {
+                        // Update existing intraday record without creating duplicate
+                        existingToday.Price = quote.Price;
+                        if (quote.OpenPrice.HasValue && (!existingToday.OpenPrice.HasValue || existingToday.OpenPrice <= 0))
+                            existingToday.OpenPrice = quote.OpenPrice;
+                        if (quote.HighPrice.HasValue)
+                            existingToday.HighPrice = Math.Max(existingToday.HighPrice ?? quote.Price, quote.HighPrice.Value);
+                        if (quote.LowPrice.HasValue)
+                            existingToday.LowPrice = Math.Min(existingToday.LowPrice ?? quote.Price, quote.LowPrice.Value);
+                        if (quote.Volume.HasValue)
+                            existingToday.Volume = quote.Volume;
+                        existingToday.RecordedAt = syncTime;
+                        existingToday.Source = quote.Source;
+                        existingToday.SourceDataset = feedDataset;
+                    }
+                    else
                     {
                         var history = new CompanyPriceHistory
                         {
                             CompanyId = company.CompanyId,
+                            TradingDate = todayDate,
                             Price = quote.Price,
                             OpenPrice = quote.OpenPrice,
                             HighPrice = quote.HighPrice,
                             LowPrice = quote.LowPrice,
                             Volume = quote.Volume,
                             RecordedAt = syncTime,
+                            Source = quote.Source,
+                            SourceDataset = feedDataset,
+                            ImportBatchId = $"SYNC_{syncTime:yyyyMMddHHmmss}",
                             CreatedAt = syncTime
                         };
 
@@ -197,12 +294,14 @@ public class DsePriceService : IDsePriceService
                 else
                 {
                     result.UpdatedPrices[company.TickerSymbol] = company.CurrentPrice;
+                    result.PriceProvenance[company.TickerSymbol] = "PRESERVED_FALLBACK";
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failure processing price sync for company {Ticker}. Preserving current price.", company.TickerSymbol);
                 result.UpdatedPrices[company.TickerSymbol] = company.CurrentPrice;
+                result.PriceProvenance[company.TickerSymbol] = "PRESERVED_FALLBACK";
             }
         }
 
@@ -468,12 +567,18 @@ public class DsePriceService : IDsePriceService
         _context.CompanyPriceHistories.Add(historyPoint);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // 6. Attempt to populate historical price records from DSE_Data.csv
+        // 6. Attempt to populate historical price records from DSE_Data.csv with canonical path & date resolution
         try
         {
-            var csvPath = @"E:\Projects\Oracle+WebProgramming\ShareSync\Dhaka Stock Exchange Historical Data (1999-2025)\DSE_Data.csv";
-            if (File.Exists(csvPath))
+            var csvPath = MarketDataPathResolver.LocateDseCsv();
+            if (!string.IsNullOrWhiteSpace(csvPath) && File.Exists(csvPath))
             {
+                var existingDatesList = await _context.CompanyPriceHistories
+                    .Where(h => h.CompanyId == newCompany.CompanyId && h.TradingDate != null)
+                    .Select(h => h.TradingDate!.Value)
+                    .ToListAsync(cancellationToken);
+                var existingDates = existingDatesList.ToHashSet();
+
                 var dedup = new Dictionary<string, CompanyPriceHistory>();
                 using var reader = new StreamReader(csvPath);
                 string? header = await reader.ReadLineAsync(cancellationToken);
@@ -485,23 +590,31 @@ public class DsePriceService : IDsePriceService
                     var parts = line.Split(',');
                     if (parts.Length >= 7 && string.Equals(parts[0].Trim(), normalizedSymbol, StringComparison.OrdinalIgnoreCase))
                     {
-                        var dateParts = parts[1].Trim().Split('-');
-                        if (dateParts.Length != 3) continue;
-                        if (!int.TryParse(dateParts[0], out int y) || !int.TryParse(dateParts[1], out int m) || !int.TryParse(dateParts[2], out int d))
+                        if (!MarketDataPathResolver.TryParseTradingDate(parts[1], out DateTime validDate))
                             continue;
 
-                        DateTime validDate = (d <= 12 && m <= 12) ? new DateTime(y, d, m) : new DateTime(y, m, d);
-                        if (!decimal.TryParse(parts[5].Trim(), out decimal cl) || cl <= 0) continue;
-                        if (!decimal.TryParse(parts[2].Trim(), out decimal op) || op <= 0) op = cl;
-                        if (!decimal.TryParse(parts[3].Trim(), out decimal hi) || hi <= 0) hi = Math.Max(op, cl);
-                        if (!decimal.TryParse(parts[4].Trim(), out decimal lo) || lo <= 0) lo = Math.Min(op, cl);
-                        long? vol = long.TryParse(parts[6].Trim(), out long v) ? v : null;
+                        if (existingDates.Contains(validDate.Date))
+                            continue;
+
+                        if (!decimal.TryParse(parts[5].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal cl) || !MarketDataPathResolver.IsValidPrice(cl))
+                            continue;
+
+                        decimal? op = decimal.TryParse(parts[2].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal o) && o > 0 ? o : cl;
+                        decimal? hi = decimal.TryParse(parts[3].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal h) && h > 0 ? h : Math.Max(op ?? cl, cl);
+                        decimal? lo = decimal.TryParse(parts[4].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal l) && l > 0 ? l : Math.Min(op ?? cl, cl);
+
+                        if (!MarketDataPathResolver.ValidateAndHarmonizeOhlc(cl, ref op, ref hi, ref lo))
+                            continue;
+
+                        long? vol = null;
+                        if (long.TryParse(parts[6].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out long v) && v >= 0)
+                            vol = v;
 
                         var key = validDate.ToString("yyyy-MM-dd");
                         dedup[key] = new CompanyPriceHistory
                         {
                             CompanyId = newCompany.CompanyId,
-                            TradingDate = validDate,
+                            TradingDate = validDate.Date,
                             RecordedAt = validDate,
                             Price = cl,
                             OpenPrice = op,
@@ -509,8 +622,9 @@ public class DsePriceService : IDsePriceService
                             LowPrice = lo,
                             Volume = vol,
                             Source = "Harvard Dataverse",
-                            SourceDataset = "Dhaka Stock Exchange Historical Data",
+                            SourceDataset = "Dhaka Stock Exchange Historical Data (1999-2025)",
                             SourceDoi = "10.7910/DVN/XIFYT1",
+                            ImportBatchId = $"CSV_IMPORT_{DateTime.UtcNow:yyyyMMdd}",
                             CreatedAt = DateTime.UtcNow
                         };
                     }
@@ -520,7 +634,8 @@ public class DsePriceService : IDsePriceService
                 {
                     await _context.CompanyPriceHistories.AddRangeAsync(dedup.Values, cancellationToken);
                     await _context.SaveChangesAsync(cancellationToken);
-                    _logger.LogInformation("Loaded {Count} historical price records for {Ticker} from CSV", dedup.Count, normalizedSymbol);
+                    _logger.LogInformation("Loaded {Count} historical price records for {Ticker} from canonical CSV ({Path})",
+                        dedup.Count, normalizedSymbol, csvPath);
                 }
             }
         }

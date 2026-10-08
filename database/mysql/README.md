@@ -23,6 +23,7 @@ database/mysql/
 ├── reset_demo_data.sql    # Clean reset script restoring demo evaluation baseline
 ├── 01_schema.sql          # 14 application tables, indexes, constraints & holdings view
 ├── 02_seed.sql            # Full demonstration dataset across all 14 tables
+├── 03_demo_validation.sql # Demo dataset audit & referential integrity validation script
 ├── 03_queries.sql         # Interactive viva demonstration queries (JOINs, CTEs, Windows)
 ├── 04_functions.sql       # Stored functions (fn_get_weighted_avg_price, fn_calculate_unrealized_pl)
 ├── 05_procedures.sql      # Stored procedures (sp_record_transaction, sp_generate_portfolio_snapshot)
@@ -53,12 +54,18 @@ Get-Content database\mysql\04_functions.sql -Raw | mysql -u root -p sharesync
 Get-Content database\mysql\05_procedures.sql -Raw | mysql -u root -p sharesync
 Get-Content database\mysql\06_triggers.sql -Raw | mysql -u root -p sharesync
 Get-Content database\mysql\02_seed.sql -Raw | mysql -u root -p sharesync
+Get-Content database\mysql\03_demo_validation.sql -Raw | mysql -u root -p sharesync
 Get-Content database\mysql\07_tests.sql -Raw | mysql -u root -p sharesync
 ```
 
 To reset the demonstration dataset at any time during teacher evaluations:
 ```powershell
 Get-Content database\mysql\reset_demo_data.sql -Raw | mysql -u root -p sharesync
+```
+
+To audit and validate demo data integrity at any time:
+```powershell
+Get-Content database\mysql\03_demo_validation.sql -Raw | mysql -u root -p sharesync
 ```
 
 ### 3. Configure Connection String

@@ -755,6 +755,32 @@
                   </select>
                 </div>
 
+                <!-- LF-29: Canonical Asset Type, Currency & Multi-Currency Information Strip -->
+                <div id="txSecurityInfoCard" class="d-none" style="grid-column: 1 / -1; margin-top: -6px; margin-bottom: 4px;">
+                  <div class="p-2 px-3 rounded-2 d-flex flex-wrap align-items-center justify-content-between gap-2" style="background: var(--color-surface-hover, rgba(0,0,0,0.03)); border: 1px solid var(--color-border); font-size: 12px;">
+                    <div class="d-flex align-items-center gap-3">
+                      <div>
+                        <span class="text-muted me-1">Asset Type:</span>
+                        <span id="txAssetTypeBadge" class="badge bg-primary text-white px-2 py-1" style="font-size: 11px;">EQUITY</span>
+                      </div>
+                      <div>
+                        <span class="text-muted me-1">Currency:</span>
+                        <span id="txCurrencyBadge" class="badge bg-body-secondary text-body px-2 py-1" style="font-size: 11px; border: 1px solid var(--color-border);">BDT</span>
+                      </div>
+                    </div>
+                    <div id="txFxRateInfo" class="d-none align-items-center gap-3 text-muted">
+                      <div>
+                        <span>Exchange Rate:</span>
+                        <strong id="txFxRateVal" class="text-body ms-1">1 USD = 121.50 BDT</strong>
+                      </div>
+                      <div>
+                        <span>Base-Currency Value:</span>
+                        <strong id="txBaseCurrencyVal" class="text-primary ms-1">৳0.00</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Quantity -->
 
                 <div class="form-field">
@@ -777,7 +803,7 @@
                   <label for="price"> Price per share </label>
 
                   <div class="input-with-prefix">
-                    <span> ৳ </span>
+                    <span id="txPricePrefix"> ৳ </span>
 
                     <input
                       type="number"
@@ -798,7 +824,7 @@
                   </label>
 
                   <div class="input-with-prefix">
-                    <span> ৳ </span>
+                    <span id="txFeePrefix"> ৳ </span>
 
                     <input
                       type="number"

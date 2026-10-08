@@ -30,6 +30,7 @@ PROMPT 1. Creating Core Schema Tables...
 @@schema/16_portfolio_goals.sql;
 @@schema/17_inflation_rates.sql;
 @@schema/18_currency_exchange_rates.sql;
+@@schema/19_benchmark_price_history.sql;
 
 PROMPT 2. Creating Performance & Analytical Indexes...
 @@schema/11_reporting_indexes.sql;
@@ -62,6 +63,7 @@ PROMPT 7. Loading Reference & Seed Data...
 @@seed/08_insert_portfolio_snapshots.sql;
 @@seed/09_insert_company_price_history.sql;
 @@seed/10_demo_dataset.sql;
+@@seed/11_insert_benchmark_price_history.sql;
 
 COMMIT;
 

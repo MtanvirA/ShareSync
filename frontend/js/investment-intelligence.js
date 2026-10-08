@@ -286,6 +286,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const fmtCur = v => v != null && !isNaN(v) ? `৳${Number(v).toFixed(2)}` : 'N/A';
 
     setText('mReturn', fmtPct(d.summary?.historicalReturnPercentage));
+    const cagrLabelEl = document.getElementById('mCAGRLabel');
+    if (cagrLabelEl) {
+      cagrLabelEl.textContent = d.summary?.annualizedMetricLabel || 'CAGR';
+    }
     setText('mCAGR', fmtPct(d.summary?.cagrPercentage));
     setText('mVol', fmtPct(d.risk?.annualizedVolatilityPercentage));
     setText('mDraw', fmtPct(d.risk?.maximumDrawdownPercentage));

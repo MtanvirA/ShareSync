@@ -44,7 +44,9 @@ public class CompanyService : ICompanyService
                 SectorId = c.SectorId,
                 SectorName = c.Sector != null ? c.Sector.SectorName : string.Empty,
                 CurrentPrice = c.CurrentPrice,
-                MarketCap = c.MarketCap
+                MarketCap = c.MarketCap,
+                AssetType = c.AssetType,
+                Currency = c.Currency
             })
             .ToListAsync(cancellationToken);
 
@@ -71,7 +73,9 @@ public class CompanyService : ICompanyService
             SectorId = company.SectorId,
             SectorName = company.Sector != null ? company.Sector.SectorName : string.Empty,
             CurrentPrice = company.CurrentPrice,
-            MarketCap = company.MarketCap
+            MarketCap = company.MarketCap,
+            AssetType = company.AssetType,
+            Currency = company.Currency
         };
 
         return ApiResponse<CompanyDto>.Ok(dto);

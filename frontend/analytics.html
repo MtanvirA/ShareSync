@@ -714,8 +714,13 @@
                         <!-- Header with Benchmark selection & Period pills -->
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
                             <div>
-                                <span class="text-uppercase fw-bold text-primary" style="font-size: 11px; letter-spacing: 1px;">ALPHA & PERFORMANCE ATTRIBUTION</span>
-                                <h4 class="fw-bold mb-0" style="color: var(--color-text);">Portfolio vs Benchmark</h4>
+                                <span class="text-uppercase fw-bold text-primary" style="font-size: 11px; letter-spacing: 1px;">BENCHMARK OUTPERFORMANCE & ACTIVE RETURN</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <h4 class="fw-bold mb-0" style="color: var(--color-text);">Portfolio vs Benchmark</h4>
+                                    <span id="benchmarkFallbackBadge" class="badge bg-warning-subtle text-warning border border-warning-subtle d-none" style="font-size: 11px; font-weight: 500; cursor: help;" data-bs-toggle="tooltip" title="Database historical benchmark observations were unavailable and a fallback reference model is being used.">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Reference Fallback
+                                    </span>
+                                </div>
                                 <p class="text-muted mb-0" style="font-size: 13px;">
                                     Compare cumulative returns against market benchmarks across historical timeframes.
                                 </p>
@@ -728,6 +733,7 @@
                                     <select id="benchmarkSelect" class="form-select form-select-sm" style="min-width: 170px;">
                                         <option value="DSEX">DSE Broad Index (DSEX)</option>
                                         <option value="DS30">DSE 30 Blue Chip (DS30)</option>
+                                        <option value="DSES">DSE Shariah Index (DSES)</option>
                                         <option value="DSEG">DSE Shariah Index (DSEG)</option>
                                     </select>
                                 </div>

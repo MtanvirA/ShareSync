@@ -30,6 +30,15 @@ public class BenchmarkDataProvider : IBenchmarkDataProvider
                 CurrentValue = 2425.50m,
                 BaseValue = 2000.00m
             },
+            ["DSES"] = new BenchmarkDto
+            {
+                BenchmarkCode = "DSES",
+                Name = "DSE Shariah Index (DSES)",
+                Description = "Islamic compliance index reflecting Shariah-compliant equities on the Dhaka Stock Exchange.",
+                Provider = "Dhaka Stock Exchange Reference Series",
+                CurrentValue = 1530.00m,
+                BaseValue = 1250.00m
+            },
             ["DSEG"] = new BenchmarkDto
             {
                 BenchmarkCode = "DSEG",
@@ -80,6 +89,16 @@ public class BenchmarkDataProvider : IBenchmarkDataProvider
                 (new DateTime(2026, 07, 01), 1475.00m),
                 (new DateTime(2026, 09, 01), 1500.00m),
                 (new DateTime(2026, 10, 01), 1530.00m)
+            },
+            ["DSES"] = new List<(DateTime Date, decimal Value)>
+            {
+                (new DateTime(2025, 01, 01), 1300.00m),
+                (new DateTime(2025, 07, 01), 1350.00m),
+                (new DateTime(2026, 01, 01), 1390.00m),
+                (new DateTime(2026, 04, 01), 1430.00m),
+                (new DateTime(2026, 07, 01), 1475.00m),
+                (new DateTime(2026, 09, 01), 1500.00m),
+                (new DateTime(2026, 10, 01), 1530.00m)
             }
         };
     }
@@ -100,13 +119,29 @@ public class BenchmarkDataProvider : IBenchmarkDataProvider
     public BenchmarkDto? GetBenchmark(string benchmarkCode)
     {
         if (string.IsNullOrWhiteSpace(benchmarkCode)) return null;
-        return _benchmarks.TryGetValue(benchmarkCode.Trim(), out var b) ? b : null;
+        var code = benchmarkCode.Trim().ToUpperInvariant();
+        if (_benchmarks.TryGetValue(code, out var b)) return b;
+        if (code == "DSEG" && _benchmarks.TryGetValue("DSES", out var bEs)) return bEs;
+        if (code == "DSES" && _benchmarks.TryGetValue("DSEG", out var bEg)) return bEg;
+        return null;
     }
 
     public decimal GetBenchmarkValue(string benchmarkCode, DateTime date)
     {
-        var code = (benchmarkCode ?? "DSEX").Trim();
+        var code = (benchmarkCode ?? "DSEX").Trim().ToUpperInvariant();
         if (!_priceHistory.TryGetValue(code, out var series) || series.Count == 0)
+        {
+            if (code == "DSEG" && _priceHistory.TryGetValue("DSES", out var esSeries))
+            {
+                series = esSeries;
+            }
+            else if (code == "DSES" && _priceHistory.TryGetValue("DSEG", out var egSeries))
+            {
+                series = egSeries;
+            }
+        }
+
+        if (series == null || series.Count == 0)
         {
             return _benchmarks.TryGetValue(code, out var def) ? def.CurrentValue : 6000.00m;
         }

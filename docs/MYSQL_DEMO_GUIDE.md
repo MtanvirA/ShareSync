@@ -187,8 +187,14 @@ Open browser to `http://localhost:5000`.
 1. Log in with:
    - **Email:** `investor@sharesync.com`
    - **Password:** `Password123#`
-2. **Dashboard Overview:** Point out total portfolio value, total gain/loss badge, sector distribution donut chart, and portfolio allocation cards.
-3. Note how the numbers directly match the values calculated in MySQL `vw_portfolio_holdings`.
+   - **User Profile:** `Tanvir Anjum`
+2. **Dashboard Overview:** Point out total portfolio value (~৳2.35M BDT across 4 portfolios), total gain/loss badge, sector distribution donut chart across all 7 sectors, and portfolio allocation cards.
+3. Note the 4 portfolios owned by the demo investor:
+   - **Main Investment Portfolio:** Core DSE blue chips (GP, SQUAREPHARMA, BRACBANK, BATBC, MARICO, CASH-BDT)
+   - **Long-Term Growth Portfolio:** High compound growth (RENATA, WALTONHIL, LHBL, BXPHARMA, AMCL(PRAN))
+   - **Dividend Income Portfolio:** High quarterly cash yield (BATBC, GP, MARICO, SQUAREPHARMA, BRACBANK)
+   - **Global & Multi-Asset Portfolio:** Multi-asset & FX (DSE30ETF, GRAMEEN1MF, CASH-BDT, SPY, CASH-USD)
+4. Note how the numbers directly match the values calculated dynamically in MySQL `vw_portfolio_holdings`.
 
 ### 15. Create a Live Transaction (LF-29 Multi-Asset / Multi-Currency)
 1. Navigate to **Transactions** (`transactions.html`).

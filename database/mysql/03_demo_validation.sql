@@ -35,7 +35,24 @@ SELECT
     (SELECT COUNT(*) FROM benchmark_price_history) AS benchmark_history_count,
     (SELECT COUNT(*) FROM company_price_history)   AS company_price_history_count;
 
--- 2. ACTIVE HOLDINGS & VALUATION AUDIT (vw_portfolio_holdings)
+-- 2. DEMO INVESTOR (USER 1) SUMMARY
+SELECT '>>> Demo Investor (User 1) Overview' AS section;
+SELECT 
+    u.user_id,
+    u.name AS investor_name,
+    u.email AS investor_email,
+    u.role,
+    COUNT(DISTINCT p.portfolio_id) AS owned_portfolios,
+    (SELECT COUNT(*) FROM watchlists WHERE user_id = u.user_id) AS owned_watchlists,
+    (SELECT COUNT(*) FROM alerts WHERE user_id = u.user_id) AS owned_alerts,
+    (SELECT COUNT(*) FROM portfolio_goals WHERE user_id = u.user_id) AS owned_goals,
+    (SELECT COUNT(*) FROM notifications WHERE user_id = u.user_id) AS notifications_count
+FROM app_users u
+LEFT JOIN portfolios p ON u.user_id = p.user_id
+WHERE u.user_id = 1
+GROUP BY u.user_id, u.name, u.email, u.role;
+
+-- 3. ACTIVE HOLDINGS & VALUATION AUDIT (vw_portfolio_holdings)
 SELECT '>>> Active Portfolio Holdings Valuation (vw_portfolio_holdings)' AS section;
 SELECT 
     portfolio_name,
@@ -48,7 +65,7 @@ SELECT
 FROM vw_portfolio_holdings
 ORDER BY portfolio_name, ticker_symbol;
 
--- 3. FINANCIAL CONSISTENCY AUDIT
+-- 4. FINANCIAL CONSISTENCY AUDIT
 SELECT '>>> Financial Calculation Consistency Verification' AS section;
 SELECT 
     p.portfolio_name,
@@ -64,7 +81,27 @@ JOIN transactions t ON p.portfolio_id = t.portfolio_id
 GROUP BY p.portfolio_id, p.portfolio_name
 ORDER BY p.portfolio_id;
 
--- 4. REFERENTIAL INTEGRITY & CONSTRAINT INTEGRITY ASSERTIONS
+-- 5. REALIZED P/L REBALANCING AUDIT (fn_calculate_realized_pl)
+SELECT '>>> Realized P/L by Portfolio and Position (fn_calculate_realized_pl)' AS section;
+SELECT 
+    p.portfolio_name,
+    c.ticker_symbol,
+    COUNT(t.transaction_id) AS sell_orders_count,
+    SUM(t.quantity) AS total_shares_sold,
+    fn_calculate_realized_pl(t.portfolio_id, t.company_id) AS net_realized_pl,
+    CASE 
+        WHEN fn_calculate_realized_pl(t.portfolio_id, t.company_id) > 0 THEN 'PROFITABLE'
+        WHEN fn_calculate_realized_pl(t.portfolio_id, t.company_id) < 0 THEN 'LOSS-MAKING'
+        ELSE 'BREAKEVEN'
+    END AS trade_outcome
+FROM transactions t
+JOIN portfolios p ON t.portfolio_id = p.portfolio_id
+JOIN companies c ON t.company_id = c.company_id
+WHERE t.transaction_type = 'SELL'
+GROUP BY p.portfolio_name, t.portfolio_id, t.company_id, c.ticker_symbol
+ORDER BY p.portfolio_name, c.ticker_symbol;
+
+-- 6. REFERENTIAL INTEGRITY & CONSTRAINT INTEGRITY ASSERTIONS
 SELECT '>>> Referential Integrity & Validation Assertions' AS section;
 
 SELECT 

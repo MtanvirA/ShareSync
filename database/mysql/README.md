@@ -92,11 +92,38 @@ Open your browser at `http://localhost:5000`.
 
 ## Default Demo Credentials
 
-| Role | Email | Password |
+| Role | Name | Email | Password | Purpose |
+|---|---|---|---|---|
+| **Primary Investor** | `Tanvir Anjum` | `investor@sharesync.com` | `Password123#` | Complete, active evaluation account |
+| **Secondary User** | `Tanvir Anjum (Personal)` | `tanvir@sharesync.com` | `Password123#` | Personal companion portfolio |
+| **Administrator** | `System Administrator` | `admin@sharesync.com` | `Admin123#` | Platform & user management |
+
+---
+
+## Realistic Investor Demonstration Structure
+
+The primary demo account (`investor@sharesync.com`) is populated with 4 purpose-driven portfolios, 69 chronological transactions across 15 securities, 21 active positions, 11 dividends, 16 watchlist items, 8 alerts, 5 goals, 12 notifications, and 43 valuation snapshots.
+
+### Demo Portfolios
+
+| ID | Portfolio Name | Currency | Description | Active Positions |
+|---|---|---|---|---|
+| 1 | **Main Investment Portfolio** | BDT | Core diversified blue chips (GP, SQUAREPHARMA, BRACBANK, BATBC, MARICO, CASH-BDT) | 6 active holdings |
+| 2 | **Long-Term Growth Portfolio** | BDT | High compound growth (RENATA, WALTONHIL, LHBL, BXPHARMA, AMCL(PRAN)) | 5 active holdings |
+| 3 | **Dividend Income Portfolio** | BDT | High dividend yield cash cows (BATBC, GP, MARICO, SQUAREPHARMA, BRACBANK) | 5 active holdings |
+| 4 | **Global & Multi-Asset Portfolio** | BDT / USD | Mixed asset allocation (DSE30ETF, GRAMEEN1MF, CASH-BDT, SPY [USD], CASH-USD [USD]) | 5 active holdings |
+
+### Where to Evaluate Key Features
+
+| Academic Feature | Navigation / UI Path | What to Inspect |
 |---|---|---|
-| **Investor** | `investor@sharesync.com` | `Password123#` |
-| **Primary User** | `tanvir@sharesync.com` | `Password123#` |
-| **Administrator** | `admin@sharesync.com` | `Admin123#` |
+| **Realized P/L** | `transactions.html` & `reports.html` | Profitable SELLs (GP, BRACBANK, BATBC, LHBL) & loss-making SELLs (SQUAREPHARMA, BXPHARMA, RENATA). |
+| **Unrealized P/L** | `portfolio.html` & `vw_portfolio_holdings` | Dynamic mark-to-market gain/loss vs volume-weighted average buy price. |
+| **Fees & Cash Flow** | `transactions.html` & `reports.html` | Brokerage commissions (total fees ৳824) and net capital cash flow per portfolio. |
+| **Multi-Asset / FX** | `portfolio.html` & `transactions.html` | Equities, ETFs, Mutual Funds, and USD assets (SPY, CASH-USD) auto-converted via `currency_exchange_rates`. |
+| **Real Return (LF-28)** | `analytics.html` | Purchasing-power adjusted return via Fisher Equation using official BBS/BLS CPI inflation data. |
+| **Benchmark (LF-30)** | `analytics.html` | Active return / outperformance vs real 5,952 database-backed DSEX, DS30, and DSES index records. |
+| **Investment Intelligence** | `investment-intelligence.html` | 5-year quantitative metrics (CAGR, MDD, Volatility, SMA 50/200) on GP, SQUAREPHARMA, BATBC, etc. |
 
 ---
 
@@ -108,9 +135,14 @@ Open your browser at `http://localhost:5000`.
    Deterministic function calculating volume-weighted average purchase price.
 3. **Unrealized P/L Function (`fn_calculate_unrealized_pl`)**:
    Deterministic function returning mark-to-market gain/loss.
-4. **Transaction Procedure (`sp_record_transaction`)**:
+4. **Realized P/L Function (`fn_calculate_realized_pl`)**:
+   Calculates realized capital gains/losses on all liquidated SELL quantities.
+5. **Net Cash Flow Function (`fn_calculate_net_cash_flow`)**:
+   Calculates net capital flows including trade fees.
+6. **Transaction Procedure (`sp_record_transaction`)**:
    Validates inputs, performs oversell checks for SELL orders, executes atomic insert, and outputs generated ID and status message.
-5. **Snapshot Procedure (`sp_generate_portfolio_snapshot`)**:
+7. **Snapshot Procedure (`sp_generate_portfolio_snapshot`)**:
    Calculates portfolio valuation and performs `ON DUPLICATE KEY UPDATE` upsert into `portfolio_snapshots`.
-6. **Audit Triggers (`trg_transactions_after_*`)**:
+8. **Audit Triggers (`trg_transactions_after_*`)**:
    Audits all INSERT, UPDATE, and DELETE actions on `transactions` into `transaction_audit`. On DELETE, historical audit rows are preserved with `transaction_id = NULL` and full metadata.
+

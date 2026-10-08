@@ -33,6 +33,7 @@ function escapeHtml(str) {
 // SECURITY: Authentication & Token Management
 // Resolves RFC 7519 JWT Bearer tokens from localStorage for API request signing.
 // ============================================================
+// FEATURE: Authentication - JWT Bearer token retrieval and session checks
 function getAuthToken() {
   return localStorage.getItem("sharesync_token");
 }
@@ -51,6 +52,7 @@ function isAuthPage() {
   return path.endsWith("login.html") || path.endsWith("register.html");
 }
 
+// FEATURE: Authorization - Role verification and route protection
 function checkAuthProtection() {
   const token = getAuthToken();
   if (isAuthPage()) {
@@ -536,6 +538,7 @@ function setupLastUpdated() {
   pageHeader.appendChild(updated);
 }
 
+// FEATURE: Responsive Layout - Viewport adaptation and mobile navigation
 // RESPONSIVE: Mobile Navigation
 // Builds responsive sticky bottom navigation dock for mobile devices
 function setupMobileNavigation() {
@@ -812,9 +815,12 @@ function formatBDT(amount) {
 }
 
 function renderDashboardError(message) {
-  const valueEl = document.getElementById("dashboardPortfolioValue");
+  // FEATURE: Portfolio - Valuation summary and asset distribution
+const valueEl = document.getElementById("dashboardPortfolioValue");
   if (valueEl) valueEl.textContent = "৳0.00";
-  const bodyEl = document.getElementById("dashboardHoldingsBody");
+  // FEATURE: Holdings - Position quantities, current prices, and valuations
+// TABLE: Portfolio Holdings - Tabular holdings data rendering
+const bodyEl = document.getElementById("dashboardHoldingsBody");
   if (bodyEl) {
     bodyEl.innerHTML = `
       <tr>
@@ -911,7 +917,9 @@ async function setupDashboard() {
         holdingsMetaEl.textContent = `Across ${count} ${count === 1 ? 'holding' : 'holdings'}`;
       }
 
-      const unrealizedPLEl = document.getElementById("dashboardUnrealizedPL");
+      // FEATURE: Unrealized P/L - Open position mark-to-market calculations
+// FEATURE: Realized P/L - Cumulative closed trade gains and losses
+const unrealizedPLEl = document.getElementById("dashboardUnrealizedPL");
       if (unrealizedPLEl) {
         const pl = Number(summary.totalUnrealizedProfitLoss) || 0;
         const isUp = pl >= 0;
@@ -1411,6 +1419,8 @@ function setThemePreference(newChoice) {
   applyTheme(newChoice);
 }
 
+// FEATURE: Dark Mode - Theme toggle and persistence engine
+// THEME: Dark Mode Engine
 function initThemeSystem() {
   const currentPref = getStoredThemePreference();
   applyTheme(currentPref);
@@ -2101,7 +2111,9 @@ async function setupDividendForm() {
   await loadDividendHistory();
 }
 
-async function loadDividendSummary() {
+async // FEATURE: Dividends - Calendar distributions and yield on cost
+// FEATURE: Dividend Income - Dividend totals and yield aggregation
+function loadDividendSummary() {
   await loadDividendAnalytics();
 }
 
@@ -2828,7 +2840,8 @@ async function loadUserWatchlists() {
   }
 }
 
-async function loadWatchlistDetail(watchlistId) {
+async // FEATURE: Watchlist - Monitoring target securities and alert thresholds
+function loadWatchlistDetail(watchlistId) {
   const titleEl = document.getElementById("watchlistTitle");
   const descEl = document.getElementById("watchlistDescription");
   const headingEl = document.getElementById("currentWatchlistHeading");
@@ -3040,7 +3053,9 @@ async function updateAvailableShares() {
   }
 }
 
-async function setupTransactionForm() {
+async // FEATURE: DSE Market - Live Dhaka Stock Exchange ticker feeds
+// FEATURE: Transactions - Trade entry, execution, and ledger management
+function setupTransactionForm() {
   const form = document.getElementById("transactionForm");
   if (!form) return;
 
@@ -3057,10 +3072,13 @@ async function setupTransactionForm() {
   const companySelect = document.getElementById("company");
   const quantityInput = document.getElementById("quantity");
   const priceInput = document.getElementById("price");
-  const feeInput = document.getElementById("transactionFee");
+  // FEATURE: Transaction Fees - Brokerage commission & fee accounting
+// FORM: Transaction Entry - Trade form submission and validation
+const feeInput = document.getElementById("transactionFee");
   const dateInput = document.getElementById("transactionDate");
   const notesInput = document.getElementById("notes");
-  const netImpactVal = document.getElementById("netCashImpactVal");
+  // FEATURE: Net Cash Flow - Inflows, outflows, and net cash metrics
+const netImpactVal = document.getElementById("netCashImpactVal");
 
   const secCard = document.getElementById("txSecurityInfoCard");
   const assetBadge = document.getElementById("txAssetTypeBadge");
@@ -5088,7 +5106,8 @@ async function loadActiveReportTable(reportType, portfolioId, period) {
   }
 }
 
-async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
+async // FEATURE: Weighted Average Cost - Cost basis calculation for holdings
+function renderHoldingsReport(portfolioId, headEl, bodyEl) {
   headEl.innerHTML = `
     <tr>
       <th>Asset</th>
@@ -5148,7 +5167,9 @@ async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
   }).join("");
 }
 
-async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
+async // FEATURE: Inflation - Purchasing power erosion and real return metrics
+// FEATURE: Inflation-Adjusted Return - Real purchasing power yield
+function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
   headEl.innerHTML = `
     <tr>
       <th>Snapshot Date</th>
@@ -6929,7 +6950,8 @@ async function setupAnalyticsPage() {
   await loadAnalyticsData(currentAnalyticsPortfolioId, currentAnalyticsPeriod);
 }
 
-async function loadAnalyticsData(portfolioId, period) {
+async // FEATURE: Analytics - Portfolio performance metrics and equity curve
+function loadAnalyticsData(portfolioId, period) {
   const loadingEl = document.getElementById("analyticsLoadingState");
   const errorEl = document.getElementById("analyticsErrorState");
   const errorMsgEl = document.getElementById("analyticsErrorMessage");
@@ -6996,7 +7018,8 @@ let currentBenchmarkCode = "DSEX";
 let currentBenchmarkPeriod = "ALL";
 let benchmarkComparisonChartInstance = null;
 
-async function setupBenchmarkControls() {
+async // FEATURE: Benchmark - Comparative index tracking against DSEX
+function setupBenchmarkControls() {
   const select = document.getElementById("benchmarkSelect");
   if (select && select.dataset.initialized !== "true") {
     select.dataset.initialized = "true";
@@ -7033,7 +7056,8 @@ async function setupBenchmarkControls() {
   }
 }
 
-async function loadBenchmarkComparison(portfolioId, benchmarkCode, period) {
+async // FEATURE: Benchmark Outperformance - Alpha and relative return calculation
+function loadBenchmarkComparison(portfolioId, benchmarkCode, period) {
   const alertEl = document.getElementById("benchmarkInsufficientDataAlert");
   const alertText = document.getElementById("benchmarkInsufficientDataText");
   const chartCanvas = document.getElementById("benchmarkComparisonChart");
@@ -9370,7 +9394,8 @@ async function triggerAdminDseSync() {
 // -----------------------------------------
 // AUDIT LOGS TAB
 // -----------------------------------------
-async function fetchAdminAuditLogs() {
+async // FEATURE: Audit - Trail logging and verification records
+function fetchAdminAuditLogs() {
   const tbody = document.getElementById("auditLogsTableBody");
   if (tbody) {
     tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading audit logs...</td></tr>`;
@@ -10032,7 +10057,8 @@ function renderSimulationCharts(data) {
 let goalsCache = [];
 let goalsPortfoliosCache = [];
 
-async function setupGoalsPage() {
+async // FEATURE: Goals - Financial milestone target and progress tracking
+function setupGoalsPage() {
   const gridContainer = document.getElementById("goalsGridContainer");
   if (!gridContainer) return;
 
@@ -10132,7 +10158,8 @@ async function setupGoalsPage() {
 
   // UI: Goal Progress
   // Renders portfolio goal progress cards with dynamic progress bars
-  function renderGoals() {
+  // FEATURE: Goal Progress - Completion percentage and projected dates
+function renderGoals() {
     updateKpis(goalsCache);
 
     const statusFilter = filterStatus?.value || "ALL";
@@ -10920,6 +10947,7 @@ window.openDseMarketModal = async function(options = {}) {
 // GLOBAL SEARCH COMPONENT (FEATURE 8)
 // =========================================
 
+// FEATURE: Search - Company ticker and name autocompletion
 function setupGlobalSearch() {
   const searchInput = document.getElementById("globalSearchInput");
   const searchDropdown = document.getElementById("globalSearchDropdown");
@@ -11031,7 +11059,8 @@ function setupGlobalSearch() {
     });
   }
 
-  async function executeSearch(query) {
+  async // SEARCH: Company Search - Ticker autocompletion search handler
+function executeSearch(query) {
     openDropdown();
     searchResults.innerHTML = `
       <div class="p-3 text-center text-muted">

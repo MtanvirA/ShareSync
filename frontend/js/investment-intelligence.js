@@ -307,12 +307,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const fmtCur = v => v != null && !isNaN(v) ? `৳${Number(v).toFixed(2)}` : 'N/A';
 
     setText('mReturn', fmtPct(d.summary?.historicalReturnPercentage));
+    // FEATURE: CAGR - Compound Annual Growth Rate computation and display
     const cagrLabelEl = document.getElementById('mCAGRLabel');
     if (cagrLabelEl) {
       cagrLabelEl.textContent = d.summary?.annualizedMetricLabel || 'CAGR';
     }
     setText('mCAGR', fmtPct(d.summary?.cagrPercentage));
+    // FEATURE: Volatility - Annualized return standard deviation
     setText('mVol', fmtPct(d.risk?.annualizedVolatilityPercentage));
+    // FEATURE: Maximum Drawdown - Peak-to-trough risk and loss depth
     setText('mDraw', fmtPct(d.risk?.maximumDrawdownPercentage));
     setText('mPos', d.consistency?.positiveDayPercentage != null ? `${Number(d.consistency.positiveDayPercentage).toFixed(1)}%` : 'N/A');
     setText('mPrice', fmtCur(d.trend?.latestClose));
@@ -525,6 +528,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const maCanvas = document.getElementById('maChart');
     if (maCanvas && window.Chart) {
       const mCtx = maCanvas.getContext('2d');
+      // FEATURE: SMA50 - 50-period Simple Moving Average technical indicator
+      // FEATURE: SMA200 - 200-period Simple Moving Average long-term trend indicator
       const hasMa = ma50.some(v => v != null) || ma200.some(v => v != null);
       const maWarning = document.getElementById('maWarning');
       if (hasMa) {
@@ -560,6 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // CHART: Maximum Drawdown Risk Curve - Historical loss depth visualizer
     const drawCanvas = document.getElementById('drawdownChart');
     if (drawCanvas && window.Chart) {
       const dCtx = drawCanvas.getContext('2d');

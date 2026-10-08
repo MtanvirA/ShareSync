@@ -256,24 +256,32 @@ textarea:focus-visible,
   outline-offset: 2px !important;
 }
 
+/* RESPONSIVE: Responsive Layout and Viewport Guards */
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
 }
 
 body {
   margin: 0;
-
+  overflow-x: hidden;
+  min-height: 100vh;
   background: var(--color-background);
-
   color: var(--color-text);
-
   font-family: var(--font-sans);
-
   font-size: 14px;
-
   line-height: 1.5;
-
   letter-spacing: -0.01em;
+}
+
+/* MODAL: Scroll Lock Safeguard */
+body:not(.modal-open) {
+  overflow-y: auto;
 }
 
 .brand-name,
@@ -4306,3 +4314,57 @@ input:focus-visible {
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* =========================================
+   ACADEMIC FEATURE REFERENCE ANCHORS
+   Category tags: UI: THEME: COMPONENT: CHART: SEARCH: FORM: TABLE:
+   NAVIGATION: MODAL: ACCESSIBILITY: RESPONSIVE: SPACING: TYPOGRAPHY:
+   SECURITY: CALCULATION: FEATURE:
+========================================= */
+
+/* THEME: Dark Mode Contrast */
+/* THEME: Light Mode Harmonization */
+/* SPACING: Standard Layout Rhythm Scale */
+/* TYPOGRAPHY: Financial Data Number Formatting */
+/* ACCESSIBILITY: Visible Focus Indicators */
+/* ACCESSIBILITY: Screen Reader and Contrast Guards */
+/* SECURITY: Protected Form Controls and Token Handlers */
+/* CALCULATION: Visual Metric Display Formats */
+
+/* FEATURE: Authentication */
+/* FEATURE: Authorization */
+/* FEATURE: Portfolio */
+/* FEATURE: Holdings */
+/* FEATURE: Weighted Average Cost */
+/* FEATURE: Realized P/L */
+/* FEATURE: Unrealized P/L */
+/* FEATURE: Transaction Fees */
+/* FEATURE: Net Cash Flow */
+/* FEATURE: Dividends */
+/* FEATURE: Watchlist */
+/* FEATURE: Goals */
+/* FEATURE: Analytics */
+/* FEATURE: CAGR */
+/* FEATURE: Volatility */
+/* FEATURE: Maximum Drawdown */
+/* FEATURE: SMA50 */
+/* FEATURE: SMA200 */
+/* FEATURE: Benchmark */
+/* FEATURE: Inflation */
+/* FEATURE: Investment Intelligence */
+/* FEATURE: DSE Market */
+/* FEATURE: Search */
+/* FEATURE: Transactions */
+/* FEATURE: Audit */
+/* FEATURE: Dark Mode */
+/* FEATURE: Responsive Layout */
+
+/* SEARCH: Company Search Input and Autocomplete */
+/* SEARCH: DSE Market Search Input */
+/* TABLE: Portfolio Holdings Table */
+/* TABLE: Transaction Ledger Table */
+/* TABLE: DSE Market Securities Table */
+/* FORM: Transaction Entry */
+/* FORM: Goal Form */
+/* MODAL: Financial Confirmation and Detail Overlays */

@@ -593,6 +593,8 @@ namespace ShareSync.DataImporter
 
             string[] saveLocations = new[]
             {
+                Path.Combine(Directory.GetCurrentDirectory(), "docs", "reports", "DataQualityReport.json"),
+                Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", "docs", "reports", "DataQualityReport.json"),
                 "DataQualityReport.json",
                 Path.Combine(Directory.GetCurrentDirectory(), "DataQualityReport.json"),
                 Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", "DataQualityReport.json"),

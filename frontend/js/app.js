@@ -98,6 +98,8 @@ function sanitizeErrorMessage(msg, status) {
   return msg;
 }
 
+// BUGFIX: API Response Handling
+// Handles standardized error extraction, authentication redirection on 401/403, and JSON payload unpacking.
 async function apiRequest(endpoint, options = {}) {
   const token = getAuthToken();
   const isAuthReq = endpoint.startsWith("/auth/login") || endpoint.startsWith("/auth/register");
@@ -205,6 +207,8 @@ async function apiDownloadBlob(endpoint, options = {}) {
   return { blob, filename };
 }
 
+// BUGFIX: Authentication State
+// FEATURE: Authentication - User identity, session persistence, and header synchronization
 async function setupUserHeader() {
   let user = getCurrentUser();
   if (!user) return;
@@ -626,6 +630,8 @@ function timeAgo(dateInput) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// BUGFIX: Header Controls
+// Initializes global header dropdown menus for account profile, notification drawer, and mobile actions.
 function setupHeaderDropdowns() {
   const profileBtn = document.getElementById("headerProfileBtn") || document.getElementById("userProfileBtn");
   const profileDropdown = document.getElementById("profileDropdown");
@@ -650,6 +656,7 @@ function setupHeaderDropdowns() {
     }
   };
 
+  // BUGFIX: Profile Menu
   // Profile dropdown toggle
   if (profileBtn && profileDropdown) {
     profileBtn.addEventListener("click", (e) => {
@@ -671,7 +678,8 @@ function setupHeaderDropdowns() {
     });
   }
 
-  // Notification dropdown toggle
+  // BUGFIX: Notification Menu
+  // FEATURE: Notifications - Live alerts and notification center
   if (notificationBtn && notificationDropdown) {
     notificationBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -842,6 +850,8 @@ const bodyEl = document.getElementById("dashboardHoldingsBody");
   }
 }
 
+// BUGFIX: Dashboard Initialization
+// FEATURE: Portfolio Dashboard - Overview cards, asset balance, and performance trajectory
 async function setupDashboard() {
   const dashboardValueEl = document.getElementById("dashboardPortfolioValue");
   if (!dashboardValueEl) return;
@@ -887,6 +897,8 @@ async function setupDashboard() {
     });
   }
 
+  // BUGFIX: Portfolio Data Loading
+  // FEATURE: Portfolio Holdings - Quantitative assets, current prices, and gain/loss calculation
   async function loadDashboardData(period = "6m") {
     try {
       const res = await apiRequest(`/dashboard?period=${encodeURIComponent(period)}`);
@@ -1419,6 +1431,7 @@ function setThemePreference(newChoice) {
   applyTheme(newChoice);
 }
 
+// BUGFIX: Theme Toggle
 // FEATURE: Dark Mode - Theme toggle and persistence engine
 // THEME: Dark Mode Engine
 function initThemeSystem() {
@@ -1813,6 +1826,9 @@ async function setupSettingsPage() {
   }
 }
 
+// BUGFIX: Dashboard Initialization
+// Keep dashboard event binding after shared UI initialization so a startup
+// exception in an optional component cannot prevent core controls from loading.
 document.addEventListener("DOMContentLoaded", () => {
   initThemeSystem();
   checkAuthProtection();
@@ -2111,9 +2127,10 @@ async function setupDividendForm() {
   await loadDividendHistory();
 }
 
-async // FEATURE: Dividends - Calendar distributions and yield on cost
+// BUGFIX: Dashboard Initialization & Syntax Error Recovery
+// FEATURE: Dividends - Calendar distributions and yield on cost
 // FEATURE: Dividend Income - Dividend totals and yield aggregation
-function loadDividendSummary() {
+async function loadDividendSummary() {
   await loadDividendAnalytics();
 }
 
@@ -2840,8 +2857,9 @@ async function loadUserWatchlists() {
   }
 }
 
-async // FEATURE: Watchlist - Monitoring target securities and alert thresholds
-function loadWatchlistDetail(watchlistId) {
+// BUGFIX: Dashboard Initialization & Syntax Error Recovery
+// FEATURE: Watchlist - Monitoring target securities and alert thresholds
+async function loadWatchlistDetail(watchlistId) {
   const titleEl = document.getElementById("watchlistTitle");
   const descEl = document.getElementById("watchlistDescription");
   const headingEl = document.getElementById("currentWatchlistHeading");
@@ -3053,9 +3071,10 @@ async function updateAvailableShares() {
   }
 }
 
-async // FEATURE: DSE Market - Live Dhaka Stock Exchange ticker feeds
+// BUGFIX: Dashboard Initialization & Syntax Error Recovery
+// FEATURE: DSE Market - Live Dhaka Stock Exchange ticker feeds
 // FEATURE: Transactions - Trade entry, execution, and ledger management
-function setupTransactionForm() {
+async function setupTransactionForm() {
   const form = document.getElementById("transactionForm");
   if (!form) return;
 
@@ -3073,12 +3092,12 @@ function setupTransactionForm() {
   const quantityInput = document.getElementById("quantity");
   const priceInput = document.getElementById("price");
   // FEATURE: Transaction Fees - Brokerage commission & fee accounting
-// FORM: Transaction Entry - Trade form submission and validation
-const feeInput = document.getElementById("transactionFee");
+  // FORM: Transaction Entry - Trade form submission and validation
+  const feeInput = document.getElementById("transactionFee");
   const dateInput = document.getElementById("transactionDate");
   const notesInput = document.getElementById("notes");
   // FEATURE: Net Cash Flow - Inflows, outflows, and net cash metrics
-const netImpactVal = document.getElementById("netCashImpactVal");
+  const netImpactVal = document.getElementById("netCashImpactVal");
 
   const secCard = document.getElementById("txSecurityInfoCard");
   const assetBadge = document.getElementById("txAssetTypeBadge");
@@ -5106,8 +5125,9 @@ async function loadActiveReportTable(reportType, portfolioId, period) {
   }
 }
 
-async // FEATURE: Weighted Average Cost - Cost basis calculation for holdings
-function renderHoldingsReport(portfolioId, headEl, bodyEl) {
+// BUGFIX: Reports & Syntax Error Recovery
+// FEATURE: Weighted Average Cost - Cost basis calculation for holdings
+async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
   headEl.innerHTML = `
     <tr>
       <th>Asset</th>
@@ -5167,9 +5187,10 @@ function renderHoldingsReport(portfolioId, headEl, bodyEl) {
   }).join("");
 }
 
-async // FEATURE: Inflation - Purchasing power erosion and real return metrics
+// BUGFIX: Reports & Syntax Error Recovery
+// FEATURE: Inflation - Purchasing power erosion and real return metrics
 // FEATURE: Inflation-Adjusted Return - Real purchasing power yield
-function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
+async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
   headEl.innerHTML = `
     <tr>
       <th>Snapshot Date</th>
@@ -6950,8 +6971,9 @@ async function setupAnalyticsPage() {
   await loadAnalyticsData(currentAnalyticsPortfolioId, currentAnalyticsPeriod);
 }
 
-async // FEATURE: Analytics - Portfolio performance metrics and equity curve
-function loadAnalyticsData(portfolioId, period) {
+// BUGFIX: Analytics & Syntax Error Recovery
+// FEATURE: Analytics - Portfolio performance metrics and equity curve
+async function loadAnalyticsData(portfolioId, period) {
   const loadingEl = document.getElementById("analyticsLoadingState");
   const errorEl = document.getElementById("analyticsErrorState");
   const errorMsgEl = document.getElementById("analyticsErrorMessage");
@@ -7018,8 +7040,9 @@ let currentBenchmarkCode = "DSEX";
 let currentBenchmarkPeriod = "ALL";
 let benchmarkComparisonChartInstance = null;
 
-async // FEATURE: Benchmark - Comparative index tracking against DSEX
-function setupBenchmarkControls() {
+// BUGFIX: Benchmark & Syntax Error Recovery
+// FEATURE: Benchmark - Comparative index tracking against DSEX
+async function setupBenchmarkControls() {
   const select = document.getElementById("benchmarkSelect");
   if (select && select.dataset.initialized !== "true") {
     select.dataset.initialized = "true";
@@ -7056,8 +7079,9 @@ function setupBenchmarkControls() {
   }
 }
 
-async // FEATURE: Benchmark Outperformance - Alpha and relative return calculation
-function loadBenchmarkComparison(portfolioId, benchmarkCode, period) {
+// BUGFIX: Benchmark Comparison & Syntax Error Recovery
+// FEATURE: Benchmark Outperformance - Alpha and relative return calculation
+async function loadBenchmarkComparison(portfolioId, benchmarkCode, period) {
   const alertEl = document.getElementById("benchmarkInsufficientDataAlert");
   const alertText = document.getElementById("benchmarkInsufficientDataText");
   const chartCanvas = document.getElementById("benchmarkComparisonChart");
@@ -9394,8 +9418,9 @@ async function triggerAdminDseSync() {
 // -----------------------------------------
 // AUDIT LOGS TAB
 // -----------------------------------------
-async // FEATURE: Audit - Trail logging and verification records
-function fetchAdminAuditLogs() {
+// BUGFIX: Admin Audit Logs & Syntax Error Recovery
+// FEATURE: Audit - Trail logging and verification records
+async function fetchAdminAuditLogs() {
   const tbody = document.getElementById("auditLogsTableBody");
   if (tbody) {
     tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading audit logs...</td></tr>`;
@@ -10057,8 +10082,9 @@ function renderSimulationCharts(data) {
 let goalsCache = [];
 let goalsPortfoliosCache = [];
 
-async // FEATURE: Goals - Financial milestone target and progress tracking
-function setupGoalsPage() {
+// BUGFIX: Goals & Syntax Error Recovery
+// FEATURE: Goals - Financial milestone target and progress tracking
+async function setupGoalsPage() {
   const gridContainer = document.getElementById("goalsGridContainer");
   if (!gridContainer) return;
 
@@ -11059,8 +11085,9 @@ function setupGlobalSearch() {
     });
   }
 
-  async // SEARCH: Company Search - Ticker autocompletion search handler
-function executeSearch(query) {
+  // BUGFIX: Global Search & Syntax Error Recovery
+  // SEARCH: Company Search - Ticker autocompletion search handler
+  async function executeSearch(query) {
     openDropdown();
     searchResults.innerHTML = `
       <div class="p-3 text-center text-muted">

@@ -1362,9 +1362,12 @@ function updateChartsForTheme(theme) {
   }
 }
 
+// UI: Theme Toggle
+// Synchronizes theme preferences across custom CSS tokens and Bootstrap 5
 function applyTheme(themeChoice) {
   const effectiveTheme = themeChoice === "system" ? getSystemTheme() : themeChoice;
   document.documentElement.setAttribute("data-theme", effectiveTheme);
+  document.documentElement.setAttribute("data-bs-theme", effectiveTheme);
 
   const toggleBtns = document.querySelectorAll(".theme-toggle-btn, #themeToggleBtn");
   toggleBtns.forEach((btn) => {
@@ -5567,6 +5570,8 @@ async function loadUserPortfolios(selectId = null) {
   }
 }
 
+// COMPONENT: Portfolio Card
+// Renders dynamic portfolio summary cards, valuation KPI metrics, and holdings balance
 async function loadPortfolioDetail(portfolioId) {
   const titleEl = document.getElementById("portfolioTitle");
   const descEl = document.getElementById("portfolioDescription");
@@ -10964,6 +10969,8 @@ function setupGlobalSearch() {
     }
   });
 
+  // UI: Search Input Interaction
+  // Debounced query dispatcher with real-time dropdown rendering
   searchInput.addEventListener("input", () => {
     const q = searchInput.value.trim();
 
@@ -10982,6 +10989,8 @@ function setupGlobalSearch() {
     }, 280);
   });
 
+  // ACCESSIBILITY: Keyboard Interaction
+  // Full keyboard navigation support (Arrow Up/Down, Enter to select, Escape to close)
   searchInput.addEventListener("keydown", (e) => {
     const items = searchResults.querySelectorAll(".search-result-item");
     if (!items.length) return;

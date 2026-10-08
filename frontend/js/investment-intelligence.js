@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let searchTimeout = null;
 
-  // UI: Debounced Ticker Search Input Listener
+  // UI: Search Input Interaction
+  // Debounced Ticker Search Input Listener with autocomplete dropdown
   companySearchInput.addEventListener('input', (e) => {
     const query = e.target.value.trim();
     selectedCompanyId.value = '';
@@ -505,13 +506,14 @@ document.addEventListener('DOMContentLoaded', () => {
           scales: {
             x: {
               grid: { display: false },
-              ticks: { maxTicksLimit: 8, font: { size: 11 } }
+              ticks: { maxTicksLimit: 8, font: { size: 11 }, color: (document.documentElement.getAttribute('data-theme') === 'dark') ? '#94A3B8' : '#64748B' }
             },
             y: {
-              grid: { color: 'rgba(150,150,150,0.08)' },
+              grid: { color: (document.documentElement.getAttribute('data-theme') === 'dark') ? 'rgba(255,255,255,0.08)' : 'rgba(150,150,150,0.08)' },
               ticks: {
                 callback: v => `৳${v}`,
-                font: { size: 11 }
+                font: { size: 11 },
+                color: (document.documentElement.getAttribute('data-theme') === 'dark') ? '#94A3B8' : '#64748B'
               }
             }
           }
@@ -547,8 +549,8 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             },
             scales: {
-              x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 } } },
-              y: { grid: { color: 'rgba(150,150,150,0.08)' }, ticks: { callback: v => `৳${v}`, font: { size: 11 } } }
+              x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 }, color: (document.documentElement.getAttribute('data-theme') === 'dark') ? '#94A3B8' : '#64748B' } },
+              y: { grid: { color: (document.documentElement.getAttribute('data-theme') === 'dark') ? 'rgba(255,255,255,0.08)' : 'rgba(150,150,150,0.08)' }, ticks: { callback: v => `৳${v}`, font: { size: 11 }, color: (document.documentElement.getAttribute('data-theme') === 'dark') ? '#94A3B8' : '#64748B' } }
             }
           }
         });

@@ -19,6 +19,7 @@
         var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
         var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
         document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-bs-theme", theme);
         try { var u = JSON.parse(localStorage.getItem("sharesync_user") || "{}"); if ((u.role || "").toUpperCase() === "ADMIN") { document.documentElement.classList.add("is-admin-user"); } } catch(_) {}
       })();
     </script>

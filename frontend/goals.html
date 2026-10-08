@@ -3,6 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!-- Theme initialization -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem("sharesync_theme");
+        var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-bs-theme", theme);
+        try { var u = JSON.parse(localStorage.getItem("sharesync_user") || "{}"); if ((u.role || "").toUpperCase() === "ADMIN") { document.documentElement.classList.add("is-admin-user"); } } catch(_) {}
+      })();
+    </script>
+
     <title>Portfolio Goals & Progress | ShareSync</title>
     <meta
       name="description"

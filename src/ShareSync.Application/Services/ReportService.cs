@@ -115,30 +115,42 @@ public class ReportService : IReportService
         List<PortfolioHoldingsReportItemDto> items;
         var exchangeRates = await _currencyService.GetAllRatesAsync(cancellationToken);
 
+        // FEATURE: Multi-Portfolio Dashboard Aggregation
+        // CALCULATION: Aggregated Portfolio Value with Multi-Currency FX Conversion
+        // Multi-currency conversion to portfolio base currency ensures all holdings aggregate accurately into base currency
         if (viewHoldings.Any())
         {
             var compIds = viewHoldings.Select(vh => vh.CompanyId).Distinct().ToList();
+            var portIds = viewHoldings.Select(vh => vh.PortfolioId).Distinct().ToList();
             var companies = await _context.Companies
                 .AsNoTracking()
                 .Where(c => compIds.Contains(c.CompanyId))
                 .ToDictionaryAsync(c => c.CompanyId, cancellationToken);
+            var portfolios = await _context.Portfolios
+                .AsNoTracking()
+                .Where(p => portIds.Contains(p.PortfolioId))
+                .ToDictionaryAsync(p => p.PortfolioId, cancellationToken);
 
             items = viewHoldings.Select(h =>
             {
-                var invested = Math.Round(h.CurrentQuantity * h.WeightedAverageBuyPrice, 2);
-                var plPct = invested > 0
-                    ? Math.Round((h.UnrealizedProfitLoss / invested) * 100, 2)
-                    : 0m;
-
                 var comp = companies.GetValueOrDefault(h.CompanyId);
+                var port = portfolios.GetValueOrDefault(h.PortfolioId);
                 var aType = comp?.AssetType ?? "EQUITY";
                 var aCurr = comp?.Currency ?? "BDT";
+                var portCurr = port?.Currency ?? "BDT";
                 var fxRate = 1.0m;
-                if (!aCurr.Equals("BDT", StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(aCurr, portCurr, StringComparison.OrdinalIgnoreCase))
                 {
-                    var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals("BDT", StringComparison.OrdinalIgnoreCase));
+                    var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals(portCurr, StringComparison.OrdinalIgnoreCase));
                     if (r != null) fxRate = r.Rate;
                 }
+
+                var invested = Math.Round(h.CurrentQuantity * h.WeightedAverageBuyPrice * fxRate, 2);
+                var marketVal = Math.Round(h.CurrentMarketValue * fxRate, 2);
+                var unrealizedPL = Math.Round(h.UnrealizedProfitLoss * fxRate, 2);
+                var plPct = invested > 0
+                    ? Math.Round((unrealizedPL / invested) * 100, 2)
+                    : 0m;
 
                 return new PortfolioHoldingsReportItemDto
                 {
@@ -154,8 +166,8 @@ public class ReportService : IReportService
                     Currency = aCurr,
                     ExchangeRate = fxRate,
                     InvestedValue = invested,
-                    CurrentMarketValue = Math.Round(h.CurrentMarketValue, 2),
-                    UnrealizedProfitLoss = Math.Round(h.UnrealizedProfitLoss, 2),
+                    CurrentMarketValue = marketVal,
+                    UnrealizedProfitLoss = unrealizedPL,
                     ProfitLossPercentage = plPct
                 };
             }).ToList();
@@ -638,6 +650,7 @@ public class ReportService : IReportService
             .Where(t => userPortfolioIds.Contains(t.PortfolioId) && t.Company != null)
             .ToListAsync(cancellationToken);
 
+        var exchangeRates = await _currencyService.GetAllRatesAsync(cancellationToken);
         var companyList = new List<CompanyInvestmentItemDto>();
         var companyGroups = transactions.GroupBy(t => t.CompanyId);
 
@@ -650,10 +663,18 @@ public class ReportService : IReportService
 
             if (netQty <= 0) continue;
 
+            var aCurr = comp.Currency ?? "BDT";
+            var fxRate = 1.0m;
+            if (!aCurr.Equals("BDT", StringComparison.OrdinalIgnoreCase))
+            {
+                var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals("BDT", StringComparison.OrdinalIgnoreCase));
+                if (r != null) fxRate = r.Rate;
+            }
+
             var totalBuyCost = cg.Where(t => t.TransactionType == "BUY").Sum(t => t.Quantity * t.PricePerShare);
             var avgBuyPrice = buyQty > 0 ? totalBuyCost / buyQty : 0m;
-            var invested = Math.Round(netQty * avgBuyPrice, 2);
-            var marketVal = Math.Round(netQty * comp.CurrentPrice, 2);
+            var invested = Math.Round(netQty * avgBuyPrice * fxRate, 2);
+            var marketVal = Math.Round(netQty * comp.CurrentPrice * fxRate, 2);
             var pl = marketVal - invested;
 
             companyList.Add(new CompanyInvestmentItemDto
@@ -1015,10 +1036,14 @@ public class ReportService : IReportService
         var transactions = await _context.Transactions
             .AsNoTracking()
             .Include(t => t.Company)
+            .Include(t => t.Portfolio)
             .Where(t => t.PortfolioId == portfolioId && t.Company != null)
             .ToListAsync(cancellationToken);
 
         if (!transactions.Any()) return 0m;
+
+        var exchangeRates = await _currencyService.GetAllRatesAsync(cancellationToken);
+        var portCurr = transactions.First().Portfolio?.Currency ?? "BDT";
 
         decimal total = 0m;
         var groups = transactions.GroupBy(t => t.CompanyId);
@@ -1031,8 +1056,16 @@ public class ReportService : IReportService
 
             if (netQty > 0)
             {
-                var price = group.First().Company!.CurrentPrice;
-                total += netQty * price;
+                var comp = group.First().Company!;
+                var price = comp.CurrentPrice;
+                var aCurr = comp.Currency ?? "BDT";
+                var fxRate = 1.0m;
+                if (!string.Equals(aCurr, portCurr, StringComparison.OrdinalIgnoreCase))
+                {
+                    var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals(portCurr, StringComparison.OrdinalIgnoreCase));
+                    if (r != null) fxRate = r.Rate;
+                }
+                total += netQty * price * fxRate;
             }
         }
 

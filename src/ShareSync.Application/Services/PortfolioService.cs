@@ -400,8 +400,12 @@ public class PortfolioService : IPortfolioService
         var holdings = CalculateHoldings(transactions, baseCurrency, exchangeRates);
 
         var totalValue = holdings.Sum(h => h.MarketValue);
-        var totalInvested = holdings.Sum(h => (h.Shares * h.AverageBuyPrice) * h.ExchangeRate);
-        var unrealizedPL = totalValue - totalInvested;
+        // CALCULATION: Portfolio Value & Net Unrealized P/L
+        // Aggregates holdings market values and exact holdings unrealized profit/loss.
+        // Derives total invested capital as (totalValue - unrealizedPL) to avoid premature
+        // rounding errors that occur when multiplying shares by 2-decimal rounded average buy price.
+        var unrealizedPL = holdings.Sum(h => h.UnrealizedProfitLoss);
+        var totalInvested = totalValue - unrealizedPL;
         var plPct = totalInvested > 0 ? Math.Round((unrealizedPL / totalInvested) * 100, 2) : 0;
 
         // Calculate Realized P/L across ALL sell transactions in the portfolio (including closed positions)

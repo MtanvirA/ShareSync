@@ -268,9 +268,10 @@ public class DsePriceService : IDsePriceService
 
                     // 2. Canonical Daily Upsert & Idempotency:
                     // Check if a price history record already exists for this company on today's trading date or within recent window
+                    var recentWindow = syncTime.AddMinutes(-10);
                     var existingToday = await _context.CompanyPriceHistories
                         .FirstOrDefaultAsync(h => h.CompanyId == company.CompanyId &&
-                            (h.TradingDate == todayDate || (h.TradingDate == null && (syncTime - h.RecordedAt) < TimeSpan.FromMinutes(10))),
+                            (h.TradingDate == todayDate || (h.TradingDate == null && h.RecordedAt > recentWindow)),
                             cancellationToken);
 
                     string feedDataset = quote.Status == "STALE" ? "DSE Delayed/Stale Feed" : "DSE Real-Time Market Feed";

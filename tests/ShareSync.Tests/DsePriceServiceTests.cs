@@ -285,4 +285,66 @@ public class DsePriceServiceTests
         var count = await context.Companies.CountAsync(c => c.TickerSymbol == "SQURPHARMA");
         Assert.Equal(1, count);
     }
+
+    [Fact]
+    public async Task SyncAllCompanyPricesAsync_ExistingRecentIntradayHistory_TranslatesAndUpdatesWithoutDuplication()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var sector = new Sector { SectorId = 1, SectorName = "Telecommunication" };
+        context.Sectors.Add(sector);
+        var company = new Company
+        {
+            CompanyId = 1,
+            TickerSymbol = "GP",
+            CompanyName = "Grameenphone Ltd.",
+            SectorId = 1,
+            CurrentPrice = 240.00m,
+            IsActive = true
+        };
+        context.Companies.Add(company);
+        // Add existing price history recorded 5 minutes ago with null TradingDate
+        context.CompanyPriceHistories.Add(new CompanyPriceHistory
+        {
+            PriceHistoryId = 1,
+            CompanyId = 1,
+            Price = 240.00m,
+            RecordedAt = DateTime.UtcNow.AddMinutes(-5),
+            TradingDate = null
+        });
+        await context.SaveChangesAsync();
+
+        var handler = new MockHttpMessageHandler(req =>
+        {
+            var json = JsonSerializer.Serialize(new
+            {
+                ok = true,
+                quote = new
+                {
+                    symbol = "GP",
+                    close = 242.00m,
+                    open = 240.00m,
+                    high = 243.00m
+                }
+            });
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+            };
+        });
+        using var client = new HttpClient(handler);
+        var service = new DsePriceService(context, client, NullLogger<DsePriceService>.Instance);
+
+        // Act
+        var result = await service.SyncAllCompanyPricesAsync(CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.Data);
+        Assert.True(result.Data.UpdatedCount >= 1);
+        var updatedHistory = await context.CompanyPriceHistories.SingleAsync(h => h.CompanyId == 1);
+        Assert.Equal(242.00m, updatedHistory.Price);
+        Assert.Equal(243.00m, updatedHistory.HighPrice);
+    }
 }
+

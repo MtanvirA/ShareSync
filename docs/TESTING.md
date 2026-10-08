@@ -1,6 +1,6 @@
 # Testing — MySQL Version
 
-ShareSync incorporates an automated test suite of **350 automated tests**.
+ShareSync incorporates an automated test suite of **493 automated tests**.
 
 ---
 

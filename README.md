@@ -48,24 +48,27 @@ ShareSync is a full-featured, academic web-based portfolio tracking and financia
 
 ## Database Architecture
 
-The MySQL database schema (`sharesync`) consists of **14 normalized relational tables** engineered in Third Normal Form (3NF):
+The MySQL database schema (`sharesync`) consists of **17 normalized relational tables** engineered in Third Normal Form (3NF):
 
 ```
 sharesync
 ├── app_users                  # Investor and administrator credentials & roles
 ├── sectors                    # Industry classifications
-├── companies                  # Stock listings & current market prices
-├── portfolios                 # Investor wealth portfolios
-├── transactions               # Immutable BUY and SELL order records
+├── companies                  # Stock listings & current market prices (multi-asset, multi-currency)
+├── portfolios                 # Investor wealth portfolios (multi-currency base)
+├── transactions               # Immutable BUY and SELL order records with fees
 ├── transaction_audit          # Automated audit trail captured via database triggers
 ├── dividends                  # Cash dividend declarations & corporate payouts
 ├── watchlists                 # Investor watchlists
 ├── watchlist_items            # Composite-keyed bridge table for watchlist tracking
 ├── portfolio_snapshots        # Historical mark-to-market valuation snapshots
 ├── company_price_history      # Historical OHLCV market observations
+├── benchmark_price_history    # Market indices (DSEX, DS30, DSES) price history (LF-30)
 ├── alerts                     # Price and portfolio value threshold alerts
 ├── notifications              # User notifications center
-└── portfolio_goals            # Financial goals & progress tracking
+├── portfolio_goals            # Financial goals & progress tracking
+├── inflation_rates            # Annual consumer price index inflation rates (LF-28)
+└── currency_exchange_rates    # Foreign currency exchange rates for FX valuation (LF-29)
 ```
 
 ### Programmability Highlights
@@ -116,7 +119,7 @@ Open your browser to: **`http://localhost:5000`**
 
 ## Automated Testing
 
-Run the full automated test suite containing **350 tests**:
+Run the full automated test suite containing **493 tests**:
 ```powershell
 dotnet test
 ```
@@ -143,7 +146,7 @@ ShareSync/
 │   ├── ShareSync.Web/          # ASP.NET Core Web API controllers & static host
 │   └── ShareSync.DataImporter/ # Console utility for historical dataset ingestion
 └── tests/
-    └── ShareSync.Tests/        # 350 unit and integration tests
+    └── ShareSync.Tests/        # 493 unit and integration tests
 ```
 
 ---

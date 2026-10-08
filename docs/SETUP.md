@@ -68,7 +68,7 @@ Execute the unit and integration test suite:
 ```powershell
 dotnet test
 ```
-*Expected Result:* `Passed! - Failed: 0, Passed: 350, Skipped: 0, Total: 350`.
+*Expected Result:* `Passed! - Failed: 0, Passed: 493, Skipped: 0, Total: 493`.
 
 ### Step 5: Start the Web Application
 ```powershell

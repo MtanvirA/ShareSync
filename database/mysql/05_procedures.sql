@@ -10,7 +10,31 @@ DELIMITER //
 
 -- ============================================================
 -- 1. sp_record_transaction
--- Records a BUY or SELL transaction with oversell protection
+-- DATABASE: Stored Procedure — sp_record_transaction
+-- SQL CONCEPT: PROCEDURE
+-- TRANSACTION: BUY/SELL Processing
+-- TRANSACTION: SELL
+-- FEATURE: Realized P/L
+-- BUSINESS RULE: Oversell Prevention
+-- 
+-- Parameters:
+--   IN  p_portfolio_id     INT            : Target portfolio ID
+--   IN  p_company_id       INT            : Target company ID
+--   IN  p_transaction_type VARCHAR(10)    : 'BUY' or 'SELL'
+--   IN  p_quantity         DECIMAL(14,4)  : Whole share quantity to transact
+--   IN  p_price_per_share  DECIMAL(14,2)  : Execution unit price
+--   IN  p_fee              DECIMAL(14,2)  : Brokerage/exchange commission fee
+--   IN  p_changed_by       VARCHAR(100)   : Auditing principal (defaults to CURRENT_USER())
+--   OUT p_transaction_id   INT            : Generated primary key on success
+--   OUT p_status           VARCHAR(20)    : 'SUCCESS', 'ERROR', or 'OVERSELL_REJECTED'
+--   OUT p_message          VARCHAR(255)   : Human-readable execution or rejection reason
+-- 
+-- Business Logic:
+-- 1. Validates whole share integer quantity, strictly positive price, non-negative fee.
+-- 2. Verifies portfolio and company foreign key existence.
+-- 3. For SELL: computes available holding (total_bought - total_sold).
+--    Rejects with 'OVERSELL_REJECTED' if p_quantity > available holding.
+-- 4. Atomically inserts transaction, returning last generated auto-increment ID.
 -- ============================================================
 DROP PROCEDURE IF EXISTS sp_record_transaction //
 CREATE PROCEDURE sp_record_transaction (
@@ -131,7 +155,10 @@ END //
 
 -- ============================================================
 -- 2. sp_generate_portfolio_snapshot
--- Calculates mark-to-market valuation and upserts portfolio snapshot
+-- DATABASE: Stored Procedure — sp_generate_portfolio_snapshot
+-- SQL CONCEPT: PROCEDURE
+-- CALCULATION: Market Value
+-- Purpose: Calculates mark-to-market valuation across all active holdings and upserts daily portfolio snapshot.
 -- ============================================================
 DROP PROCEDURE IF EXISTS sp_generate_portfolio_snapshot //
 CREATE PROCEDURE sp_generate_portfolio_snapshot (

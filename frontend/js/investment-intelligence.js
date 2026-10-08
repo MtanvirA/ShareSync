@@ -1,3 +1,11 @@
+// ============================================================
+// FEATURE: Investment Intelligence Engine (LF-31)
+// UI: Investment Intelligence Interactive View Controller
+// 
+// Connects UI search autocomplete, 5-year quantitative analytics API,
+// Chart.js historical candlestick/moving-average visualizers, and scoring badges.
+// ============================================================
+
 document.addEventListener('DOMContentLoaded', () => {
   const companySelect = document.getElementById('companySelect');
   const analyzeBtn = document.getElementById('analyzeBtn');
@@ -17,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let searchTimeout = null;
 
+  // UI: Debounced Ticker Search Input Listener
   companySearchInput.addEventListener('input', (e) => {
     const query = e.target.value.trim();
     selectedCompanyId.value = '';
@@ -77,6 +86,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // ============================================================
+  // API: Company Autocomplete Search
+  // Sends debounced query to /api/companies/search and populates dropdown
+  // with canonical ticker, name, and sector information.
+  // ============================================================
   async function performSearch(query) {
     try {
       const res = await fetch(`/api/companies/search?q=${encodeURIComponent(query)}&limit=10`, {
@@ -178,6 +192,11 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchProfile(cid);
   });
 
+  // ============================================================
+  // API: GET /api/investment-analysis/company/{cid}
+  // FEATURE: Investment Intelligence Engine
+  // Fetches 5-year quantitative metrics and orchestrates Chart.js visualizations.
+  // ============================================================
   async function fetchProfile(cid) {
     if (currentController) currentController.abort();
     currentController = new AbortController();

@@ -8,6 +8,13 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Benchmarks Controller
+/// FEATURE: Benchmark Comparison (LF-30)
+/// 
+/// Routes: /api/benchmarks
+/// Compares investor portfolio returns against Dhaka Stock Exchange (DSE) benchmarks (DSEX, DS30, DSES).
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
@@ -27,6 +34,11 @@ public class BenchmarksController : ControllerBase
         return _currentUserService.UserId ?? throw new UnauthorizedException("User session is invalid.");
     }
 
+    /// <summary>
+    /// API: GET /api/benchmarks
+    /// BENCHMARK: Index Catalog
+    /// Retrieves all available DSE market indices and current index points.
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetBenchmarks(CancellationToken cancellationToken)
     {
@@ -34,6 +46,14 @@ public class BenchmarksController : ControllerBase
         return Ok(ApiResponse<List<BenchmarkDto>>.Ok(result));
     }
 
+    /// <summary>
+    /// API: GET /api/benchmarks/compare
+    /// FEATURE: Benchmark Comparison (LF-30)
+    /// BENCHMARK: Active Return
+    /// CALCULATION: Outperformance
+    /// 
+    /// Performs date-aligned comparison between portfolio snapshots and benchmark closing indices over requested timeframe.
+    /// </summary>
     [HttpGet("compare")]
     public async Task<IActionResult> Compare([FromQuery] BenchmarkComparisonRequestDto request, CancellationToken cancellationToken)
     {

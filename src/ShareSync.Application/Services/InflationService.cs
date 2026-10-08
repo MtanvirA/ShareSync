@@ -4,20 +4,69 @@ using ShareSync.Application.DTOs.Inflation;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// FEATURE: Inflation-Adjusted Return (LF-28)
+/// 
+/// INFLATION: CPI Data
+/// Provides access to official and calibrated historical consumer price index (CPI) annual inflation rates
+/// sourced from the Bangladesh Bureau of Statistics (BBS) / Bangladesh Bank (for Bangladesh "BD")
+/// and the U.S. Bureau of Labor Statistics (BLS) (for United States "US").
+/// 
+/// CALCULATION: Real Return (Fisher Equation)
+/// Computes purchasing-power adjusted returns: Real Return = ((1 + Nominal Return) / (1 + Cumulative Inflation)) - 1.
+/// 
+/// BUSINESS RULE: Missing-Data Integrity
+/// If any single year in the requested evaluation window is missing from both the relational database
+/// and the verified baseline, the service returns null (unavailable) rather than silently assuming 0% inflation.
+/// </summary>
 public interface IInflationService
 {
+    /// <summary>
+    /// INFLATION: Cumulative Rate Retrieval
+    /// Calculates compounding multi-year inflation over a closed interval [startYear, endYear].
+    /// </summary>
     Task<decimal?> GetCumulativeInflationRateAsync(string countryCode, int startYear, int endYear, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// CALCULATION: Real Return
+    /// Formula: Real Return = [ (1 + Nominal / 100) / (1 + Inflation / 100) - 1 ] * 100
+    /// </summary>
     decimal? CalculateRealReturn(decimal nominalReturnPct, decimal? inflationRatePct);
+
+    /// <summary>
+    /// FEATURE: Real Return for Period
+    /// Combines cumulative inflation lookup and Fisher equation real return calculation.
+    /// </summary>
     Task<RealReturnCalculationResultDto> CalculateRealReturnForPeriodAsync(string countryCode, decimal nominalReturnPct, int startYear, int endYear, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Backward-compatible overload defaulting to Bangladesh sovereign economic series ("BD").
+    /// </summary>
     Task<RealReturnCalculationResultDto> CalculateRealReturnAsync(decimal nominalReturnPct, int startYear, int endYear, string countryCode = "BD", CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// INFLATION: Annual Series Retrieval
+    /// Returns ordered chronological annual inflation rates for chart rendering and audits.
+    /// </summary>
     Task<List<InflationRateDto>> GetHistoricalRatesAsync(string countryCode, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// FEATURE: Inflation-Adjusted Return (LF-28)
+/// 
+/// PURPOSE:
+/// Evaluates whether portfolio investment returns generated true economic purchasing power growth
+/// after stripping out the erosive effects of annual consumer price index (CPI) currency inflation.
+/// 
+/// DATABASE: Table — inflation_rates
+/// Interacts with the MySQL `inflation_rates` table via EF Core, utilizing a static fallback dictionary
+/// for offline resilience and demonstration determinism.
+/// </summary>
 public class InflationService : IInflationService
 {
     private readonly IApplicationDbContext _context;
 
-    // Documented official baseline rates (Bangladesh Bank / Bangladesh Bureau of Statistics and US BLS)
+    // INFLATION: Documented official baseline rates (Bangladesh Bank / BBS and US BLS)
     private static readonly Dictionary<(string, int), decimal> StaticBaselineRates = new()
     {
         { ("BD", 2020), 5.65m },
@@ -39,6 +88,28 @@ public class InflationService : IInflationService
         _context = context;
     }
 
+    /// <summary>
+    /// INFLATION: CPI Data
+    /// CALCULATION: Cumulative Inflation
+    /// 
+    /// Formula:
+    /// Cumulative Factor = Product_{y = startYear}^{endYear} (1 + Rate_y / 100)
+    /// Cumulative Inflation (%) = (Cumulative Factor - 1.0) * 100
+    /// 
+    /// PURPOSE:
+    /// Compounds individual annual inflation figures across the requested time window.
+    /// 
+    /// INPUT:
+    /// countryCode: "BD" (Bangladesh) or "US" (United States).
+    /// startYear, endYear: Integer years defining the historical measurement horizon.
+    /// 
+    /// OUTPUT:
+    /// Compounded percentage inflation rate (e.g. 35.42%), or null if data is incomplete.
+    /// 
+    /// BUSINESS RULE: Missing-Data Integrity
+    /// If any year in [startYear, endYear] is absent from DB and static baselines, returns null.
+    /// Does not invent 0% to prevent misleading investors into false purchasing-power calculations.
+    /// </summary>
     public async Task<decimal?> GetCumulativeInflationRateAsync(string countryCode, int startYear, int endYear, CancellationToken cancellationToken = default)
     {
         if (startYear > endYear)
@@ -77,6 +148,24 @@ public class InflationService : IInflationService
         return Math.Round((cumulativeFactor - 1.0m) * 100.0m, 2);
     }
 
+    /// <summary>
+    /// CALCULATION: Real Return (Fisher Equation)
+    /// 
+    /// Formula:
+    /// (1 + r_real) = (1 + r_nominal) / (1 + i)
+    /// Real Return (%) = [ ( (1 + Nominal / 100) / (1 + Inflation / 100) ) - 1 ] * 100
+    /// 
+    /// Meaning:
+    /// Exact Fisher formula for purchasing power adjustment rather than crude linear subtraction (Nominal - Inflation).
+    /// Linear subtraction overstates returns during high inflation periods (e.g., 9-10% inflation in BD).
+    /// 
+    /// Inputs:
+    /// nominalReturnPct: Total percentage gain or loss of the portfolio/asset.
+    /// inflationRatePct: Total cumulative CPI inflation rate over the matching timeframe.
+    /// 
+    /// Output:
+    /// Real rate of return percentage rounded to 2 decimal places, or null if inflation data is missing.
+    /// </summary>
     public decimal? CalculateRealReturn(decimal nominalReturnPct, decimal? inflationRatePct)
     {
         if (!inflationRatePct.HasValue)
@@ -95,6 +184,12 @@ public class InflationService : IInflationService
         return Math.Round(realFactor * 100.0m, 2);
     }
 
+    /// <summary>
+    /// FEATURE: Inflation-Adjusted Return
+    /// API: Real Return Calculation Endpoint Backend
+    /// 
+    /// Evaluates cumulative inflation and computes real return for a specific sovereign economy and date range.
+    /// </summary>
     public async Task<RealReturnCalculationResultDto> CalculateRealReturnForPeriodAsync(
         string countryCode,
         decimal nominalReturnPct,
@@ -139,6 +234,13 @@ public class InflationService : IInflationService
         return CalculateRealReturnForPeriodAsync(countryCode, nominalReturnPct, startYear, endYear, cancellationToken);
     }
 
+    /// <summary>
+    /// INFLATION: CPI Data Retrieval
+    /// DATABASE: Table — inflation_rates
+    /// 
+    /// Fetches all registered annual CPI inflation records for the specified sovereign entity,
+    /// sorted chronologically by year. Falls back to static documented benchmarks if the table is unpopulated.
+    /// </summary>
     public async Task<List<InflationRateDto>> GetHistoricalRatesAsync(string countryCode, CancellationToken cancellationToken = default)
     {
         var normalizedCountry = string.IsNullOrWhiteSpace(countryCode) ? "BD" : countryCode.Trim().ToUpperInvariant();

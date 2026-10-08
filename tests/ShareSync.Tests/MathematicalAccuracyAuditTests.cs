@@ -15,6 +15,25 @@ using Xunit;
 
 namespace ShareSync.Tests;
 
+/// <summary>
+/// TEST: Mathematical Accuracy Audit Suite
+/// 
+/// PURPOSE:
+/// Formally audits and validates all 12 core financial formulas implemented across ShareSync
+/// against an independent mathematical oracle (IndependentReferenceCalculator):
+/// 1. Weighted Average Cost: SUM(BUY Qty * BUY Price) / SUM(BUY Qty)
+/// 2. Realized P/L: (SELL Gross - Fee) - (SELL Qty * Weighted Average Buy Cost)
+/// 3. Net Cash Flow: Total SELL Inflow - Total BUY Outflow
+/// 4. CAGR: (Ending / Starting) ^ (1 / Years) - 1
+/// 5. Annualized Volatility: Sample StdDev(Daily Returns) * SQRT(250)
+/// 6. Maximum Drawdown: MAX( (Peak - Trough) / Peak )
+/// 7. SMA 50 / SMA 200: Moving averages over chronological trading windows
+/// 8. Fisher Real Return: [ (1 + Nominal) / (1 + Cumulative Inflation) ] - 1
+/// 9. Active Return / Benchmark Outperformance: Portfolio Return - Benchmark Return
+/// 10. Currency Conversion: Amount * Exchange Rate
+/// 11. Oversell Prevention: Rejects SELL if Qty > Available Holdings
+/// 12. Dividend Yield: Gross Dividends / Total Investment
+/// </summary>
 public class MathematicalAccuracyAuditTests
 {
     private ShareSyncDbContext CreateInMemoryDbContext()

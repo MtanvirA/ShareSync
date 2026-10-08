@@ -8,6 +8,21 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Infrastructure.Security;
 
+/// <summary>
+/// SECURITY: JWT Token Generation
+/// SECURITY: Authentication & Claims Principal Factory
+/// 
+/// Issues cryptographically signed JSON Web Tokens (HMAC-SHA256) complying with RFC 7519.
+/// Claims embedded into token payload:
+/// - ClaimTypes.NameIdentifier: UserId (string representation)
+/// - ClaimTypes.Email: User normalized email
+/// - ClaimTypes.Name: User display name
+/// - ClaimTypes.Role: System authorization role ("INVESTOR" or "ADMIN")
+/// - userId: Custom claim for direct client-side parsing
+/// 
+/// CONFIGURATION: JWT Settings
+/// Reads signing key from configuration ("Jwt:Secret") without hardcoding secrets in code.
+/// </summary>
 public class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly IConfiguration _configuration;
@@ -17,6 +32,10 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         _configuration = configuration;
     }
 
+    /// <summary>
+    /// SECURITY: JWT Generation
+    /// Creates signed bearer token with configured issuer, audience, and expiration period (default 7 days).
+    /// </summary>
     public (string Token, DateTime ExpiresAt) GenerateToken(AppUser user)
     {
         var secret = _configuration["Jwt:Secret"]

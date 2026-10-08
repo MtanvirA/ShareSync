@@ -231,6 +231,7 @@ select {
    TOP BAR
 ========================================= */
 
+/* UI: Global Navigation */
 .topbar {
   height: 68px;
 
@@ -415,6 +416,7 @@ select {
    SIDEBAR (HORIZONTAL SECONDARY NAVIGATION)
 ========================================= */
 
+/* UI: Responsive Navigation */
 .sidebar {
   width: 100%;
 
@@ -751,6 +753,7 @@ select {
   margin-bottom: 20px;
 }
 
+/* UI: Dashboard Cards */
 .summary-card {
   background: var(--color-surface);
 
@@ -1810,6 +1813,7 @@ select {
   background: var(--color-negative-soft);
 }
 
+/* UI: Transaction Form */
 .transaction-type {
   margin-bottom: 22px;
 }
@@ -2720,6 +2724,7 @@ input:focus-visible {
    REPORTS PAGE
 ========================================= */
 
+/* UI: Benchmark Comparison */
 .report-controls {
     display: flex;
     align-items: center;
@@ -3700,6 +3705,7 @@ input:focus-visible {
    UNIVERSAL CARD & SECTION HOVER EFFECTS
    (Active across all 14 pages)
 ========================================= */
+/* UI: Investment Intelligence */
 .dashboard-card,
 .summary-card,
 .portfolio-value-card,

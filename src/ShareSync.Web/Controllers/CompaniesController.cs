@@ -8,6 +8,19 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Companies Controller
+/// DSE: Company Catalog & Market Data Gateway (LF-31)
+/// 
+/// Endpoints:
+/// GET /api/companies — Local canonical tracked companies
+/// GET /api/companies/{id} — Single company metadata and quote
+/// POST /api/companies/sync-prices — Bulk sync current prices from DSE / StockChartBD
+/// GET /api/companies/{id}/price-history — Historical OHLC price series
+/// GET /api/companies/dse-market-list — Complete 400+ DSE company catalog
+/// GET /api/companies/search — Real-time ticker search and autocomplete
+/// POST /api/companies/add-from-dse — Import new DSE ticker into active tracking
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
@@ -51,6 +64,11 @@ public class CompaniesController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// API: POST /api/companies/sync-prices
+    /// DSE: Price Synchronization
+    /// Triggers live market price synchronization across all active companies from StockChartBD feed.
+    /// </summary>
     [HttpPost("sync-prices")]
     public async Task<IActionResult> SyncDsePrices(CancellationToken cancellationToken)
     {

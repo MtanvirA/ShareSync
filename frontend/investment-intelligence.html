@@ -390,6 +390,8 @@
             </div>
           </div>
 
+          <!-- FEATURE: Investment Intelligence Search -->
+          <!-- Purpose: Allows users to select a canonical company before requesting the historical analysis API. -->
           <div class="dashboard-card mb-4 p-4 shadow-sm border-0">
             <h5 class="fw-semibold mb-3">Search Company</h5>
             <div class="row g-3 align-items-end">
@@ -515,7 +517,8 @@
               </div>
             </div>
 
-            <!-- Metric Cards -->
+            <!-- FEATURE: Investment Intelligence Quantitative Metrics -->
+            <!-- Displays CAGR, Annualized Volatility, Maximum Drawdown, Positive Days, and Latest Price -->
             <div class="row g-3 mb-4">
               <div class="col-6 col-md-4 col-lg-2"><div class="dashboard-card p-3 h-100 metric-card shadow-sm"><div class="text-muted small">Historical Return</div><div class="fs-5 fw-bold" id="mReturn"></div></div></div>
               <div class="col-6 col-md-4 col-lg-2"><div class="dashboard-card p-3 h-100 metric-card shadow-sm"><div class="text-muted small" id="mCAGRLabel">CAGR</div><div class="fs-5 fw-bold" id="mCAGR"></div></div></div>
@@ -525,7 +528,7 @@
               <div class="col-6 col-md-4 col-lg-2"><div class="dashboard-card p-3 h-100 metric-card shadow-sm"><div class="text-muted small">Latest Price</div><div class="fs-5 fw-bold" id="mPrice"></div></div></div>
             </div>
 
-            <!-- Charts Section -->
+            <!-- FEATURE: Chart.js Historical Visualizers (Price, SMA 50/200, Drawdown Risk) -->
             <div class="dashboard-card p-4 mb-4 shadow-sm border-0">
               <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
                 <ul class="nav nav-pills" id="chartTabs" role="tablist">

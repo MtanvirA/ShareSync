@@ -14,6 +14,18 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// FEATURE: Investment Intelligence Engine (LF-31)
+/// INVESTMENT INTELLIGENCE: Analysis
+/// DSE: Historical Data
+/// 
+/// PURPOSE:
+/// Performs rigorous quantitative and retrospective statistical profiling of any DSE-listed
+/// security over an arbitrary or default 5-year rolling trading window.
+/// Calculates CAGR, annualized volatility, peak-to-trough maximum drawdown, moving averages,
+/// positive-day consistency, trend classifications, and a composite multi-factor score.
+/// Guarantees zero look-ahead bias through strict chronological sorting.
+/// </summary>
 public class InvestmentIntelligenceService : IInvestmentIntelligenceService
 {
     private readonly IApplicationDbContext _context;
@@ -23,6 +35,29 @@ public class InvestmentIntelligenceService : IInvestmentIntelligenceService
         _context = context;
     }
 
+    /// <summary>
+    /// INVESTMENT INTELLIGENCE: Five-Year Window
+    /// CALCULATION: CAGR
+    /// CALCULATION: Annualized Volatility
+    /// CALCULATION: Maximum Drawdown
+    /// CALCULATION: SMA 50
+    /// CALCULATION: SMA 200
+    /// INVESTMENT INTELLIGENCE: Trend
+    /// INVESTMENT INTELLIGENCE: Score
+    /// 
+    /// FORMULAS &amp; METHODOLOGY:
+    /// 1. Period Return % = ((EndingPrice / StartingPrice) - 1) * 100
+    /// 2. CAGR % = (Pow(EndingPrice / StartingPrice, 1.0 / Years) - 1) * 100
+    /// 3. Daily Volatility = Sample StdDev of daily logarithmic/percentage returns
+    /// 4. Annualized Volatility = Daily Volatility * Sqrt(252 trading days)
+    /// 5. Drawdown = ((CurrentPrice - RunningPeak) / RunningPeak) * 100
+    /// 6. Maximum Drawdown = Min(Drawdown) across window
+    /// 7. Trend = Bullish (Price > SMA50 > SMA200), Bearish (Price < SMA50 < SMA200), or Neutral
+    /// 8. Multi-Factor Score (0-100) = Weighted combination of Return, Volatility penalty, Drawdown penalty, and Consistency
+    /// 
+    /// INPUT: companyId, fromDate, toDate
+    /// OUTPUT: HistoricalInvestmentProfileDto with summary, risk, chart data, consistency, and score
+    /// </summary>
     public async Task<ApiResponse<HistoricalInvestmentProfileDto>> GetHistoricalInvestmentProfileAsync(
         int companyId, 
         DateTime? fromDate = null, 

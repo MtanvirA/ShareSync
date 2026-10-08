@@ -6,6 +6,26 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// FEATURE: Benchmark Comparison (LF-30)
+/// 
+/// BENCHMARK: Historical Data
+/// Compares investor portfolio performance against recognized Dhaka Stock Exchange (DSE) market indices:
+/// - DSEX (Broad Market Free-Float Index)
+/// - DS30 (Blue-Chip 30 Leading Investable Companies)
+/// - DSES / DSEG (Shariah Compliance Equities Index)
+/// 
+/// BENCHMARK: Active Return
+/// CALCULATION: Benchmark Outperformance
+/// Formula: Active Return / Outperformance (%) = Portfolio Return (%) - Benchmark Return (%)
+/// 
+/// BUSINESS RULE: Date Alignment and Data Integrity
+/// Compares returns only over strictly overlapping historical dates.
+/// Requires at least two distinct valuation points. If DB historical records are unseeded,
+/// safely falls back to calibrated reference series with transparent UI disclosure (IsFallback = true).
+/// 
+/// DATABASE: Table — benchmark_price_history
+/// </summary>
 public class BenchmarkService : IBenchmarkService
 {
     private readonly IApplicationDbContext _context;
@@ -17,6 +37,13 @@ public class BenchmarkService : IBenchmarkService
         _dataProvider = dataProvider;
     }
 
+    /// <summary>
+    /// BENCHMARK: Index Catalog Retrieval
+    /// DATABASE: Table — benchmark_price_history
+    /// 
+    /// Aggregates distinct benchmark series from MySQL, extracting observation counts,
+    /// earliest baseline closing prices, and latest index points. Falls back to static definitions if empty.
+    /// </summary>
     public async Task<List<BenchmarkDto>> GetAvailableBenchmarksAsync(CancellationToken cancellationToken = default)
     {
         var dbBenchmarks = await _context.BenchmarkPriceHistories
@@ -56,6 +83,32 @@ public class BenchmarkService : IBenchmarkService
         return _dataProvider.GetAvailableBenchmarks();
     }
 
+    /// <summary>
+    /// FEATURE: Benchmark Comparison (LF-30)
+    /// BENCHMARK: Active Return
+    /// CALCULATION: Benchmark Outperformance
+    /// DATA QUALITY: Date Alignment
+    /// 
+    /// Formula:
+    /// Portfolio Return (%) = ((Portfolio Ending Value - Portfolio Starting Value) / Portfolio Starting Value) * 100
+    /// Benchmark Return (%) = ((Benchmark Ending Value - Benchmark Starting Value) / Benchmark Starting Value) * 100
+    /// Active Return / Outperformance (%) = Portfolio Return (%) - Benchmark Return (%)
+    /// 
+    /// PURPOSE:
+    /// Computes period-aligned returns for the user's portfolio against DSE indices.
+    /// Strictly limits comparison to the overlapping calendar intersection of portfolio snapshots and index data.
+    /// 
+    /// INPUT:
+    /// request: Contains optional PortfolioId, BenchmarkCode ("DSEX", "DS30", "DSES"), and Period ("1M", "3M", "6M", "1Y", "ALL").
+    /// userId: Authenticated user ID for ownership security isolation.
+    /// 
+    /// OUTPUT:
+    /// BenchmarkComparisonDto: Period-by-period aligned value arrays, return percentages, and outperformance flag.
+    /// 
+    /// BUSINESS RULE: Minimum Data Sufficiency
+    /// Requires at least 2 distinct valuation snapshot points within the requested window.
+    /// Will not interpolate or extrapolate hypothetical points.
+    /// </summary>
     public async Task<BenchmarkComparisonDto> ComparePortfolioAsync(
         BenchmarkComparisonRequestDto request,
         int userId,

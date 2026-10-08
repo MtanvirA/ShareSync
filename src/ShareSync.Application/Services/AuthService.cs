@@ -8,6 +8,27 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// SECURITY: Authentication & User Lifecycle Service
+/// 
+/// SECURITY: SQL Injection Protection
+/// All queries use EF Core LINQ with parameterized SQL translation.
+/// User input (email, password) is never interpolated into raw SQL text.
+/// 
+/// SECURITY: Password Hashing
+/// Passwords are never stored in plain text. Hashing is delegated to IPasswordHasher
+/// using PBKDF2 with HMAC-SHA256, a cryptographically secure 128-bit random salt, and 100,000 iterations.
+/// 
+/// SECURITY: JWT Authentication
+/// Issues signed RFC 7519 JSON Web Tokens (JWT) containing subject claim (UserId),
+/// email, role ("INVESTOR", "ADMIN"), and expiration timestamp.
+/// 
+/// SECURITY: Ownership Isolation
+/// On successful investor registration, automatically seeds a private "Main Portfolio"
+/// bound to the newly created UserId, ensuring isolated financial accounting.
+/// 
+/// DATABASE: Table — app_users, portfolios
+/// </summary>
 public class AuthService : IAuthService
 {
     private readonly IApplicationDbContext _context;
@@ -24,6 +45,14 @@ public class AuthService : IAuthService
         _jwtTokenGenerator = jwtTokenGenerator;
     }
 
+    /// <summary>
+    /// SECURITY: User Registration
+    /// SECURITY: Password Hashing
+    /// SECURITY: SQL Injection Protection
+    /// 
+    /// Enforces case-insensitive email uniqueness check via parameterized EF Core LINQ.
+    /// Hashes user password with PBKDF2 HMAC-SHA256 and creates initial user account and default portfolio.
+    /// </summary>
     public async Task<ApiResponse<AuthResponseDto>> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
     {
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
@@ -80,6 +109,14 @@ public class AuthService : IAuthService
         return ApiResponse<AuthResponseDto>.Ok(responseData, "Registration successful.");
     }
 
+    /// <summary>
+    /// SECURITY: Authentication
+    /// SECURITY: Password Hashing Verification
+    /// SECURITY: Timing-Safe User Enumeration Prevention
+    /// 
+    /// Verifies supplied credentials against stored PBKDF2 hash.
+    /// Returns uniform 401 Unauthorized whether user exists or password fails to prevent username discovery.
+    /// </summary>
     public async Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
     {
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();

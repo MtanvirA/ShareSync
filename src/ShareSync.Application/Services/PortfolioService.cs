@@ -8,6 +8,16 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// FEATURE: Multi-Portfolio Management
+/// FEATURE: Multi-Asset and Multi-Currency (LF-29)
+/// HOLDINGS: Holding Valuation Engine
+/// 
+/// PURPOSE:
+/// Manages user portfolios, aggregates transaction lots into net holdings positions,
+/// calculates mark-to-market valuations, handles foreign currency exchange rate conversions,
+/// computes unrealized and realized P/L, and determines portfolio-level asset allocation percentages.
+/// </summary>
 public class PortfolioService : IPortfolioService
 {
     private readonly IApplicationDbContext _context;
@@ -29,6 +39,17 @@ public class PortfolioService : IPortfolioService
         _currencyService = currencyService;
     }
 
+    /// <summary>
+    /// API: Get User Portfolios
+    /// SECURITY: Ownership Isolation
+    /// 
+    /// PURPOSE:
+    /// Retrieves all portfolios belonging to the authenticated user with aggregate performance metrics,
+    /// total values, realized and unrealized P/L, and inflation-adjusted real returns.
+    /// 
+    /// INPUT: userId
+    /// OUTPUT: List of PortfolioSummaryDto
+    /// </summary>
     public async Task<ApiResponse<List<PortfolioSummaryDto>>> GetUserPortfoliosAsync(int userId, CancellationToken cancellationToken = default)
     {
         // Enforce user isolation: only fetch portfolios belonging to userId
@@ -263,6 +284,23 @@ public class PortfolioService : IPortfolioService
         }
     }
 
+    /// <summary>
+    /// HOLDINGS: Position Aggregation &amp; Valuation
+    /// CALCULATION: Weighted Average Cost
+    /// CALCULATION: Unrealized P/L
+    /// CALCULATION: Realized P/L
+    /// CALCULATION: Currency Conversion
+    /// CALCULATION: Asset Allocation
+    /// 
+    /// FORMULAS:
+    /// 1. Net Shares = SUM(BUY quantity) - SUM(SELL quantity)
+    /// 2. Weighted Average Buy Price = SUM(BUY quantity * BUY price) / SUM(BUY quantity)
+    /// 3. Local Market Value = Net Shares * CurrentPrice
+    /// 4. Base Market Value = Local Market Value * ExchangeRate (if asset currency != portfolio base currency)
+    /// 5. Unrealized P/L = (CurrentPrice - Weighted Average Buy Price) * Net Shares * ExchangeRate
+    /// 6. Realized P/L = SUM((SELL qty * SELL price - Fee) - (SELL qty * Weighted Average Buy Price)) * ExchangeRate
+    /// 7. Allocation % = (Holding Base Market Value / Total Portfolio Market Value) * 100
+    /// </summary>
     private static List<PortfolioHoldingDto> CalculateHoldings(
         List<Transaction> transactions,
         string baseCurrency,

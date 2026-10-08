@@ -78,12 +78,34 @@ public class HistoricalCoverageStat
 }
 
 /// <summary>
-/// Core domain reconciliation engine implementing Phase 1-6 business rules.
+/// DSE: Historical Data (LF-31 Market Dataset)
+/// DATA QUALITY: Historical Reconciliation & Provenance Engine
+/// 
+/// DATA QUALITY: OHLC Validation
+/// Enforces strict mathematical OHLC candlestick boundary conditions:
+/// - Low &lt;= Open &lt;= High
+/// - Low &lt;= Close &lt;= High
+/// - Low &lt;= High
+/// - Close &gt; 0, Open &gt; 0, High &gt; 0, Low &gt; 0
+/// 
+/// DATA QUALITY: Ticker Normalization
+/// Normalizes irregular trading codes (stripping whitespace, applying canonical alias mappings).
+/// 
+/// DATA QUALITY: Duplicate Handling
+/// Categorizes duplicate records into:
+/// - Category A (Exact duplicates): Deduplicated into 1 canonical record.
+/// - Category B (Identical OHLC, differing metadata): Deduplicated retaining primary provenance.
+/// - Category C (Conflicting OHLC): Quarantined and excluded from canonical promotion without silent overwriting.
+/// 
+/// DATA QUALITY: Provenance
+/// Preserves source attribution, dataset name, Harvard Dataverse DOI ("10.7910/DVN/XIFYT1"), and import batch IDs.
 /// </summary>
 public static class HistoricalReconciliationEngine
 {
     /// <summary>
+    /// DATA QUALITY: OHLC Validation & Company Observation Staging
     /// Parses and validates a raw company observation into a staged record.
+    /// Rejects non-positive prices and candles violating High >= Max(Open, Close) or Low <= Min(Open, Close).
     /// </summary>
     public static StagedHistoricalRecord StageCompanyObservation(
         RawHistoricalObservation raw,
@@ -258,6 +280,7 @@ public static class HistoricalReconciliationEngine
     }
 
     /// <summary>
+    /// DATA QUALITY: Duplicate Handling
     /// Reconciles duplicates across staged records according to Phase 4 rules:
     /// - Category A (Exact duplicates): collapsed into 1 valid record.
     /// - Category B (Same entity/date, identical OHLC, differing metadata): collapsed into 1 valid record retaining primary provenance.

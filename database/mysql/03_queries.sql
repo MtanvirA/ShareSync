@@ -8,6 +8,8 @@ USE sharesync;
 
 -- ============================================================
 -- 1. BASIC & FILTERED QUERIES (SELECT, WHERE, ORDER BY, LIMIT)
+-- SQL CONCEPT: DQL
+-- Purpose: Demonstrates foundational tuple projection, filtering, and deterministic sorting.
 -- ============================================================
 
 -- Active users with their registered role
@@ -25,9 +27,12 @@ LIMIT 5;
 
 -- ============================================================
 -- 2. MULTI-TABLE JOINS (INNER JOIN, LEFT JOIN)
+-- SQL CONCEPT: INNER JOIN
+-- SQL CONCEPT: LEFT JOIN
+-- Purpose: Demonstrates entity relationships across 1:M parent-child structures (users to portfolios, sectors to companies).
 -- ============================================================
 
--- Portfolios and their owner details
+-- SQL CONCEPT: INNER JOIN — Portfolios and their owner details
 SELECT 
     p.portfolio_id,
     p.portfolio_name,
@@ -37,7 +42,7 @@ SELECT
 FROM portfolios p
 INNER JOIN app_users u ON p.user_id = u.user_id;
 
--- Watchlists with item counts and companies tracked
+-- SQL CONCEPT: INNER JOIN — Watchlists with item counts and companies tracked
 SELECT 
     w.watchlist_name,
     u.name AS investor_name,
@@ -51,7 +56,7 @@ INNER JOIN watchlist_items wi ON w.watchlist_id = wi.watchlist_id
 INNER JOIN companies c ON wi.company_id = c.company_id
 ORDER BY w.watchlist_name, c.ticker_symbol;
 
--- Sector allocation summary (LEFT JOIN)
+-- SQL CONCEPT: LEFT JOIN — Sector allocation summary preserving sectors with zero listed companies
 SELECT 
     s.sector_name,
     COUNT(c.company_id) AS total_companies,
@@ -64,6 +69,9 @@ ORDER BY total_sector_mcap DESC;
 
 -- ============================================================
 -- 3. AGGREGATIONS WITH GROUP BY & HAVING
+-- SQL CONCEPT: GROUP BY
+-- SQL CONCEPT: HAVING
+-- Purpose: Aggregates transactional volume per portfolio, filtering out portfolios below active trading threshold.
 -- ============================================================
 
 -- Portfolios with more than 2 transactions
@@ -80,9 +88,12 @@ ORDER BY total_invested_capital DESC;
 
 -- ============================================================
 -- 4. SUBQUERIES (Scalar & Correlated)
+-- SQL CONCEPT: SUBQUERY
+-- SQL CONCEPT: CORRELATED SUBQUERY
+-- Purpose: Compares company prices dynamically against the average of their own specific economic sector.
 -- ============================================================
 
--- Companies whose current price exceeds their sector average
+-- Companies whose current price exceeds their sector average (Correlated Subquery)
 SELECT 
     c.company_name,
     c.ticker_symbol,
@@ -98,6 +109,8 @@ WHERE c.current_price > (
 
 -- ============================================================
 -- 5. COMMON TABLE EXPRESSIONS (CTE) & WINDOW FUNCTIONS
+-- SQL CONCEPT: CTE
+-- Purpose: Demonstrates modular query organization and partition-based analytics for sector rankings and cash flows.
 -- ============================================================
 
 -- Rank companies within each sector by current share price using CTE & RANK()
@@ -135,6 +148,9 @@ ORDER BY p.portfolio_name, ts.tx_date;
 
 -- ============================================================
 -- 6. VIEW EXECUTION (vw_portfolio_holdings)
+-- SQL CONCEPT: VIEW
+-- DATABASE: View — vw_portfolio_holdings
+-- Purpose: Queries pre-compiled relational view encapsulating weighted-average cost and mark-to-market calculations.
 -- ============================================================
 
 -- Query live holdings view with mark-to-market valuations
@@ -152,6 +168,10 @@ ORDER BY portfolio_name, unrealized_profit_loss DESC;
 
 -- ============================================================
 -- 7. STORED FUNCTION CALLS
+-- SQL CONCEPT: FUNCTION
+-- DATABASE: Stored Function — fn_get_weighted_avg_price
+-- DATABASE: Stored Function — fn_calculate_unrealized_pl
+-- Purpose: Demonstrates procedural server-side encapsulation of financial math.
 -- ============================================================
 
 -- Call fn_get_weighted_avg_price and fn_calculate_unrealized_pl
@@ -166,6 +186,11 @@ WHERE fn_get_weighted_avg_price(p.portfolio_id, c.company_id) > 0;
 
 -- ============================================================
 -- 8. STORED PROCEDURE CALLS
+-- SQL CONCEPT: PROCEDURE
+-- DATABASE: Stored Procedure — sp_record_transaction
+-- DATABASE: Stored Procedure — sp_generate_portfolio_snapshot
+-- BUSINESS RULE: Oversell Prevention
+-- Purpose: Executes atomic business transactions and snapshot generation with defensive validation.
 -- ============================================================
 
 -- Call sp_record_transaction for a valid BUY order
@@ -175,6 +200,7 @@ CALL sp_record_transaction(
     'BUY',                  -- Transaction Type
     50.0000,                -- Quantity
     465.00,                 -- Price per share
+    0.00,                   -- Fee
     'teacher@demo.com',     -- Changed by
     @new_tx_id,             -- OUT transaction ID
     @tx_status,             -- OUT status
@@ -190,6 +216,7 @@ CALL sp_record_transaction(
     'SELL',
     999999.0000,            -- Excess quantity (oversell)
     465.00,
+    0.00,
     'teacher@demo.com',
     @bad_tx_id,
     @bad_status,
@@ -211,6 +238,12 @@ SELECT @snap_val AS snapshot_total_value, @snap_status AS status, @snap_msg AS m
 
 -- ============================================================
 -- 9. TRANSACTION INTEGRITY, SAVEPOINTS, COMMIT & ROLLBACK
+-- SQL CONCEPT: TRANSACTION
+-- SQL CONCEPT: SAVEPOINT
+-- SQL CONCEPT: COMMIT
+-- SQL CONCEPT: ROLLBACK
+-- SQL CONCEPT: DML
+-- Purpose: Demonstrates ACID atomicity guarantees and session isolation.
 -- ============================================================
 
 -- Demonstrate atomic transaction with ROLLBACK
@@ -233,6 +266,10 @@ SELECT COUNT(*) AS tx_count_after_rollback FROM transactions WHERE quantity = 99
 
 -- ============================================================
 -- 10. AUDIT TRAIL VERIFICATION
+-- SQL CONCEPT: TRIGGER
+-- DATABASE: Trigger — trg_transactions_after_*
+-- AUDIT: Transaction Audit Trail
+-- Purpose: Verifies audit records created by database engine triggers upon transactional changes.
 -- ============================================================
 
 -- Verify audit rows generated automatically by triggers
@@ -249,6 +286,10 @@ LIMIT 10;
 
 -- ============================================================
 -- 11. INDEX DEMONSTRATION & EXECUTION PLAN ANALYSIS (EXPLAIN)
+-- SQL CONCEPT: INDEX
+-- SQL CONCEPT: EXPLAIN
+-- PERFORMANCE: Query Optimization
+-- Purpose: Inspects B-Tree index coverage and verifies absence of full-table scans.
 -- ============================================================
 
 -- Show indexes configured on the transactions table
@@ -267,6 +308,9 @@ ORDER BY recorded_at DESC;
 
 -- ============================================================
 -- 12. DDL & METADATA VERIFICATION
+-- SQL CONCEPT: DDL
+-- DATABASE: Table Schema & Constraints
+-- Purpose: Demonstrates relational data definition, constraints, and view definitions.
 -- ============================================================
 
 -- View underlying DDL table definition

@@ -10,6 +10,11 @@ DELIMITER //
 
 -- ============================================================
 -- 1. trg_transactions_after_insert
+-- DATABASE: Trigger — trg_transactions_after_insert
+-- SQL CONCEPT: TRIGGER
+-- AUDIT: Transaction Audit Trail
+-- Timing: AFTER INSERT ON transactions FOR EACH ROW
+-- Purpose: Automatically records every newly inserted trade into the transaction_audit table.
 -- ============================================================
 DROP TRIGGER IF EXISTS trg_transactions_after_insert //
 CREATE TRIGGER trg_transactions_after_insert
@@ -33,6 +38,11 @@ END //
 
 -- ============================================================
 -- 2. trg_transactions_after_update
+-- DATABASE: Trigger — trg_transactions_after_update
+-- SQL CONCEPT: TRIGGER
+-- AUDIT: Transaction Audit Trail
+-- Timing: AFTER UPDATE ON transactions FOR EACH ROW
+-- Purpose: Records before/after deltas for modified transaction records.
 -- ============================================================
 DROP TRIGGER IF EXISTS trg_transactions_after_update //
 CREATE TRIGGER trg_transactions_after_update
@@ -56,7 +66,11 @@ END //
 
 -- ============================================================
 -- 3. trg_transactions_after_delete
--- Preserves audit history with transaction_id = NULL and full detail
+-- DATABASE: Trigger — trg_transactions_after_delete
+-- SQL CONCEPT: TRIGGER
+-- AUDIT: Transaction Audit Trail
+-- Timing: AFTER DELETE ON transactions FOR EACH ROW
+-- Purpose: Preserves audit history with transaction_id = NULL and full detail string.
 -- ============================================================
 DROP TRIGGER IF EXISTS trg_transactions_after_delete //
 CREATE TRIGGER trg_transactions_after_delete

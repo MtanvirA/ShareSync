@@ -8,6 +8,17 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Transactions Controller
+/// FEATURE: Transaction Management
+/// FEATURE: Realized Profit/Loss (LF-26)
+/// FEATURE: Transaction Fees and Net Cash Flow (LF-27)
+/// 
+/// SECURITY: Authorization
+/// Requires valid JWT bearer token. Enforces user ownership isolation across all endpoints.
+/// 
+/// Routes: /api/transactions
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
@@ -32,6 +43,10 @@ public class TransactionsController : ControllerBase
         return _currentUserService.UserId ?? throw new UnauthorizedException("User session is invalid.");
     }
 
+    /// <summary>
+    /// API: GET /api/transactions
+    /// Fetches paginated transaction ledger with filters for portfolio, company, transaction type, and date range.
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetTransactions([FromQuery] TransactionFilterDto filter, CancellationToken cancellationToken)
     {
@@ -40,6 +55,10 @@ public class TransactionsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// API: GET /api/transactions/{id}
+    /// Retrieves full transaction record by ID with ownership verification.
+    /// </summary>
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetTransaction(int id, CancellationToken cancellationToken)
     {
@@ -48,6 +67,12 @@ public class TransactionsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// API: GET /api/transactions/available-shares
+    /// HOLDINGS: Available Quantity
+    /// BUSINESS RULE: Oversell Prevention Check
+    /// Returns the currently held share quantity for a company in a portfolio to enforce validation in the UI.
+    /// </summary>
     [HttpGet("available-shares")]
     [HttpGet("available-quantity")]
     public async Task<IActionResult> GetAvailableShares([FromQuery] int portfolioId, [FromQuery] int companyId, CancellationToken cancellationToken)
@@ -57,6 +82,15 @@ public class TransactionsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// API: POST /api/transactions
+    /// TRANSACTION: BUY/SELL Processing
+    /// BUSINESS RULE: Oversell Prevention
+    /// CALCULATION: Realized P/L & Transaction Fee
+    /// 
+    /// Processes and records an equity BUY or SELL transaction.
+    /// For SELL: Validates quantity <= current holdings, computes realized P/L, deducts fee.
+    /// </summary>
     [HttpPost]
     public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionRequestDto request, CancellationToken cancellationToken)
     {

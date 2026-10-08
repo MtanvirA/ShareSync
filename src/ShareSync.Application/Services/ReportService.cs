@@ -8,6 +8,31 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// FEATURE: Reporting & Portfolio Accounting Engine
+/// 
+/// REPORT: Comprehensive Financial Reporting
+/// Generates audit-grade financial statements and analytical reports across 7 domain modules:
+/// 1. Holdings Valuation Report (Positions, Weighted Average Cost, Market Value, Unrealized P/L)
+/// 2. Portfolio Performance Report (Nominal Return, Benchmark Outperformance, Inflation-Adjusted Real Return)
+/// 3. Transaction History & Cash Flow Ledger (Gross Volume, Brokerage Fees, Net Cash Flow, Realized P/L)
+/// 4. Company & Sector Allocation Breakdown (Portfolio Concentration, Sector Diversification)
+/// 5. Dividend Income Statement (Gross Payouts, Dividend Yield, Cash Inflow)
+/// 6. Watchlist & Target Price Monitor (Distance to Target, Trading Alerts)
+/// 7. Executive Report Summary (Consolidated Top-Level KPIs)
+/// 
+/// CALCULATION: Net Cash Flow
+/// Formula: Net Cash Flow = Total SELL Net Inflow - Total BUY Net Outflow
+/// 
+/// CALCULATION: Realized P/L
+/// Formula: Realized P/L = (SELL Gross Value - SELL Fee) - (SELL Quantity * Weighted Average Buy Cost)
+/// 
+/// SECURITY: Ownership Isolation
+/// Every report query strictly validates that target portfolios belong to the requesting authenticated user.
+/// 
+/// DATABASE: MySQL
+/// Uses EF Core with AsNoTracking() read-optimized queries for high-throughput reporting performance.
+/// </summary>
 public class ReportService : IReportService
 {
     private readonly IApplicationDbContext _context;
@@ -29,6 +54,22 @@ public class ReportService : IReportService
         _currencyService = currencyService;
     }
 
+    /// <summary>
+    /// REPORT: Holdings Valuation Report
+    /// HOLDINGS: Current Quantity & Valuation
+    /// CALCULATION: Weighted Average Cost
+    /// CALCULATION: Market Value
+    /// CALCULATION: Unrealized P/L
+    /// 
+    /// Formula:
+    /// Current Quantity = SUM(BUY) - SUM(SELL)
+    /// Weighted Average Cost = SUM(BUY Qty * BUY Price) / SUM(BUY Qty)
+    /// Market Value = Current Quantity * Current Market Price
+    /// Unrealized P/L = Market Value - (Current Quantity * Weighted Average Cost)
+    /// Unrealized P/L (%) = (Unrealized P/L / Total Cost Basis) * 100
+    /// 
+    /// Filters out completely liquidated positions (Quantity <= 0) to report only active holdings.
+    /// </summary>
     public async Task<ApiResponse<PortfolioHoldingsReportDto>> GetHoldingsReportAsync(
         int userId,
         int? portfolioId = null,
@@ -207,6 +248,16 @@ public class ReportService : IReportService
         return ApiResponse<PortfolioHoldingsReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Portfolio Performance Report
+    /// FEATURE: Inflation-Adjusted Return (LF-28)
+    /// CALCULATION: Real Return (Fisher Equation)
+    /// CALCULATION: Total P/L
+    /// 
+    /// Aggregates historical portfolio valuation trajectory over selected timeframes ("1M", "3M", "6M", "1Y", "ALL").
+    /// Computes nominal return percentage, incorporates DSE index benchmark outperformance,
+    /// and adjusts for compounding CPI inflation using official BBS statistics.
+    /// </summary>
     public async Task<ApiResponse<PortfolioPerformanceReportDto>> GetPerformanceReportAsync(
         int userId,
         int? portfolioId = null,
@@ -364,6 +415,23 @@ public class ReportService : IReportService
         return ApiResponse<PortfolioPerformanceReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Transaction History & Cash Flow Ledger
+    /// FEATURE: Realized Profit/Loss (LF-26)
+    /// FEATURE: Transaction Fees and Net Cash Flow (LF-27)
+    /// TRANSACTION: Ledger Audit
+    /// CALCULATION: Net Cash Flow
+    /// CALCULATION: Realized P/L
+    /// 
+    /// Formula:
+    /// BUY: Net Cash Outflow = (Quantity * Price) + Fee
+    /// SELL: Net Cash Inflow = (Quantity * Price) - Fee
+    /// Net Cash Flow = Total SELL Inflow - Total BUY Outflow
+    /// Realized P/L on SELL = (Gross Sell Proceeds - Fee) - (Quantity * Weighted Average Buy Cost)
+    /// Total Fees = Total BUY Fees + Total SELL Fees
+    /// 
+    /// Tracks every historical trade, currency conversions, applied commission fees, and realized investment return.
+    /// </summary>
     public async Task<ApiResponse<TransactionHistoryReportDto>> GetTransactionHistoryReportAsync(
         int userId,
         int? portfolioId = null,
@@ -521,6 +589,13 @@ public class ReportService : IReportService
         return ApiResponse<TransactionHistoryReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Company & Sector Allocation Breakdown
+    /// CALCULATION: Sector Weight & Diversification
+    /// 
+    /// Aggregates equity exposures by economic sectors (e.g., Pharmaceuticals, Banking, Telecommunications).
+    /// Computes percentage allocations to quantify concentration risk versus diversification.
+    /// </summary>
     public async Task<ApiResponse<CompanySectorReportDto>> GetCompanySectorReportAsync(
         int userId,
         int? portfolioId = null,
@@ -639,6 +714,14 @@ public class ReportService : IReportService
         return ApiResponse<CompanySectorReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Dividend Income Statement
+    /// FEATURE: Dividend Income Tracking
+    /// CALCULATION: Dividend Yield & Payout Total
+    /// 
+    /// Aggregates historical corporate dividend announcements matching investor share ownership dates.
+    /// Calculates gross passive income yield and cash distributions over requested tax years.
+    /// </summary>
     public async Task<ApiResponse<DividendIncomeReportDto>> GetDividendIncomeReportAsync(
         int userId,
         int? companyId = null,
@@ -771,6 +854,13 @@ public class ReportService : IReportService
         return ApiResponse<DividendIncomeReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Watchlist & Target Price Monitor
+    /// FEATURE: Watchlists & Price Target Alerts
+    /// 
+    /// Tracks user watchlists against current trading quotes, measuring price deviations
+    /// and highlighting securities that have broken below or above established price targets.
+    /// </summary>
     public async Task<ApiResponse<WatchlistTargetReportDto>> GetWatchlistTargetReportAsync(
         int userId,
         int? watchlistId = null,
@@ -846,6 +936,11 @@ public class ReportService : IReportService
         return ApiResponse<WatchlistTargetReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Executive Report Summary
+    /// Aggregates high-level portfolio KPIs: total holdings value, total unrealized P/L,
+    /// dividend earnings, and transaction volume into a unified single-call dashboard statement.
+    /// </summary>
     public async Task<ApiResponse<ReportSummaryDto>> GetReportSummaryAsync(
         int userId,
         int? portfolioId = null,

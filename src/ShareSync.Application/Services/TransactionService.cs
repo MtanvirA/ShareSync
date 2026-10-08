@@ -8,6 +8,18 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// FEATURE: Transaction Management
+/// FEATURE: Realized Profit/Loss (LF-26)
+/// FEATURE: Transaction Fees and Net Cash Flow (LF-27)
+/// DATABASE: MySQL EF Core
+/// 
+/// PURPOSE:
+/// Orchestrates the entire trade order lifecycle for investor portfolios.
+/// Enforces oversell prevention rules, performs volume-weighted cost basis accounting,
+/// executes atomic BUY/SELL order persistence, calculates realized gains/losses on liquidations,
+/// applies brokerage fees, and creates audit log entries.
+/// </summary>
 public class TransactionService : ITransactionService
 {
     private readonly IApplicationDbContext _context;
@@ -17,6 +29,20 @@ public class TransactionService : ITransactionService
         _context = context;
     }
 
+    /// <summary>
+    /// API: Paged Transaction Query
+    /// CALCULATION: Realized P/L
+    /// CALCULATION: Weighted Average Cost
+    /// 
+    /// PURPOSE:
+    /// Retrieves a paginated and filtered slice of the user's transaction ledger.
+    /// For every SELL order on the current page, dynamically calculates the Realized P/L
+    /// using the volume-weighted average cost of all preceding BUY lots for that security.
+    /// 
+    /// INPUT: userId, TransactionFilterDto (PortfolioId, CompanyId, StartDate, EndDate, etc.)
+    /// OUTPUT: PagedTransactionsDto with calculated RealizedProfitLoss per SELL item
+    /// SECURITY: Ownership Isolation strictly filters query by portfolio ownership (Portfolio.UserId == userId).
+    /// </summary>
     public async Task<ApiResponse<PagedTransactionsDto>> GetPagedTransactionsAsync(
         int userId,
         TransactionFilterDto? filter = null,
@@ -268,6 +294,15 @@ public class TransactionService : ITransactionService
         return ApiResponse<TransactionDto>.Ok(dto);
     }
 
+    /// <summary>
+    /// HOLDINGS: Available Quantity
+    /// BUSINESS RULE: Oversell Prevention
+    /// 
+    /// PURPOSE:
+    /// Computes the net executable position size available for sale in a specific portfolio and security.
+    /// Formula: AvailableQuantity = SUM(BUY quantity) - SUM(SELL quantity).
+    /// Prevents naked short selling and negative share balances.
+    /// </summary>
     public async Task<ApiResponse<decimal>> GetAvailableQuantityAsync(
         int portfolioId,
         int companyId,
@@ -300,6 +335,29 @@ public class TransactionService : ITransactionService
         return ApiResponse<decimal>.Ok(available > 0 ? available : 0);
     }
 
+    /// <summary>
+    /// TRANSACTION: BUY/SELL Processing
+    /// FEATURE: Realized P/L (LF-26)
+    /// TRANSACTION: BUY/SELL Processing
+    /// TRANSACTION: SELL
+    /// BUSINESS RULE: Oversell Prevention
+    /// BUSINESS RULE: Realized P/L
+    /// CALCULATION: Realized P/L
+    /// CALCULATION: Transaction Fee
+    /// VALIDATION: Transaction Constraints
+    /// AUDIT: Atomic Audit Trail
+    /// 
+    /// PURPOSE:
+    /// Executes an atomic financial trade order.
+    /// 1. Validates user portfolio ownership and input parameters.
+    /// 2. If SELL: Verifies available position >= request.Quantity; rejects oversell orders with BusinessRuleException.
+    /// 3. If SELL: Computes Realized P/L: (Quantity * Price - Fee) - (Quantity * WeightedAvgCost).
+    /// 4. Executes atomic EF Core database transaction with audit logging.
+    /// 
+    /// INPUT: CreateTransactionRequestDto (PortfolioId, CompanyId, TransactionType, Quantity, PricePerShare, Fee, Notes)
+    /// OUTPUT: TransactionDto with confirmed transaction ID, fees, and realized P/L (for SELL)
+    /// DATABASE: EF Core Database Transaction (BeginTransactionAsync -> SaveChangesAsync -> CommitAsync)
+    /// </summary>
     public async Task<ApiResponse<TransactionDto>> CreateTransactionAsync(
         CreateTransactionRequestDto request,
         int userId,

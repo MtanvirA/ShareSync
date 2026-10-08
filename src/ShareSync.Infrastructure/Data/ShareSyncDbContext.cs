@@ -4,6 +4,24 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Infrastructure.Data;
 
+/// <summary>
+/// DATABASE: DbContext — ShareSync MySQL Data Context
+/// DATABASE: MySQL Provider (Pomelo.EntityFrameworkCore.MySql)
+/// 
+/// DATABASE: Entity Mapping
+/// Configures Fluent API relational object mappings for all 18 core database entities:
+/// - Primary keys (HasKey, HasName)
+/// - Auto-increment identity generation (ValueGeneratedOnAdd)
+/// - Precision configuration for monetary amounts (decimal(18,2), decimal(18,4), decimal(18,6))
+/// - Unique business constraints (UQ_APP_USERS_EMAIL, UQ_COMPANIES_TICKER, UQ_PORTFOLIOS_USER_NAME)
+/// - Referential foreign keys and cascade/restrict deletion rules
+/// - Composite primary keys (e.g. WatchlistItem on WatchlistId + CompanyId)
+/// - Keyless read-only database view mapping (vw_portfolio_holdings)
+/// 
+/// SECURITY: SQL Injection Protection
+/// EF Core translates LINQ expressions into parameterized SQL queries with bind variables (@p0, @p1).
+/// User inputs are never concatenated into raw SQL strings, neutralizing SQL injection vectors.
+/// </summary>
 public class ShareSyncDbContext : DbContext, IApplicationDbContext
 {
     public ShareSyncDbContext(DbContextOptions<ShareSyncDbContext> options)

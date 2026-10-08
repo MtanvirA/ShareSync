@@ -6,6 +6,26 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Reports Controller
+/// REPORT: Comprehensive Financial Reporting
+/// FEATURE: Realized Profit/Loss (LF-26)
+/// FEATURE: Transaction Fees and Net Cash Flow (LF-27)
+/// FEATURE: Inflation-Adjusted Return (LF-28)
+/// 
+/// Endpoints:
+/// GET /api/reports/holdings — Portfolio holdings valuation, weighted average cost, unrealized P/L
+/// GET /api/reports/performance — Historical valuation changes, nominal return, Fisher real return
+/// GET /api/reports/transactions — Full trade ledger, fees, net cash flow, realized P/L
+/// GET /api/reports/company-sector — Sector allocations and diversification weights
+/// GET /api/reports/dividends — Dividend distribution income and yield statements
+/// GET /api/reports/watchlist-targets — Watchlist monitoring and target price distance
+/// GET /api/reports/summary — Consolidated multi-module executive overview
+/// GET /api/reports/export — Tabular CSV / JSON report file generation
+/// 
+/// SECURITY: Ownership Isolation
+/// Resolves authenticated investor UserId from JWT bearer claims, preventing unauthorized cross-user reporting.
+/// </summary>
 [ApiController]
 [Authorize]
 [Route("api/reports")]

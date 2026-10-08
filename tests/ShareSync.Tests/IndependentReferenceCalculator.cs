@@ -5,9 +5,17 @@ using System.Linq;
 namespace ShareSync.Tests;
 
 /// <summary>
-/// Phase 2: Independent reference calculation engine built with explicit arithmetic
-/// and zero dependency on ShareSync production services or domain methods.
-/// Used to cross-verify production outputs against independent reference truth.
+/// TEST: Independent Reference Mathematical Oracle
+/// 
+/// Arithmetic reference engine built with zero dependencies on production classes.
+/// Used to cross-verify all mathematical calculations in tests:
+/// - CALCULATION: Weighted Average Cost
+/// - CALCULATION: Realized P/L
+/// - CALCULATION: Net Cash Flow
+/// - CALCULATION: CAGR
+/// - CALCULATION: Annualized Volatility
+/// - CALCULATION: Maximum Drawdown
+/// - CALCULATION: Real Return (Fisher Equation)
 /// </summary>
 public static class IndependentReferenceCalculator
 {

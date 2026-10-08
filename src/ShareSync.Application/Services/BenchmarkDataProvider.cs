@@ -3,6 +3,15 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// FEATURE: Benchmark Comparison (LF-30)
+/// BENCHMARK: Reference Fallback Model
+/// 
+/// PURPOSE:
+/// Provides in-memory calibrated DSE market index baselines (DSEX, DS30, DSES/DSEG)
+/// for unit testing environments, demonstrations, and offline resilience when
+/// database benchmark tables are empty.
+/// </summary>
 public class BenchmarkDataProvider : IBenchmarkDataProvider
 {
     private readonly Dictionary<string, BenchmarkDto> _benchmarks;

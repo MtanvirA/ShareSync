@@ -11,6 +11,28 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Infrastructure.Services;
 
+/// <summary>
+/// DSE: Price Synchronization & Market Data Provider (LF-31)
+/// 
+/// DSE: Live Price Retrieval
+/// Fetches real-time Dhaka Stock Exchange market data from the StockChartBD API endpoint.
+/// Includes automatic HTTP retry logic with backoff, User-Agent identification, and JSON payload deserialization.
+/// 
+/// DSE: Price Synchronization
+/// Synchronizes latest market quotes into the MySQL `companies` table and daily OHLC snapshots into `company_price_history`.
+/// 
+/// DATA QUALITY: Plausibility Reconciliation & Anomaly Guard
+/// Compares incoming quotes against existing prices. Rejects extreme flash anomalies (>10x or &lt;0.1x deviations)
+/// to safeguard portfolio valuations from upstream corrupt market data spikes.
+/// 
+/// DATA QUALITY: Duplicate Handling & Idempotency
+/// Intraday synchronizations update existing records for the same trading day rather than inserting duplicates.
+/// 
+/// PERFORMANCE: Throttling & Politeness Delay
+/// Introduces 30ms polite request delays between ticker queries to prevent rate-limiting external market data endpoints.
+/// 
+/// DATABASE: Table — companies, company_price_history
+/// </summary>
 public class DsePriceService : IDsePriceService
 {
     private readonly IApplicationDbContext _context;

@@ -8,7 +8,11 @@ USE sharesync;
 
 -- ============================================================
 -- 1. fn_get_weighted_avg_price
--- Calculates the volume-weighted average buy price for holdings
+-- DATABASE: Stored Function — fn_get_weighted_avg_price
+-- SQL CONCEPT: FUNCTION
+-- CALCULATION: Weighted Average Cost
+-- Formula: Weighted Average Buy Price = SUM(quantity * price_per_share) / SUM(quantity)
+-- Purpose: Calculates volume-weighted average purchase cost for a company within a portfolio.
 -- ============================================================
 DELIMITER //
 
@@ -43,7 +47,11 @@ END //
 
 -- ============================================================
 -- 2. fn_calculate_unrealized_pl
--- Calculates mark-to-market unrealized profit/loss for a holding
+-- DATABASE: Stored Function — fn_calculate_unrealized_pl
+-- SQL CONCEPT: FUNCTION
+-- CALCULATION: Unrealized P/L
+-- Formula: Unrealized P/L = Current Quantity * (Current Market Price - Weighted Average Cost)
+-- Purpose: Mark-to-market valuation gain or loss for an open equity position.
 -- ============================================================
 DROP FUNCTION IF EXISTS fn_calculate_unrealized_pl //
 CREATE FUNCTION fn_calculate_unrealized_pl (
@@ -96,8 +104,12 @@ END //
 
 -- ============================================================
 -- 3. fn_calculate_realized_pl
--- LF-26: Calculates realized profit/loss using weighted-average cost rule
--- Realized P/L = (Net Sale Proceeds) - (Cost Basis of Shares Sold)
+-- DATABASE: Stored Function — fn_calculate_realized_pl
+-- SQL CONCEPT: FUNCTION
+-- FEATURE: Realized P/L (LF-26)
+-- CALCULATION: Realized P/L
+-- Formula: Realized P/L = SUM( (Sell Qty * Sell Price - Sell Fee) - (Sell Qty * Weighted Avg Buy Price) )
+-- Purpose: Realized profit or loss generated upon liquidation of holdings.
 -- ============================================================
 DROP FUNCTION IF EXISTS fn_calculate_realized_pl //
 CREATE FUNCTION fn_calculate_realized_pl (
@@ -124,8 +136,12 @@ END //
 
 -- ============================================================
 -- 4. fn_calculate_net_cash_flow
--- LF-27: Calculates net cash flow for a portfolio:
--- Net Cash Flow = Total Net Sale Inflow - Total Net Purchase Outflow
+-- DATABASE: Stored Function — fn_calculate_net_cash_flow
+-- SQL CONCEPT: FUNCTION
+-- FEATURE: Transaction Fees (LF-27)
+-- CALCULATION: Net Cash Flow
+-- Formula: Net Cash Flow = Total Net Sale Inflow - Total Net Purchase Outflow
+-- Purpose: Net capital injection or withdrawal across all portfolio operations.
 -- ============================================================
 DROP FUNCTION IF EXISTS fn_calculate_net_cash_flow //
 CREATE FUNCTION fn_calculate_net_cash_flow (
@@ -151,8 +167,12 @@ END //
 
 -- ============================================================
 -- 5. fn_calculate_real_return
--- LF-28: Calculates inflation-adjusted (real) return percentage
--- Real Return = (((1 + Nominal Return / 100) / (1 + Inflation Rate / 100)) - 1) * 100
+-- DATABASE: Stored Function — fn_calculate_real_return
+-- SQL CONCEPT: FUNCTION
+-- FEATURE: Inflation-Adjusted Return (LF-28)
+-- CALCULATION: Real Return (Fisher Equation)
+-- Formula: Real Return = [ ( (1 + Nominal / 100) / (1 + Inflation / 100) ) - 1 ] * 100
+-- Purpose: Converts nominal investment return into true purchasing power gain/loss.
 -- ============================================================
 DROP FUNCTION IF EXISTS fn_calculate_real_return //
 CREATE FUNCTION fn_calculate_real_return (

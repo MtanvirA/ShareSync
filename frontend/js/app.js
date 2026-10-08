@@ -1,7 +1,12 @@
-// =========================================
-// SHARESYNC
-// Main JavaScript file
-// =========================================
+// ============================================================
+// SHARESYNC CLIENT APPLICATION
+// File: app.js
+// 
+// FEATURE: Client-Side SPA Orchestration & API Gateway
+// SECURITY: Authentication (JWT Storage & Bearer Injection)
+// SECURITY: XSS Protection (HTML Entity Encoding)
+// SECURITY: Route Protection (Session Guards)
+// ============================================================
 
 let portfolioChart;
 
@@ -9,6 +14,11 @@ const API_BASE_URL = window.location.origin.includes(":5000")
   ? "/api"
   : "http://localhost:5000/api";
 
+// ============================================================
+// SECURITY: XSS Protection
+// Sanitizes untrusted strings prior to DOM interpolation to neutralize
+// Cross-Site Scripting (XSS) injection attacks.
+// ============================================================
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
   return String(str)
@@ -19,6 +29,10 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
+// ============================================================
+// SECURITY: Authentication & Token Management
+// Resolves RFC 7519 JWT Bearer tokens from localStorage for API request signing.
+// ============================================================
 function getAuthToken() {
   return localStorage.getItem("sharesync_token");
 }

@@ -549,7 +549,22 @@ CREATE INDEX idx_portfolio_goals_portfolio ON portfolio_goals (portfolio_id, is_
 
 -- ============================================================
 -- 16. VIEW: VW_PORTFOLIO_HOLDINGS
--- Real-time holdings valuation & weighted average purchase price
+-- DATABASE: View — vw_portfolio_holdings
+-- SQL CONCEPT: VIEW
+-- HOLDINGS: Current Quantity
+-- CALCULATION: Weighted Average Cost
+-- CALCULATION: Market Value
+-- CALCULATION: Unrealized P/L
+-- SQL CONCEPT: GROUP BY
+-- SQL CONCEPT: HAVING
+-- 
+-- Formula:
+-- Current Quantity = SUM(BUY) - SUM(SELL)
+-- Weighted Average Buy Price = SUM(BUY Qty * BUY Price) / SUM(BUY Qty)
+-- Market Value = Current Quantity * Current Market Price
+-- Unrealized P/L = Market Value - (Current Quantity * Weighted Average Buy Price)
+-- 
+-- Filters out fully liquidated positions (HAVING current_quantity > 0).
 -- ============================================================
 CREATE OR REPLACE VIEW vw_portfolio_holdings AS
 SELECT

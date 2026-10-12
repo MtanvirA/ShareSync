@@ -3,6 +3,7 @@ namespace ShareSync.Domain.Entities;
 /// <summary>
 /// SECURITY: Authentication
 /// DATABASE: Table — app_users
+/// FEATURE: Authentication and Authorization
 /// 
 /// PURPOSE:
 /// Represents an authenticated user identity and credentials. Supports role-based access

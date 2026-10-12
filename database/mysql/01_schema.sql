@@ -25,10 +25,13 @@ DROP TABLE IF EXISTS sectors;
 DROP TABLE IF EXISTS app_users;
 DROP TABLE IF EXISTS currency_exchange_rates;
 DROP TABLE IF EXISTS inflation_rates;
+DROP TABLE IF EXISTS cpi_index_observations;
 DROP TABLE IF EXISTS benchmark_price_history;
 
 -- ============================================================
 -- 1. APP_USERS
+-- FEATURE: Authentication and Authorization
+-- Purpose: User identity, credentials, roles (INVESTOR, ADMIN), and account states.
 -- ============================================================
 CREATE TABLE app_users (
     user_id       INT AUTO_INCREMENT,
@@ -54,6 +57,8 @@ CREATE TABLE app_users (
 
 -- ============================================================
 -- 2. SECTORS
+-- FEATURE: Company Catalog and Search
+-- Purpose: Industry sectors classifying Dhaka Stock Exchange listed securities.
 -- ============================================================
 CREATE TABLE sectors (
     sector_id   INT AUTO_INCREMENT,
@@ -69,6 +74,8 @@ CREATE TABLE sectors (
 
 -- ============================================================
 -- 3. COMPANIES (Securities / Multi-Asset)
+-- FEATURE: Company Catalog and Search
+-- Purpose: Catalog of listed securities, ticker symbols, asset types, and market prices.
 -- ============================================================
 CREATE TABLE companies (
     company_id    INT AUTO_INCREMENT,
@@ -111,6 +118,8 @@ CREATE TABLE companies (
 
 -- ============================================================
 -- 4. PORTFOLIOS (Multi-Currency)
+-- FEATURE: Portfolio Management
+-- Purpose: Investor portfolios, preferred currency, and account ownership isolation.
 -- ============================================================
 CREATE TABLE portfolios (
     portfolio_id   INT AUTO_INCREMENT,
@@ -137,6 +146,8 @@ CREATE TABLE portfolios (
 
 -- ============================================================
 -- 5. WATCHLISTS
+-- FEATURE: Watchlists
+-- Purpose: Custom stock watchlists created by investors.
 -- ============================================================
 CREATE TABLE watchlists (
     watchlist_id   INT AUTO_INCREMENT,
@@ -159,6 +170,8 @@ CREATE TABLE watchlists (
 
 -- ============================================================
 -- 6. WATCHLIST_ITEMS
+-- FEATURE: Watchlists
+-- Purpose: Junction table linking watchlists to monitored companies with price targets.
 -- ============================================================
 CREATE TABLE watchlist_items (
     watchlist_id INT           NOT NULL,
@@ -185,6 +198,9 @@ CREATE TABLE watchlist_items (
 
 -- ============================================================
 -- 7. TRANSACTIONS
+-- FEATURE: Transactions
+-- FEATURE: Realized and Unrealized P/L
+-- Purpose: Core financial trade ledger recording BUY and SELL executions, fees, and timestamps.
 -- ============================================================
 CREATE TABLE transactions (
     transaction_id   INT AUTO_INCREMENT,
@@ -224,6 +240,8 @@ CREATE TABLE transactions (
 
 -- ============================================================
 -- 8. DIVIDENDS
+-- FEATURE: Dividend Management
+-- Purpose: Corporate cash dividend payouts, declaration dates, and payment records.
 -- ============================================================
 CREATE TABLE dividends (
     dividend_id        INT AUTO_INCREMENT,
@@ -249,6 +267,8 @@ CREATE TABLE dividends (
 
 -- ============================================================
 -- 9. TRANSACTION_AUDIT
+-- FEATURE: MySQL Database and Data Integrity
+-- Purpose: Complete immutable audit log of transaction mutations created by triggers.
 -- ============================================================
 CREATE TABLE transaction_audit (
     audit_id       INT AUTO_INCREMENT,
@@ -272,6 +292,8 @@ CREATE TABLE transaction_audit (
 
 -- ============================================================
 -- 10. PORTFOLIO_SNAPSHOTS
+-- FEATURE: Portfolio Valuation
+-- Purpose: Daily point-in-time valuation snapshots for tracking historical equity curves.
 -- ============================================================
 CREATE TABLE portfolio_snapshots (
     snapshot_id  INT AUTO_INCREMENT,
@@ -296,6 +318,9 @@ CREATE TABLE portfolio_snapshots (
 
 -- ============================================================
 -- 11. COMPANY_PRICE_HISTORY (Investment Intelligence Engine)
+-- FEATURE: Historical Price Data
+-- FEATURE: Investment Intelligence
+-- Purpose: Multi-year daily OHLC volume price series supporting quantitative backtesting.
 -- ============================================================
 CREATE TABLE company_price_history (
     price_history_id INT AUTO_INCREMENT,
@@ -342,6 +367,8 @@ CREATE TABLE company_price_history (
 
 -- ============================================================
 -- 12. ALERTS
+-- FEATURE: Alerts and Notifications
+-- Purpose: User threshold triggers for stock prices and portfolio aggregate valuations.
 -- ============================================================
 CREATE TABLE alerts (
     alert_id        INT AUTO_INCREMENT,
@@ -385,6 +412,8 @@ CREATE TABLE alerts (
 
 -- ============================================================
 -- 13. NOTIFICATIONS
+-- FEATURE: Alerts and Notifications
+-- Purpose: User-facing notification event logs, unread states, and system announcements.
 -- ============================================================
 CREATE TABLE notifications (
     notification_id     INT AUTO_INCREMENT,
@@ -411,6 +440,8 @@ CREATE TABLE notifications (
 
 -- ============================================================
 -- 14. PORTFOLIO_GOALS
+-- FEATURE: Portfolio Goals
+-- Purpose: Goal accumulation targets, target milestones, and investor progress tracking.
 -- ============================================================
 CREATE TABLE portfolio_goals (
     goal_id      INT AUTO_INCREMENT,
@@ -450,6 +481,8 @@ CREATE TABLE portfolio_goals (
 
 -- ============================================================
 -- 15. INFLATION_RATES (LF-28 Real Return Calculation)
+-- FEATURE: Inflation and Real Return
+-- Purpose: Official annual inflation percentages from BBS / BLS series.
 -- ============================================================
 CREATE TABLE inflation_rates (
     rate_id        INT AUTO_INCREMENT,
@@ -470,7 +503,36 @@ CREATE TABLE inflation_rates (
 ) ENGINE=InnoDB;
 
 -- ============================================================
+-- 15b. CPI_INDEX_OBSERVATIONS (Monthly CPI Index Series)
+-- FEATURE: Inflation and Real Return
+-- Purpose: Official monthly consumer price index levels for granular inflation calculations.
+-- ============================================================
+CREATE TABLE cpi_index_observations (
+    observation_id   INT AUTO_INCREMENT,
+    country_code     VARCHAR(10)   NOT NULL,
+    observation_date DATE          NOT NULL,
+    cpi_index        DECIMAL(8,4)  NOT NULL,
+    source           VARCHAR(150)  NOT NULL,
+    source_url       VARCHAR(255)  NULL,
+    created_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_cpi_index_observations
+        PRIMARY KEY (observation_id),
+
+    CONSTRAINT uq_cpi_observations_country_date
+        UNIQUE (country_code, observation_date),
+
+    CONSTRAINT ck_cpi_index_positive
+        CHECK (cpi_index > 0)
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_cpi_observations_lookup
+    ON cpi_index_observations (country_code, observation_date);
+
+-- ============================================================
 -- 16. CURRENCY_EXCHANGE_RATES (LF-29 Multi-Currency Valuation)
+-- FEATURE: Currency Conversion
+-- Purpose: Interbank currency exchange rates for multi-asset normalization into BDT.
 -- ============================================================
 CREATE TABLE currency_exchange_rates (
     rate_id        INT AUTO_INCREMENT,
@@ -493,6 +555,8 @@ CREATE TABLE currency_exchange_rates (
 
 -- ============================================================
 -- 17. BENCHMARK_PRICE_HISTORY (LF-30 Database-Backed Benchmark History)
+-- FEATURE: Benchmark Analysis
+-- Purpose: Historical index levels for Dhaka Stock Exchange benchmarks (DSEX, DS30, DSES).
 -- ============================================================
 CREATE TABLE benchmark_price_history (
     benchmark_price_history_id INT AUTO_INCREMENT,
@@ -533,6 +597,8 @@ CREATE TABLE benchmark_price_history (
 
 -- ============================================================
 -- 18. PERFORMANCE & REPORTING INDEXES
+-- FEATURE: MySQL Database and Data Integrity
+-- Purpose: Strategic secondary indexes optimizing JOINs, time-series range scans, and user lookups.
 -- ============================================================
 CREATE INDEX idx_transactions_portfolio_date ON transactions (portfolio_id, transaction_date);
 CREATE INDEX idx_transactions_company ON transactions (company_id);
@@ -548,9 +614,11 @@ CREATE INDEX idx_portfolio_goals_user ON portfolio_goals (user_id, is_active, cr
 CREATE INDEX idx_portfolio_goals_portfolio ON portfolio_goals (portfolio_id, is_active);
 
 -- ============================================================
--- 16. VIEW: VW_PORTFOLIO_HOLDINGS
+-- 19. VIEW: VW_PORTFOLIO_HOLDINGS
 -- DATABASE: View — vw_portfolio_holdings
 -- SQL CONCEPT: VIEW
+-- FEATURE: Portfolio Valuation
+-- FEATURE: Realized and Unrealized P/L
 -- HOLDINGS: Current Quantity
 -- CALCULATION: Weighted Average Cost
 -- CALCULATION: Market Value

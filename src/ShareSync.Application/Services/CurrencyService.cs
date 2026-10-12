@@ -50,7 +50,7 @@ public interface ICurrencyService
 }
 
 /// <summary>
-/// FEATURE: Multi-Currency and Multi-Asset (LF-29)
+/// FEATURE: Currency Conversion
 /// 
 /// PURPOSE:
 /// Normalizes and values multi-currency holdings into a single portfolio base currency (default "BDT").

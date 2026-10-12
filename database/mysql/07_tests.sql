@@ -1,6 +1,7 @@
 -- ============================================================
 -- ShareSync - MySQL End-to-End Verification Test Script
 -- File: 07_tests.sql
+-- FEATURE: MySQL Database and Data Integrity
 -- Description: Automated test cases verifying schema integrity, triggers, procedures & views
 -- ============================================================
 
@@ -36,6 +37,7 @@ UNION ALL SELECT 'ALERTS', COUNT(*) FROM alerts
 UNION ALL SELECT 'NOTIFICATIONS', COUNT(*) FROM notifications
 UNION ALL SELECT 'PORTFOLIO_GOALS', COUNT(*) FROM portfolio_goals
 UNION ALL SELECT 'INFLATION_RATES', COUNT(*) FROM inflation_rates
+UNION ALL SELECT 'CPI_INDEX_OBSERVATIONS', COUNT(*) FROM cpi_index_observations
 UNION ALL SELECT 'CURRENCY_EXCHANGE_RATES', COUNT(*) FROM currency_exchange_rates;
 
 -- ============================================================

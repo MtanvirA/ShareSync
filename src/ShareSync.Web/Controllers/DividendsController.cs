@@ -7,6 +7,11 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Dividends Controller
+/// Manages corporate cash dividend declarations, payout schedules, portfolio dividend income statements, and yield metrics.
+/// FEATURE: Dividend Management
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]

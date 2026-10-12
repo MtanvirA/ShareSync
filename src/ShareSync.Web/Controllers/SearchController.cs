@@ -6,6 +6,11 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Search Controller
+/// Provides omnibox search across listed companies, tickers, industry sectors, portfolios, and watchlists.
+/// FEATURE: Company Catalog and Search
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]

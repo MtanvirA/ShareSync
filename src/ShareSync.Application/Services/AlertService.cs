@@ -9,6 +9,10 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service managing stock price thresholds, portfolio valuation triggers, and alert dispatch rules.
+/// FEATURE: Alerts and Notifications
+/// </summary>
 public class AlertService : IAlertService
 {
     private readonly IApplicationDbContext _context;

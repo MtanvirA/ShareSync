@@ -11,7 +11,7 @@ namespace ShareSync.Web.Controllers;
 
 /// <summary>
 /// API: Investment Intelligence Controller
-/// FEATURE: Investment Intelligence Engine (LF-31)
+/// FEATURE: Investment Intelligence
 /// 
 /// Endpoints:
 /// GET /api/investment-analysis/company/{companyId}

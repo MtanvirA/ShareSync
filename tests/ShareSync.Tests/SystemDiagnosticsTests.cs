@@ -6,6 +6,7 @@ using ShareSync.Application.Common.Interfaces;
 using ShareSync.Application.Common.Models;
 using ShareSync.Application.DTOs.Admin;
 using ShareSync.Application.DTOs.Companies;
+using ShareSync.Application.DTOs.MarketData;
 using ShareSync.Application.Interfaces;
 using ShareSync.Application.Services;
 using ShareSync.Domain.Entities;
@@ -42,6 +43,21 @@ public class SystemDiagnosticsTests
 
         public Task<CompanyDto> ImportCompanyFromDseAsync(string symbol, string? preferredName = null, string? preferredSector = null, CancellationToken cancellationToken = default)
             => Task.FromResult(new CompanyDto { CompanyId = 999, TickerSymbol = symbol });
+
+        public Task<StockChartBdMarketSummaryDto?> GetMarketSummaryAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<StockChartBdMarketSummaryDto?>(null);
+
+        public Task<ApiResponse<int>> SyncHistoricalPricesAsync(string tickerSymbol, int limit = 100, CancellationToken cancellationToken = default)
+            => Task.FromResult(ApiResponse<int>.Ok(0));
+
+        public Task<StockChartBdFinancialsDto?> GetCompanyFinancialsAsync(string tickerSymbol, CancellationToken cancellationToken = default)
+            => Task.FromResult<StockChartBdFinancialsDto?>(null);
+
+        public Task<StockChartBdHealthDto?> GetCompanyHealthAsync(string tickerSymbol, CancellationToken cancellationToken = default)
+            => Task.FromResult<StockChartBdHealthDto?>(null);
+
+        public Task<StockChartBdDiagnosticsDto> GetApiDiagnosticsAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new StockChartBdDiagnosticsDto());
     }
 
     private class FakeCurrentUserService : ICurrentUserService

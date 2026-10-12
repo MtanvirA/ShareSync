@@ -9,9 +9,8 @@ using ShareSync.Domain.Entities;
 namespace ShareSync.Application.Services;
 
 /// <summary>
-/// FEATURE: Transaction Management
-/// FEATURE: Realized Profit/Loss (LF-26)
-/// FEATURE: Transaction Fees and Net Cash Flow (LF-27)
+/// FEATURE: Transactions
+/// FEATURE: Realized and Unrealized P/L
 /// DATABASE: MySQL EF Core
 /// 
 /// PURPOSE:

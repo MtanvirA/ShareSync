@@ -7,7 +7,7 @@ using ShareSync.Application.Interfaces;
 namespace ShareSync.Application.Services;
 
 /// <summary>
-/// FEATURE: Benchmark Comparison (LF-30)
+/// FEATURE: Benchmark Analysis
 /// 
 /// BENCHMARK: Historical Data
 /// Compares investor portfolio performance against recognized Dhaka Stock Exchange (DSE) market indices:

@@ -8,6 +8,10 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// Handles user registration, authentication, JWT token issuance, session profile retrieval, and password management.
+/// FEATURE: Authentication and Authorization
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase

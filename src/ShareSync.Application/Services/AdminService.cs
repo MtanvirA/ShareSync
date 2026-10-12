@@ -8,6 +8,11 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service managing system administration, database health diagnostics, user management, and historical reconciliation.
+/// FEATURE: Historical Reconciliation
+/// FEATURE: MySQL Database and Data Integrity
+/// </summary>
 public class AdminService : IAdminService
 {
     private readonly IApplicationDbContext _context;

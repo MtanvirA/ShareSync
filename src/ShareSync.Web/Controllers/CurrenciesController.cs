@@ -8,7 +8,7 @@ namespace ShareSync.Web.Controllers;
 
 /// <summary>
 /// API: Currencies Controller
-/// FEATURE: Multi-Asset and Multi-Currency (LF-29)
+/// FEATURE: Currency Conversion
 /// 
 /// Endpoints:
 /// GET /api/currencies/supported — Supported currency and asset universe (BDT, USD, EQUITY, ETF, etc.)

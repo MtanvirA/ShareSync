@@ -1,4 +1,5 @@
 using ShareSync.Application.Common.Models;
+using ShareSync.Application.DTOs.MarketData;
 
 namespace ShareSync.Application.Interfaces;
 
@@ -50,5 +51,12 @@ public interface IDsePriceService
     Task<ApiResponse<DsePriceUpdateResultDto>> SyncAllCompanyPricesAsync(CancellationToken cancellationToken = default);
     Task<List<DseListedCompanyDto>> GetDseListedCompaniesAsync(CancellationToken cancellationToken = default);
     Task<DTOs.Companies.CompanyDto> ImportCompanyFromDseAsync(string symbol, string? preferredName = null, string? preferredSector = null, CancellationToken cancellationToken = default);
+
+    // StockChartBD Expanded API Endpoints
+    Task<StockChartBdMarketSummaryDto?> GetMarketSummaryAsync(CancellationToken cancellationToken = default);
+    Task<ApiResponse<int>> SyncHistoricalPricesAsync(string tickerSymbol, int limit = 100, CancellationToken cancellationToken = default);
+    Task<StockChartBdFinancialsDto?> GetCompanyFinancialsAsync(string tickerSymbol, CancellationToken cancellationToken = default);
+    Task<StockChartBdHealthDto?> GetCompanyHealthAsync(string tickerSymbol, CancellationToken cancellationToken = default);
+    Task<StockChartBdDiagnosticsDto> GetApiDiagnosticsAsync(CancellationToken cancellationToken = default);
 }
 

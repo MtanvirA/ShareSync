@@ -101,12 +101,15 @@ ShareSync/
   - `goals.html`: Financial target setting and progress tracking
   - `activity.html`: Real-time timeline of user actions and audit trail
   - `simulator.html`: Trade simulation and hypothetical return calculator
+  - `learning-center.html`: Financial literacy, valuation methods, and DSE trading mechanics (`FEATURE: Learning Center`)
   - `settings.html`: Account profile, password change, and MFA configuration
   - `admin.html`: System administration portal (user management, diagnostics, health metrics)
 - **Assets**:
   - `css/style.css`: Clean responsive design system with dark/light mode tokens
+  - `css/learning-center.css`: Dedicated educational hub styles and interactive quiz/card layout
   - `js/app.js`: Core client-side API integrations, state management, and Chart.js visualizations
   - `js/investment-intelligence.js`: Specialized statistical radar and metric calculations
+  - `js/learning-center.js`: Interactive financial glossary, calculator demos, and knowledge checks
 
 ---
 
@@ -116,11 +119,11 @@ ShareSync/
 |---|---|
 | `setup.sql` | Master deployment script executing full sequential initialization |
 | `reset_demo_data.sql` | Atomic reset script restoring pristine evaluation baseline without dropping schema |
-| `01_schema.sql` | DDL creating 14 3NF tables, indexes, constraints, and `vw_portfolio_holdings` |
+| `01_schema.sql` | DDL creating 18 3NF tables, indexes, constraints, and `vw_portfolio_holdings` |
 | `02_seed.sql` | Comprehensive evaluation dataset (users, multi-asset portfolios, transactions, dividends) |
-| `03_demo_validation.sql` | Automated data integrity audit testing 17 entity populations and 13 constraints |
+| `03_demo_validation.sql` | Automated data integrity audit testing 18 entity populations and database constraints |
 | `03_queries.sql` | Demonstration queries for viva evaluations (multi-table JOINs, CTEs, Windows) |
-| `04_functions.sql` | Stored functions (`fn_get_weighted_avg_price`, `fn_calculate_unrealized_pl`) |
+| `04_functions.sql` | Stored functions (`fn_get_weighted_avg_price`, `fn_calculate_unrealized_pl`, `fn_calculate_realized_pl`, `fn_calculate_net_cash_flow`, `fn_calculate_real_return`) |
 | `05_procedures.sql` | Stored procedures (`sp_record_transaction`, `sp_generate_portfolio_snapshot`) |
 | `06_triggers.sql` | Audit triggers capturing INSERT, UPDATE, and DELETE actions into `transaction_audit` |
 | `07_tests.sql` | End-to-end SQL verification script confirming routine and trigger functionality |

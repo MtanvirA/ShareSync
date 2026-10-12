@@ -8,6 +8,11 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Watchlists Controller
+/// Manages user stock watchlists, monitored ticker symbols, notes, and price target thresholds.
+/// FEATURE: Watchlists
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]

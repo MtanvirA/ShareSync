@@ -1,9 +1,13 @@
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ShareSync.Application;
 using ShareSync.Application.Common.Interfaces;
+using ShareSync.Application.Common.Models;
 using ShareSync.Application.Interfaces;
 using ShareSync.Infrastructure;
 using ShareSync.Infrastructure.Data;
@@ -40,10 +44,55 @@ if (!isDev)
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// StockChartBD Centralized Client, Rate Limiter & SocketsHttpHandler
+builder.Services.Configure<StockChartBdOptions>(builder.Configuration.GetSection(StockChartBdOptions.SectionName));
+builder.Services.AddSingleton<IStockChartBdRateLimiter, StockChartBdRateLimiter>();
+builder.Services.AddHttpClient<IStockChartBdClient, StockChartBdClient>((sp, client) =>
+{
+    var opts = sp.GetRequiredService<IOptions<StockChartBdOptions>>().Value;
+    client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds > 0 ? opts.TimeoutSeconds : 10);
+    client.DefaultRequestHeaders.Add("User-Agent", "ShareSync/1.0 (DSE Market Data Client)");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.ConfigurePrimaryHttpMessageHandler(sp =>
+{
+    var opts = sp.GetRequiredService<IOptions<StockChartBdOptions>>().Value;
+    var primaryIp = opts.PrimaryServerIp;
+    return new SocketsHttpHandler
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+        ConnectCallback = async (context, cancellationToken) =>
+        {
+            var host = context.DnsEndPoint.Host;
+            var port = context.DnsEndPoint.Port;
+
+            if (!string.IsNullOrWhiteSpace(primaryIp) && host.Equals("stockchartbd.com", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    cts.CancelAfter(TimeSpan.FromSeconds(3));
+                    await socket.ConnectAsync(new IPEndPoint(IPAddress.Parse(primaryIp), port), cts.Token);
+                    return new NetworkStream(socket, ownsSocket: true);
+                }
+                catch
+                {
+                    // Fall back to standard DNS connect
+                }
+            }
+
+            var defaultSocket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            await defaultSocket.ConnectAsync(context.DnsEndPoint, cancellationToken);
+            return new NetworkStream(defaultSocket, ownsSocket: true);
+        }
+    };
+});
+
 // Add HttpClient with safe timeout for live DSE price synchronization
 builder.Services.AddHttpClient<IDsePriceService, DsePriceService>(client =>
 {
-    client.Timeout = TimeSpan.FromSeconds(3);
+    client.Timeout = TimeSpan.FromSeconds(10);
 });
 builder.Services.AddHostedService<DsePriceBackgroundService>();
 

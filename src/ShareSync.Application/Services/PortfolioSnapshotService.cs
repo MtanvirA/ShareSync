@@ -8,6 +8,10 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service recording and querying daily point-in-time valuation snapshots for investor portfolios.
+/// FEATURE: Portfolio Valuation
+/// </summary>
 public class PortfolioSnapshotService : IPortfolioSnapshotService
 {
     private readonly IApplicationDbContext _context;

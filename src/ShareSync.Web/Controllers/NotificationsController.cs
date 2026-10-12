@@ -7,6 +7,11 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Notifications Controller
+/// Manages investor notifications, unread counts, mark-as-read updates, and system message dispatches.
+/// FEATURE: Alerts and Notifications
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]

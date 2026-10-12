@@ -9,6 +9,11 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service managing listed companies, ticker catalog, current trading quotes, and historical OHLC price series.
+/// FEATURE: Company Catalog and Search
+/// FEATURE: Historical Price Data
+/// </summary>
 public class CompanyService : ICompanyService
 {
     private readonly IApplicationDbContext _context;

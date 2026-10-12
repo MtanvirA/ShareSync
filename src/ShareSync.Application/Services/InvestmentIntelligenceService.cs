@@ -15,7 +15,7 @@ using ShareSync.Domain.Entities;
 namespace ShareSync.Application.Services;
 
 /// <summary>
-/// FEATURE: Investment Intelligence Engine (LF-31)
+/// FEATURE: Investment Intelligence
 /// INVESTMENT INTELLIGENCE: Analysis
 /// DSE: Historical Data
 /// 

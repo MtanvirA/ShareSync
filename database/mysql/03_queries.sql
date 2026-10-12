@@ -1,6 +1,7 @@
 -- ============================================================
 -- ShareSync - MySQL Demonstration Queries & Operations
 -- File: 03_queries.sql
+-- FEATURE: MySQL Database and Data Integrity
 -- Description: Interactive verification queries demonstrating core RDBMS capabilities
 -- ============================================================
 

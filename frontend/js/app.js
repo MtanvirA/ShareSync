@@ -32,8 +32,9 @@ function escapeHtml(str) {
 // ============================================================
 // SECURITY: Authentication & Token Management
 // Resolves RFC 7519 JWT Bearer tokens from localStorage for API request signing.
+// FEATURE: Authentication and Authorization
 // ============================================================
-// FEATURE: Authentication - JWT Bearer token retrieval and session checks
+// FEATURE: Authentication and Authorization - JWT Bearer token retrieval and session checks
 function getAuthToken() {
   return localStorage.getItem("sharesync_token");
 }
@@ -52,7 +53,7 @@ function isAuthPage() {
   return path.endsWith("login.html") || path.endsWith("register.html");
 }
 
-// FEATURE: Authorization - Role verification and route protection
+// FEATURE: Authentication and Authorization - Role verification and route protection
 function checkAuthProtection() {
   const token = getAuthToken();
   if (isAuthPage()) {
@@ -851,6 +852,8 @@ const bodyEl = document.getElementById("dashboardHoldingsBody");
 }
 
 // BUGFIX: Dashboard Initialization
+// FEATURE: Portfolio Management
+// FEATURE: Portfolio Valuation
 // FEATURE: Portfolio Dashboard - Overview cards, asset balance, and performance trajectory
 async function setupDashboard() {
   const dashboardValueEl = document.getElementById("dashboardPortfolioValue");
@@ -929,6 +932,7 @@ async function setupDashboard() {
         holdingsMetaEl.textContent = `Across ${count} ${count === 1 ? 'holding' : 'holdings'}`;
       }
 
+      // FEATURE: Realized and Unrealized P/L
       // FEATURE: Unrealized P/L - Open position mark-to-market calculations
 // FEATURE: Realized P/L - Cumulative closed trade gains and losses
 const unrealizedPLEl = document.getElementById("dashboardUnrealizedPL");
@@ -2653,6 +2657,7 @@ async function setupDividendForm() {
 }
 
 // BUGFIX: Dashboard Initialization & Syntax Error Recovery
+// FEATURE: Dividend Management
 // FEATURE: Dividends - Calendar distributions and yield on cost
 // FEATURE: Dividend Income - Dividend totals and yield aggregation
 async function loadDividendSummary() {
@@ -3451,6 +3456,7 @@ async function loadUserWatchlists() {
 }
 
 // BUGFIX: Dashboard Initialization & Syntax Error Recovery
+// FEATURE: Watchlists
 // FEATURE: Watchlist - Monitoring target securities and alert thresholds
 async function loadWatchlistDetail(watchlistId) {
   const titleEl = document.getElementById("watchlistTitle");
@@ -3665,6 +3671,8 @@ async function updateAvailableShares() {
 }
 
 // BUGFIX: Dashboard Initialization & Syntax Error Recovery
+// FEATURE: DSE Market Data
+// FEATURE: Transactions
 // FEATURE: DSE Market - Live Dhaka Stock Exchange ticker feeds
 // FEATURE: Transactions - Trade entry, execution, and ledger management
 async function setupTransactionForm() {
@@ -3838,6 +3846,7 @@ async function setupTransactionForm() {
     console.error("Failed to load portfolios for transactions:", err);
   }
 
+  // FEATURE: Currency Conversion
   // Load currencies exchange rates (LF-29)
   try {
     const fxRes = await apiRequest("/currencies/rates");
@@ -4058,6 +4067,7 @@ async function setupTransactionForm() {
 // =========================================
 
 // =========================================
+// FEATURE: CSV Import
 // CSV TRANSACTION IMPORT WORKFLOW
 // =========================================
 
@@ -5267,6 +5277,7 @@ async function setupReports() {
     });
   }
 
+  // FEATURE: Reports and Exports
   async function triggerReportExport(format, buttonEl) {
     const reportType = reportTypeSelect ? reportTypeSelect.value : "holdings";
     const portfolioId = portfolioSelect ? portfolioSelect.value : "";
@@ -5781,6 +5792,7 @@ async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
 }
 
 // BUGFIX: Reports & Syntax Error Recovery
+// FEATURE: Inflation and Real Return
 // FEATURE: Inflation - Purchasing power erosion and real return metrics
 // FEATURE: Inflation-Adjusted Return - Real purchasing power yield
 async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
@@ -6569,6 +6581,7 @@ function setupPriceHistoryTimeframeButtons() {
   }
 }
 
+// FEATURE: Historical Price Data
 async function loadPriceHistoryData(companyId, period) {
   if (!companyId) return;
 
@@ -7605,6 +7618,7 @@ async function setupAnalyticsPage() {
 }
 
 // BUGFIX: Analytics & Syntax Error Recovery
+// FEATURE: Portfolio Analytics
 // FEATURE: Analytics - Portfolio performance metrics and equity curve
 async function loadAnalyticsData(portfolioId, period) {
   const loadingEl = document.getElementById("analyticsLoadingState");
@@ -7665,6 +7679,7 @@ async function loadAnalyticsData(portfolioId, period) {
 
 
 // =========================================
+// FEATURE: Benchmark Analysis
 // WEB FEATURE 5: BENCHMARK COMPARISON
 // CHART: Benchmark Comparison
 // =========================================
@@ -10052,6 +10067,8 @@ async function triggerAdminDseSync() {
 // AUDIT LOGS TAB
 // -----------------------------------------
 // BUGFIX: Admin Audit Logs & Syntax Error Recovery
+// FEATURE: Historical Reconciliation
+// FEATURE: MySQL Database and Data Integrity
 // FEATURE: Audit - Trail logging and verification records
 async function fetchAdminAuditLogs() {
   const tbody = document.getElementById("auditLogsTableBody");
@@ -10108,6 +10125,7 @@ function renderAuditLogsTable(logs) {
 
 
 // =========================================
+// FEATURE: Simulator
 // INVESTMENT SIMULATOR PAGE
 // =========================================
 let simCompaniesCache = [];
@@ -10716,6 +10734,7 @@ let goalsCache = [];
 let goalsPortfoliosCache = [];
 
 // BUGFIX: Goals & Syntax Error Recovery
+// FEATURE: Portfolio Goals
 // FEATURE: Goals - Financial milestone target and progress tracking
 async function setupGoalsPage() {
   const gridContainer = document.getElementById("goalsGridContainer");
@@ -11607,6 +11626,7 @@ window.openDseMarketModal = async function(options = {}) {
 // GLOBAL SEARCH COMPONENT (FEATURE 8)
 // =========================================
 
+// FEATURE: Company Catalog and Search
 // FEATURE: Search - Company ticker and name autocompletion
 function setupGlobalSearch() {
   const searchInput = document.getElementById("globalSearchInput");

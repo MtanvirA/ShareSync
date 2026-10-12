@@ -4,13 +4,16 @@ using ShareSync.Application.Common.Exceptions;
 using ShareSync.Application.Common.Interfaces;
 using ShareSync.Application.Common.Models;
 using ShareSync.Application.DTOs.Companies;
+using ShareSync.Application.DTOs.MarketData;
 using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
 /// <summary>
 /// API: Companies Controller
-/// DSE: Company Catalog & Market Data Gateway (LF-31)
+/// FEATURE: Company Catalog and Search
+/// FEATURE: DSE Market Data
+/// FEATURE: Historical Price Data
 /// 
 /// Endpoints:
 /// GET /api/companies — Local canonical tracked companies
@@ -127,5 +130,76 @@ public class CompaniesController : ControllerBase
             cancellationToken);
 
         return Ok(ApiResponse<CompanyDto>.Ok(result, $"Successfully added {result.TickerSymbol} ({result.CompanyName}) to ShareSync."));
+    }
+
+    /// <summary>
+    /// GET /api/companies/market-summary
+    /// Retrieves current Dhaka Stock Exchange market summary including major indices (DSEX, DS30, DSES, CDSET) and market breadth.
+    /// Source: StockChartBD API with DSE Intelligence attribution.
+    /// </summary>
+    [HttpGet("market-summary")]
+    public async Task<IActionResult> GetMarketSummary(CancellationToken cancellationToken)
+    {
+        var summary = await _dsePriceService.GetMarketSummaryAsync(cancellationToken);
+        if (summary == null)
+        {
+            return StatusCode(503, ApiResponse<StockChartBdMarketSummaryDto>.Fail("Market summary is temporarily unavailable from upstream provider."));
+        }
+
+        return Ok(ApiResponse<StockChartBdMarketSummaryDto>.Ok(summary));
+    }
+
+    /// <summary>
+    /// GET /api/companies/{symbol}/financials
+    /// Retrieves corporate financial metrics for a specific ticker symbol.
+    /// </summary>
+    [HttpGet("{symbol}/financials")]
+    public async Task<IActionResult> GetCompanyFinancials(string symbol, CancellationToken cancellationToken)
+    {
+        var financials = await _dsePriceService.GetCompanyFinancialsAsync(symbol, cancellationToken);
+        if (financials == null)
+        {
+            return NotFound(ApiResponse<StockChartBdFinancialsDto>.Fail($"Financial data for symbol '{symbol}' not found."));
+        }
+
+        return Ok(ApiResponse<StockChartBdFinancialsDto>.Ok(financials));
+    }
+
+    /// <summary>
+    /// GET /api/companies/{symbol}/health
+    /// Retrieves operational health scores and solvency indicators for a specific ticker symbol.
+    /// </summary>
+    [HttpGet("{symbol}/health")]
+    public async Task<IActionResult> GetCompanyHealth(string symbol, CancellationToken cancellationToken)
+    {
+        var health = await _dsePriceService.GetCompanyHealthAsync(symbol, cancellationToken);
+        if (health == null)
+        {
+            return NotFound(ApiResponse<StockChartBdHealthDto>.Fail($"Health data for symbol '{symbol}' not found."));
+        }
+
+        return Ok(ApiResponse<StockChartBdHealthDto>.Ok(health));
+    }
+
+    /// <summary>
+    /// POST /api/companies/{symbol}/sync-history
+    /// Backfills recent historical prices (OHLCV) from StockChartBD for a specific company into persistent storage.
+    /// </summary>
+    [HttpPost("{symbol}/sync-history")]
+    public async Task<IActionResult> SyncCompanyHistory(string symbol, [FromQuery] int limit = 100, CancellationToken cancellationToken = default)
+    {
+        var result = await _dsePriceService.SyncHistoricalPricesAsync(symbol, limit, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// GET /api/companies/market-diagnostics
+    /// Retrieves real-time rate limit budget, cache status, and connectivity diagnostics for the market data integration.
+    /// </summary>
+    [HttpGet("market-diagnostics")]
+    public async Task<IActionResult> GetMarketDiagnostics(CancellationToken cancellationToken)
+    {
+        var diagnostics = await _dsePriceService.GetApiDiagnosticsAsync(cancellationToken);
+        return Ok(ApiResponse<StockChartBdDiagnosticsDto>.Ok(diagnostics));
     }
 }

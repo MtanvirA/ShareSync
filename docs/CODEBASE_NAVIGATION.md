@@ -6,35 +6,35 @@
 
 ---
 
-## Quick Search Terms Index
+## Standardized Feature Tags (Instant `Ctrl + Shift + F` Navigation)
 
-Press **`Ctrl + Shift + F`** in your IDE / code editor and search any of the following standardized tags to jump immediately to the relevant implementation, formula, business rule, or database routine:
+Every module in the ShareSync MySQL codebase contains standardized, searchable tags in C# XML docs, frontend JavaScript, and MySQL SQL scripts. Press **`Ctrl + Shift + F`** in your IDE and search any of these exact tags:
 
-| Examination Query | Exact Search Term | Primary Source Location |
-|---|---|---|
-| **Realized Profit / Loss** | `FEATURE: Realized P/L` | [TransactionService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/TransactionService.cs), [04_functions.sql](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/database/mysql/04_functions.sql) |
-| **Weighted Average Cost** | `CALCULATION: Weighted Average Cost` | [PortfolioService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/PortfolioService.cs), [04_functions.sql](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/database/mysql/04_functions.sql) |
-| **Compound Annual Growth Rate** | `CALCULATION: CAGR` | [InvestmentIntelligenceService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/InvestmentIntelligenceService.cs) |
-| **Maximum Drawdown Risk** | `CALCULATION: Maximum Drawdown` | [InvestmentIntelligenceService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/InvestmentIntelligenceService.cs) |
-| **Benchmark Outperformance** | `FEATURE: Benchmark Comparison` | [BenchmarkService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/BenchmarkService.cs) |
-| **Active Return Difference** | `BENCHMARK: Active Return` | [BenchmarkService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/BenchmarkService.cs) |
-| **Inflation CPI Series** | `INFLATION: CPI Data` | [InflationService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/InflationService.cs) |
-| **DSE Price Sync** | `DSE: Price Synchronization` | [DsePriceService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Infrastructure/Services/DsePriceService.cs) |
-| **Historical Price Import** | `DSE: Historical Data` | [HistoricalReconciliationEngine.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Common/Helpers/HistoricalReconciliationEngine.cs) |
-| **OHLC Candlestick Validation** | `DATA QUALITY: OHLC` | [HistoricalReconciliationEngine.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Common/Helpers/HistoricalReconciliationEngine.cs) |
-| **Historical Deduplication** | `DATA QUALITY: Duplicate Handling` | [HistoricalReconciliationEngine.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Common/Helpers/HistoricalReconciliationEngine.cs) |
-| **Multi-Asset Support** | `FEATURE: Multi-Asset` | [CurrencyService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/CurrencyService.cs), [Company.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Domain/Entities/Company.cs) |
-| **Foreign Exchange Rates** | `CURRENCY: Exchange Rate` | [CurrencyService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/CurrencyService.cs) |
-| **User Authentication** | `SECURITY: Authentication` | [AuthService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/AuthService.cs), [AppUser.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Domain/Entities/AppUser.cs) |
-| **SQL Injection Prevention** | `SECURITY: SQL Injection` | [AuthService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/AuthService.cs), [ShareSyncDbContext.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Infrastructure/Data/ShareSyncDbContext.cs) |
-| **Stored Procedures** | `DATABASE: Stored Procedure` | [05_procedures.sql](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/database/mysql/05_procedures.sql), [03_queries.sql](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/database/mysql/03_queries.sql) |
-| **Stored Functions** | `DATABASE: Stored Function` | [04_functions.sql](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/database/mysql/04_functions.sql), [03_queries.sql](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/database/mysql/03_queries.sql) |
-| **Audit Triggers** | `DATABASE: Trigger` | [06_triggers.sql](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/database/mysql/06_triggers.sql), [TransactionAudit.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Domain/Entities/TransactionAudit.cs) |
-| **Relational Views** | `DATABASE: View` | [01_schema.sql](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/database/mysql/01_schema.sql), [PortfolioHoldingView.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Domain/Entities/PortfolioHoldingView.cs) |
-| **Liquidation Trade (SELL)** | `TRANSACTION: SELL` | [TransactionService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/TransactionService.cs), [05_procedures.sql](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/database/mysql/05_procedures.sql) |
-| **Oversell Prevention** | `BUSINESS RULE: Oversell Prevention` | [TransactionService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/TransactionService.cs), [05_procedures.sql](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/database/mysql/05_procedures.sql) |
-| **Investment Scoring** | `INVESTMENT INTELLIGENCE: Score` | [InvestmentIntelligenceService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/InvestmentIntelligenceService.cs) |
-| **5-Year Evaluation Horizon** | `INVESTMENT INTELLIGENCE: Five-Year Window` | [InvestmentIntelligenceService.cs](file:///e:/Projects/Oracle+WebProgramming/ShareSync_MySQL/src/ShareSync.Application/Services/InvestmentIntelligenceService.cs) |
+| # | Standardized Feature Tag | C# Web Controller | C# Application Service | Frontend View / Script | MySQL Schema / Routine |
+|---|---|---|---|---|---|
+| **1** | `FEATURE: Authentication and Authorization` | `AuthController.cs` | `AuthService.cs` | `login.html`, `register.html`, `app.js` | `app_users` table |
+| **2** | `FEATURE: Company Catalog and Search` | `CompaniesController.cs`, `SearchController.cs`, `SectorsController.cs` | `CompanyService.cs`, `SearchService.cs` | `company.html`, `app.js` | `companies`, `sectors` tables |
+| **3** | `FEATURE: Portfolio Management` | `PortfoliosController.cs`, `DashboardController.cs`, `ActivitiesController.cs` | `PortfolioService.cs` | `portfolio.html`, `index.html`, `app.js` | `portfolios` table |
+| **4** | `FEATURE: Portfolio Valuation` | `PortfoliosController.cs`, `SnapshotsController.cs`, `DashboardController.cs` | `PortfolioService.cs`, `PortfolioSnapshotService.cs` | `portfolio.html`, `app.js` | `vw_portfolio_holdings`, `sp_generate_portfolio_snapshot`, `fn_get_weighted_avg_price` |
+| **5** | `FEATURE: Transactions` | `TransactionsController.cs`, `ActivitiesController.cs` | `TransactionService.cs`, `CsvTransactionImportService.cs` | `transactions.html`, `activity.html`, `app.js` | `transactions`, `sp_record_transaction`, `trg_transactions_after_*` |
+| **6** | `FEATURE: Realized and Unrealized P/L` | `TransactionsController.cs`, `ReportsController.cs` | `TransactionService.cs`, `PortfolioService.cs`, `ReportService.cs` | `transactions.html`, `reports.html`, `app.js` | `fn_calculate_realized_pl`, `fn_calculate_unrealized_pl`, `vw_portfolio_holdings` |
+| **7** | `FEATURE: Dividend Management` | `DividendsController.cs` | `DividendService.cs` | `dividends.html`, `app.js` | `dividends` table |
+| **8** | `FEATURE: DSE Market Data` | `CompaniesController.cs` | `DsePriceService.cs`, `StockChartBdClient.cs`, `DsePriceBackgroundService.cs` | `company.html`, `app.js` | `companies.current_price`, live quotes |
+| **9** | `FEATURE: Historical Price Data` | `CompaniesController.cs` | `CompanyService.cs` | `company.html`, `app.js` | `company_price_history` table |
+| **10** | `FEATURE: Benchmark Analysis` | `BenchmarksController.cs` | `BenchmarkService.cs` | `analytics.html`, `app.js` | `benchmark_price_history` table |
+| **11** | `FEATURE: Portfolio Analytics` | `AnalyticsController.cs` | `AnalyticsService.cs` | `analytics.html`, `app.js` | Sector exposures, performance history |
+| **12** | `FEATURE: Investment Intelligence` | `InvestmentIntelligenceController.cs` | `InvestmentIntelligenceService.cs` | `investment-intelligence.html`, `investment-intelligence.js` | Multi-year statistical profile & scoring |
+| **13** | `FEATURE: Inflation and Real Return` | `InflationController.cs`, `ReportsController.cs` | `InflationService.cs`, `ReportService.cs` | `reports.html`, `app.js` | `inflation_rates`, `cpi_index_observations`, `fn_calculate_real_return` |
+| **14** | `FEATURE: Currency Conversion` | `CurrenciesController.cs` | `CurrencyService.cs`, `PortfolioService.cs` | `portfolio.html`, `app.js` | `currency_exchange_rates` table |
+| **15** | `FEATURE: Portfolio Goals` | `GoalsController.cs` | `PortfolioGoalService.cs` | `goals.html`, `app.js` | `portfolio_goals` table |
+| **16** | `FEATURE: Watchlists` | `WatchlistsController.cs` | `WatchlistService.cs` | `watchlist.html`, `app.js` | `watchlists`, `watchlist_items` tables |
+| **17** | `FEATURE: Alerts and Notifications` | `AlertsController.cs`, `NotificationsController.cs` | `AlertService.cs`, `NotificationService.cs` | `alerts.html`, `app.js` | `alerts`, `notifications` tables |
+| **18** | `FEATURE: Reports and Exports` | `ReportsController.cs` | `ReportService.cs`, `ReportExportService.cs` | `reports.html`, `app.js` | `fn_calculate_net_cash_flow`, CSV/PDF exports |
+| **19** | `FEATURE: Simulator` | `SimulatorController.cs` | `SimulatorService.cs` | `simulator.html`, `app.js` | Hypothetical execution sandbox |
+| **20** | `FEATURE: CSV Import` | `TransactionsController.cs` | `CsvTransactionImportService.cs` | `transactions.html`, `app.js` | Transaction batch parser |
+| **21** | `FEATURE: MySQL Database and Data Integrity` | `AdminController.cs`, `HealthController.cs` | `ShareSyncDbContext.cs`, `AdminService.cs` | `admin.html`, `app.js` | `01_schema.sql`, `02_seed.sql`, `07_tests.sql`, `setup.sql` |
+| **22** | `FEATURE: Historical Reconciliation` | `AdminController.cs` | `HistoricalReconciliationEngine.cs`, `AdminService.cs` | `admin.html`, `app.js` | OHLC geometry, deduplication, Harvard Dataverse |
+| **23** | `FEATURE: Learning Center` | N/A (Client educational module) | N/A | `learning-center.html`, `learning-center.js`, `learning-center.css` | Educational financial terms, DSE market mechanics |
 
 ---
 

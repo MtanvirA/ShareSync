@@ -12,9 +12,11 @@ DELIMITER //
 -- 1. sp_record_transaction
 -- DATABASE: Stored Procedure — sp_record_transaction
 -- SQL CONCEPT: PROCEDURE
+-- FEATURE: Transactions
+-- FEATURE: Realized and Unrealized P/L
+-- FEATURE: MySQL Database and Data Integrity
 -- TRANSACTION: BUY/SELL Processing
 -- TRANSACTION: SELL
--- FEATURE: Realized P/L
 -- BUSINESS RULE: Oversell Prevention
 -- 
 -- Parameters:
@@ -157,6 +159,7 @@ END //
 -- 2. sp_generate_portfolio_snapshot
 -- DATABASE: Stored Procedure — sp_generate_portfolio_snapshot
 -- SQL CONCEPT: PROCEDURE
+-- FEATURE: Portfolio Valuation
 -- CALCULATION: Market Value
 -- Purpose: Calculates mark-to-market valuation across all active holdings and upserts daily portfolio snapshot.
 -- ============================================================

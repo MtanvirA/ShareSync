@@ -1,5 +1,5 @@
 // ============================================================
-// FEATURE: Investment Intelligence Engine (LF-31)
+// FEATURE: Investment Intelligence
 // COMPONENT: Company Search
 // UI: Investment Intelligence Interactive View Controller
 // 

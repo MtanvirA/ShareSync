@@ -1,6 +1,7 @@
 -- ============================================================
 -- ShareSync - Realistic Demonstration Dataset for MySQL
 -- File: 02_seed.sql
+-- FEATURE: MySQL Database and Data Integrity
 -- Description: Deterministic, internally consistent evaluation dataset
 --              covering all 17 application entities for teacher demo
 -- Usage: mysql -u root -p sharesync < database/mysql/02_seed.sql
@@ -25,6 +26,7 @@ TRUNCATE TABLE companies;
 TRUNCATE TABLE sectors;
 TRUNCATE TABLE app_users;
 TRUNCATE TABLE inflation_rates;
+TRUNCATE TABLE cpi_index_observations;
 TRUNCATE TABLE currency_exchange_rates;
 
 -- Note: company_price_history and benchmark_price_history are preserved
@@ -415,6 +417,39 @@ VALUES
 ('US', 2023,  4.12, 'U.S. Bureau of Labor Statistics (BLS)'),
 ('US', 2024,  2.97, 'U.S. Bureau of Labor Statistics (BLS)'),
 ('US', 2025,  2.80, 'U.S. Bureau of Labor Statistics (BLS) (Est.)');
+
+-- ============================================================
+-- 14b. CPI_INDEX_OBSERVATIONS (Monthly CPI Index Series)
+-- Source: Bangladesh Bureau of Statistics (BBS) - Price & Wage Statistics
+-- Series: National General CPI Index (Base: 2021-22 = 100)
+-- URL: https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1
+-- ============================================================
+INSERT INTO cpi_index_observations (country_code, observation_date, cpi_index, source, source_url)
+VALUES
+('BD', '2024-09-01', 130.6100, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2024-10-01', 133.3179, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2024-11-01', 132.6561, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2024-12-01', 131.2964, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-01-01', 131.4872, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-02-01', 131.2854, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-03-01', 132.9763, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-04-01', 133.5048, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-05-01', 133.0813, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-06-01', 133.8462, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-07-01', 136.8319, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-08-01', 140.0624, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-09-01', 141.5266, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-10-01', 144.2073, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-11-01', 143.6473, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2025-12-01', 142.4371, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2026-01-01', 142.7712, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2026-02-01', 143.2784, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2026-03-01', 144.5586, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2026-04-01', 145.5748, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2026-05-01', 145.6140, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2026-06-01', 146.1060, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2026-07-01', 148.2145, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1'),
+('BD', '2026-08-01', 151.6366, 'Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)', 'https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1');
 
 -- ============================================================
 -- 15. CURRENCY_EXCHANGE_RATES

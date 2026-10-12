@@ -10,9 +10,9 @@ namespace ShareSync.Web.Controllers;
 
 /// <summary>
 /// API: Transactions Controller
-/// FEATURE: Transaction Management
-/// FEATURE: Realized Profit/Loss (LF-26)
-/// FEATURE: Transaction Fees and Net Cash Flow (LF-27)
+/// FEATURE: Transactions
+/// FEATURE: Realized and Unrealized P/L
+/// FEATURE: CSV Import
 /// 
 /// SECURITY: Authorization
 /// Requires valid JWT bearer token. Enforces user ownership isolation across all endpoints.

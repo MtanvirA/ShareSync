@@ -10,6 +10,8 @@ USE sharesync;
 -- 1. fn_get_weighted_avg_price
 -- DATABASE: Stored Function — fn_get_weighted_avg_price
 -- SQL CONCEPT: FUNCTION
+-- FEATURE: Portfolio Valuation
+-- FEATURE: Realized and Unrealized P/L
 -- CALCULATION: Weighted Average Cost
 -- Formula: Weighted Average Buy Price = SUM(quantity * price_per_share) / SUM(quantity)
 -- Purpose: Calculates volume-weighted average purchase cost for a company within a portfolio.
@@ -49,6 +51,7 @@ END //
 -- 2. fn_calculate_unrealized_pl
 -- DATABASE: Stored Function — fn_calculate_unrealized_pl
 -- SQL CONCEPT: FUNCTION
+-- FEATURE: Realized and Unrealized P/L
 -- CALCULATION: Unrealized P/L
 -- Formula: Unrealized P/L = Current Quantity * (Current Market Price - Weighted Average Cost)
 -- Purpose: Mark-to-market valuation gain or loss for an open equity position.
@@ -106,7 +109,7 @@ END //
 -- 3. fn_calculate_realized_pl
 -- DATABASE: Stored Function — fn_calculate_realized_pl
 -- SQL CONCEPT: FUNCTION
--- FEATURE: Realized P/L (LF-26)
+-- FEATURE: Realized and Unrealized P/L
 -- CALCULATION: Realized P/L
 -- Formula: Realized P/L = SUM( (Sell Qty * Sell Price - Sell Fee) - (Sell Qty * Weighted Avg Buy Price) )
 -- Purpose: Realized profit or loss generated upon liquidation of holdings.
@@ -138,7 +141,7 @@ END //
 -- 4. fn_calculate_net_cash_flow
 -- DATABASE: Stored Function — fn_calculate_net_cash_flow
 -- SQL CONCEPT: FUNCTION
--- FEATURE: Transaction Fees (LF-27)
+-- FEATURE: Transactions
 -- CALCULATION: Net Cash Flow
 -- Formula: Net Cash Flow = Total Net Sale Inflow - Total Net Purchase Outflow
 -- Purpose: Net capital injection or withdrawal across all portfolio operations.
@@ -169,7 +172,7 @@ END //
 -- 5. fn_calculate_real_return
 -- DATABASE: Stored Function — fn_calculate_real_return
 -- SQL CONCEPT: FUNCTION
--- FEATURE: Inflation-Adjusted Return (LF-28)
+-- FEATURE: Inflation and Real Return
 -- CALCULATION: Real Return (Fisher Equation)
 -- Formula: Real Return = [ ( (1 + Nominal / 100) / (1 + Inflation / 100) ) - 1 ] * 100
 -- Purpose: Converts nominal investment return into true purchasing power gain/loss.

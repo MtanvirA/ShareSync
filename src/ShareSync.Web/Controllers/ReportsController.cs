@@ -8,10 +8,9 @@ namespace ShareSync.Web.Controllers;
 
 /// <summary>
 /// API: Reports Controller
-/// REPORT: Comprehensive Financial Reporting
-/// FEATURE: Realized Profit/Loss (LF-26)
-/// FEATURE: Transaction Fees and Net Cash Flow (LF-27)
-/// FEATURE: Inflation-Adjusted Return (LF-28)
+/// FEATURE: Reports and Exports
+/// FEATURE: Realized and Unrealized P/L
+/// FEATURE: Inflation and Real Return
 /// 
 /// Endpoints:
 /// GET /api/reports/holdings — Portfolio holdings valuation, weighted average cost, unrealized P/L

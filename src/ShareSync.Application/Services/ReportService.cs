@@ -9,7 +9,9 @@ using ShareSync.Domain.Entities;
 namespace ShareSync.Application.Services;
 
 /// <summary>
-/// FEATURE: Reporting & Portfolio Accounting Engine
+/// FEATURE: Reports and Exports
+/// FEATURE: Realized and Unrealized P/L
+/// FEATURE: Inflation and Real Return
 /// 
 /// REPORT: Comprehensive Financial Reporting
 /// Generates audit-grade financial statements and analytical reports across 7 domain modules:

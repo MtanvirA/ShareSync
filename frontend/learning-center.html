@@ -1,0 +1,1281 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="ShareSync Learning Center - Educational guide to DSE share market terminology, portfolio concepts, financial formulas, and how ShareSync works."
+    />
+    <title>ShareSync | Learn &amp; Formulas</title>
+
+    <!-- Theme initialization -->
+    <script>
+      (function () {
+        var saved = localStorage.getItem("sharesync_theme");
+        var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-bs-theme", theme);
+        try {
+          var u = JSON.parse(localStorage.getItem("sharesync_user") || "{}");
+          if ((u.role || "").toUpperCase() === "ADMIN") {
+            document.documentElement.classList.add("is-admin-user");
+          }
+        } catch (_) {}
+      })();
+    </script>
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+    />
+
+    <!-- ShareSync Custom Stylesheets -->
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/learning-center.css" />
+  </head>
+
+  <body>
+    <!-- =========================
+         TOP NAVIGATION
+    ========================== -->
+    <header class="topbar">
+      <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <!-- Brand -->
+          <a href="index.html" class="brand text-decoration-none">
+            <span class="brand-mark">S</span>
+            <span class="brand-name">Share<span>Sync</span></span>
+          </a>
+
+          <!-- Global Search -->
+          <div class="global-search-container position-relative mx-3 flex-grow-1 d-none d-md-block" style="max-width: 420px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-body-tertiary border-end-0 text-muted" style="border-radius: 8px 0 0 8px; border-color: var(--color-border);">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control bg-body-tertiary border-start-0 ps-0 text-body"
+                id="globalSearchInput"
+                placeholder="Search companies, tickers, sectors, portfolios..."
+                aria-label="Search ShareSync"
+                autocomplete="off"
+                style="border-radius: 0 8px 8px 0; border-color: var(--color-border); font-size: 13px;"
+              />
+              <button
+                class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y d-none pe-2 text-decoration-none"
+                id="clearGlobalSearchBtn"
+                type="button"
+                style="z-index: 5;"
+                aria-label="Clear search"
+              >
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+            </div>
+            <div class="global-search-dropdown shadow-lg border rounded-3 p-0 d-none" id="globalSearchDropdown" style="position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--color-surface); z-index: 1050; max-height: 480px; overflow-y: auto;">
+              <div id="globalSearchResults"></div>
+            </div>
+          </div>
+
+          <!-- Right side icons -->
+          <div class="d-flex align-items-center gap-2">
+            <button
+              class="icon-button theme-toggle-btn"
+              id="themeToggleBtn"
+              title="Toggle Light / Dark Mode"
+              aria-label="Toggle theme"
+            >
+              <i class="bi bi-moon-stars"></i>
+            </button>
+
+            <!-- Notifications Center -->
+            <div class="header-dropdown-wrapper position-relative">
+              <button
+                class="icon-button position-relative"
+                id="notificationBtn"
+                title="Notifications"
+                aria-label="Notifications"
+                aria-expanded="false"
+              >
+                <i class="bi bi-bell"></i>
+                <span class="notification-badge" id="notificationBadge"></span>
+              </button>
+
+              <div class="header-dropdown notification-dropdown" id="notificationDropdown">
+                <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center gap-2">
+                    <h6 class="mb-0 fw-semibold" style="font-size: 14px;">Notifications</h6>
+                    <span class="badge bg-primary rounded-pill px-2 py-1" id="notificationCountBadge" style="font-size: 11px;">System</span>
+                  </div>
+                </div>
+                <div class="p-3 text-muted small">All notifications synchronized.</div>
+              </div>
+            </div>
+
+            <!-- Profile Menu -->
+            <div class="header-dropdown-wrapper position-relative ms-2">
+              <div class="profile" id="headerProfileBtn" role="button" tabindex="0" aria-expanded="false" title="Account Menu">
+                <div class="profile-avatar" id="headerAvatar">T</div>
+                <div class="profile-info d-none d-md-block">
+                  <span class="profile-name" id="headerUserName">Investor</span>
+                  <span class="profile-role">Investor</span>
+                </div>
+                <i class="bi bi-chevron-down profile-arrow"></i>
+              </div>
+
+              <div class="header-dropdown profile-dropdown" id="profileDropdown">
+                <div class="p-3 border-bottom">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="profile-avatar flex-shrink-0" id="dropdownAvatar" style="width: 42px; height: 42px; font-size: 17px;">T</div>
+                    <div style="min-width: 0;">
+                      <div class="fw-semibold text-truncate" id="dropdownUserName" style="font-size: 14px;">Investor</div>
+                      <div class="text-muted text-truncate" id="dropdownUserEmail" style="font-size: 12px;">investor@sharesync.com</div>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-0" style="font-size: 11px;" id="dropdownUserRole">INVESTOR</span>
+                  </div>
+                </div>
+
+                <div class="py-2 border-bottom">
+                  <a href="admin.html" class="dropdown-item-link px-3 py-2 align-items-center gap-2 text-danger fw-semibold admin-only-nav" id="adminDropdownLink">
+                    <i class="bi bi-shield-lock-fill text-danger"></i>
+                    <span>Admin Control Panel</span>
+                  </a>
+                  <a href="settings.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-person"></i>
+                    <span>My Profile &amp; Settings</span>
+                  </a>
+                  <a href="portfolio.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-pie-chart"></i>
+                    <span>My Portfolios</span>
+                  </a>
+                  <a href="transactions.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-receipt"></i>
+                    <span>Transaction History</span>
+                  </a>
+                  <a href="learning-center.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2 text-primary fw-semibold">
+                    <i class="bi bi-mortarboard-fill text-primary"></i>
+                    <span>Learn &amp; Formulas</span>
+                  </a>
+                </div>
+
+                <div class="p-2">
+                  <button class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2 w-100 border-0 bg-transparent text-danger" id="dropdownLogoutBtn">
+                    <i class="bi bi-box-arrow-right text-danger"></i>
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- =========================
+         APPLICATION LAYOUT
+    ========================== -->
+    <div class="app-layout">
+      <!-- =========================
+           SECONDARY HORIZONTAL NAVIGATION
+      ========================== -->
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <nav class="sidebar-nav">
+            <a href="index.html" class="sidebar-link">
+              <i class="bi bi-grid-1x2-fill"></i>
+              <span>Dashboard</span>
+            </a>
+
+            <a href="portfolio.html" class="sidebar-link">
+              <i class="bi bi-briefcase"></i>
+              <span>Portfolio</span>
+            </a>
+
+            <a href="investment-intelligence.html" class="sidebar-link">
+              <i class="bi bi-graph-up-arrow"></i>
+              <span>Investment Intel</span>
+            </a>
+
+            <a href="analytics.html" class="sidebar-link">
+              <i class="bi bi-pie-chart-fill"></i>
+              <span>Analytics</span>
+            </a>
+
+            <a href="simulator.html" class="sidebar-link">
+              <i class="bi bi-cpu"></i>
+              <span>Simulator</span>
+            </a>
+
+            <a href="goals.html" class="sidebar-link">
+              <i class="bi bi-bullseye"></i>
+              <span>Goals</span>
+            </a>
+
+            <a href="transactions.html" class="sidebar-link">
+              <i class="bi bi-arrow-left-right"></i>
+              <span>Transactions</span>
+            </a>
+
+            <a href="watchlist.html" class="sidebar-link">
+              <i class="bi bi-bookmark"></i>
+              <span>Watchlist</span>
+            </a>
+
+            <a href="alerts.html" class="sidebar-link">
+              <i class="bi bi-bell"></i>
+              <span>Alerts</span>
+            </a>
+
+            <a href="dividends.html" class="sidebar-link">
+              <i class="bi bi-cash-stack"></i>
+              <span>Dividends</span>
+            </a>
+
+            <a href="reports.html" class="sidebar-link">
+              <i class="bi bi-bar-chart-line"></i>
+              <span>Reports</span>
+            </a>
+
+            <!-- Compact More Dropdown -->
+            <div class="dropdown d-inline-block position-relative" id="navMoreDropdown">
+              <button
+                class="sidebar-link dropdown-toggle bg-transparent border-0 active"
+                type="button"
+                id="moreNavDropdownBtn"
+                data-bs-toggle="dropdown"
+                data-bs-popper-config='{"strategy":"fixed"}'
+                aria-expanded="false"
+              >
+                <i class="bi bi-three-dots"></i>
+                <span>More</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow border" aria-labelledby="moreNavDropdownBtn" style="min-width: 210px; font-size: 13px; z-index: 1060;">
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2 active" href="learning-center.html" id="navLearningCenterLink">
+                    <i class="bi bi-mortarboard-fill text-primary"></i>
+                    <span>Learn &amp; Formulas</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="activity.html" id="navActivityLink">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Activity Log</span>
+                  </a>
+                </li>
+                <li class="admin-only-nav"><hr class="dropdown-divider my-1"></li>
+                <li class="admin-only-nav">
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger fw-semibold admin-only-nav" href="admin.html" id="adminNavTabLink">
+                    <i class="bi bi-shield-lock-fill text-danger"></i>
+                    <span>Admin Control</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </nav>
+        </div>
+
+        <div class="sidebar-section sidebar-bottom">
+          <nav class="sidebar-nav">
+            <a href="settings.html" class="sidebar-link">
+              <i class="bi bi-gear"></i>
+              <span>Settings</span>
+            </a>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- =========================
+           MAIN CONTENT
+      ========================== -->
+      <main class="main-content">
+        <!-- Clean Page Header -->
+        <div class="learning-header">
+          <div class="container-xl px-4">
+            <h1 class="h3 fw-bold mb-1" style="font-family: var(--font-display); color: var(--color-text);">
+              Learn &amp; Formulas
+            </h1>
+            <p class="text-muted mb-0" style="font-size: 0.95rem; max-width: 720px;">
+              A simple, beginner-friendly guide to stock market concepts, portfolio tracking, and the mathematical calculations behind ShareSync.
+            </p>
+
+            <!-- 4 Quick Section Anchor Pills -->
+            <div class="learning-quick-nav">
+              <a href="#section-market" class="learning-quick-pill">
+                <i class="bi bi-shop text-primary"></i> Market Terminology
+              </a>
+              <a href="#section-portfolio" class="learning-quick-pill">
+                <i class="bi bi-briefcase text-success"></i> Portfolio Concepts
+              </a>
+              <a href="#section-formulas" class="learning-quick-pill">
+                <i class="bi bi-calculator text-primary"></i> Formulas Used in ShareSync
+              </a>
+              <a href="#section-how-it-works" class="learning-quick-pill">
+                <i class="bi bi-lightning-charge text-warning"></i> How ShareSync Works
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="container-xl px-4 pb-5">
+          <!-- Compact Search & Category Filter Bar -->
+          <div class="filter-search-box d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="flex-grow-1" style="min-width: 240px; max-width: 440px;">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-body-tertiary border-end-0 text-muted">
+                  <i class="bi bi-search"></i>
+                </span>
+                <input
+                  type="text"
+                  class="form-control bg-body-tertiary border-start-0 ps-0 text-body"
+                  id="learnSearchInput"
+                  placeholder="Quick search terms, concepts, or formulas (e.g. CAGR, WAC, DSEX)..."
+                  aria-label="Search learning center"
+                />
+                <button class="btn btn-sm btn-link text-muted d-none text-decoration-none" id="clearLearnSearchBtn" type="button">
+                  <i class="bi bi-x-circle-fill"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center flex-wrap gap-2">
+              <button type="button" class="filter-btn-pill active" data-category="all">All</button>
+              <button type="button" class="filter-btn-pill" data-category="market">Market</button>
+              <button type="button" class="filter-btn-pill" data-category="portfolio">Portfolio</button>
+              <button type="button" class="filter-btn-pill" data-category="formula">Formulas</button>
+              <span class="badge bg-body-secondary text-secondary border ms-2" id="learnCountBadge" style="font-size: 11.5px;">All items</span>
+            </div>
+          </div>
+
+          <!-- =================================================================
+               SECTION A: MARKET TERMINOLOGY
+          ================================================================== -->
+          <section id="section-market" class="section-anchor mb-5">
+            <div class="learning-section-header">
+              <h2>
+                <i class="bi bi-shop text-primary"></i>
+                Market Terminology
+              </h2>
+              <p>Essential terms used on the Dhaka Stock Exchange (DSE) and financial markets.</p>
+            </div>
+
+            <div class="concept-grid" id="market-terms-container">
+              <!-- Term 1: Stock or Share -->
+              <div class="concept-card" data-searchable="true" data-category="market">
+                <div>
+                  <h3 class="concept-title">Stock or Share</h3>
+                  <div class="concept-def">
+                    A unit of ownership in a public company. When you own a share, you own a small slice of the business and have a proportional claim on its profits.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Example:</strong> If a company has 1,000,000 total shares and you buy 1,000 shares, you own 0.1% of that business.
+                </div>
+              </div>
+
+              <!-- Term 2: Trading Symbol -->
+              <div class="concept-card" data-searchable="true" data-category="market">
+                <div>
+                  <h3 class="concept-title">Trading Symbol (Ticker)</h3>
+                  <div class="concept-def">
+                    A short, standard abbreviation used to identify a company on the exchange without writing out its entire corporate name.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Example:</strong> <code>GP</code> represents Grameenphone Ltd, and <code>BATBC</code> represents British American Tobacco Bangladesh.
+                </div>
+              </div>
+
+              <!-- Term 3: Current Price and Closing Price -->
+              <div class="concept-card" data-searchable="true" data-category="market">
+                <div>
+                  <h3 class="concept-title">Current Price &amp; Closing Price</h3>
+                  <div class="concept-def">
+                    <strong>Current Price (LTP)</strong> is the price of the most recent trade executed during market hours. <strong>Closing Price</strong> is the official final price agreed at the end of the trading session.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>ShareSync Use:</strong> Used to calculate your live portfolio market value and today's gain or loss.
+                </div>
+              </div>
+
+              <!-- Term 4: Trading Volume -->
+              <div class="concept-card" data-searchable="true" data-category="market">
+                <div>
+                  <h3 class="concept-title">Trading Volume</h3>
+                  <div class="concept-def">
+                    The total number of shares bought and sold during a trading session. High volume means lots of investors are actively trading the stock.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Example:</strong> If 20,571 shares of GP changed hands during the session, the volume for GP that day was 20,571.
+                </div>
+              </div>
+
+              <!-- Term 5: Market Capitalization -->
+              <div class="concept-card" data-searchable="true" data-category="market">
+                <div>
+                  <h3 class="concept-title">Market Capitalization</h3>
+                  <div class="concept-def">
+                    The total market worth of a company, calculated by multiplying its total outstanding shares by its current share price.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Formula:</strong> <code>Market Cap = Total Shares &times; Share Price</code>. Shows whether a firm is large-cap, mid-cap, or small-cap.
+                </div>
+              </div>
+
+              <!-- Term 6: DSEX and DSE Indices -->
+              <div class="concept-card" data-searchable="true" data-category="market">
+                <div>
+                  <h3 class="concept-title">DSEX and DSE Indices</h3>
+                  <div class="concept-def">
+                    A market index acts as a barometer for the overall exchange. <strong>DSEX</strong> is the broad market benchmark; <strong>DS30</strong> tracks the top 30 blue-chip companies; <strong>DSES</strong> tracks Shariah-compliant equities.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>ShareSync Use:</strong> Used as the benchmark to evaluate whether your portfolio beat the market.
+                </div>
+              </div>
+
+              <!-- Term 7: Dividend -->
+              <div class="concept-card" data-searchable="true" data-category="market">
+                <div>
+                  <h3 class="concept-title">Dividend</h3>
+                  <div class="concept-def">
+                    Cash payouts that profitable companies distribute to their shareholders as a reward for investing in the business.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Example:</strong> If a company declares a dividend of ৳12.50 per share and you hold 100 shares, you receive ৳1,250 in cash.
+                </div>
+              </div>
+
+              <!-- Term 8: Benchmark -->
+              <div class="concept-card" data-searchable="true" data-category="market">
+                <div>
+                  <h3 class="concept-title">Benchmark</h3>
+                  <div class="concept-def">
+                    A standard market measurement used as a baseline to compare your investment performance against the broader market.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>ShareSync Use:</strong> ShareSync compares your portfolio returns against DSEX across matching dates to show if you outperformed the market.
+                </div>
+              </div>
+
+              <div class="section-empty-notice d-none col-12 text-center py-4 text-muted small">
+                No matching market terms found.
+              </div>
+            </div>
+          </section>
+
+          <!-- =================================================================
+               SECTION B: PORTFOLIO AND INVESTMENT CONCEPTS
+          ================================================================== -->
+          <section id="section-portfolio" class="section-anchor mb-5">
+            <div class="learning-section-header">
+              <h2>
+                <i class="bi bi-briefcase text-success"></i>
+                Portfolio and Investment Concepts
+              </h2>
+              <p>Key concepts that explain how ShareSync tracks your investments, costs, and profits.</p>
+            </div>
+
+            <div class="concept-grid" id="portfolio-concepts-container">
+              <!-- Concept 1: Holdings -->
+              <div class="concept-card" data-searchable="true" data-category="portfolio">
+                <div>
+                  <h3 class="concept-title">Portfolio Holdings</h3>
+                  <div class="concept-def">
+                    The number of shares you currently own in each company. It automatically updates whenever you record a BUY or SELL order.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Formula:</strong> <code>Holdings = Total Shares Bought &minus; Total Shares Sold</code>.
+                </div>
+              </div>
+
+              <!-- Concept 2: BUY and SELL Transactions -->
+              <div class="concept-card" data-searchable="true" data-category="portfolio">
+                <div>
+                  <h3 class="concept-title">BUY and SELL Transactions</h3>
+                  <div class="concept-def">
+                    <strong>BUY orders</strong> increase your share count and add cash outflow. <strong>SELL orders</strong> reduce your share count, lock in realized profit or loss, and bring cash inflow.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>ShareSync Protection:</strong> You cannot sell more shares than you currently own. The system stops overselling automatically.
+                </div>
+              </div>
+
+              <!-- Concept 3: Average Purchase Price -->
+              <div class="concept-card" data-searchable="true" data-category="portfolio">
+                <div>
+                  <h3 class="concept-title">Average Purchase Price (Cost Basis)</h3>
+                  <div class="concept-def">
+                    The volume-weighted average price you paid per share across all your purchase orders, giving larger purchases proportionally more weight.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Example:</strong> Buying 10 shares at ৳100 and 5 shares at ৳120 yields a true weighted cost of ৳106.67 per share, not ৳110.00.
+                </div>
+              </div>
+
+              <!-- Concept 4: Market Value -->
+              <div class="concept-card" data-searchable="true" data-category="portfolio">
+                <div>
+                  <h3 class="concept-title">Current Market Value</h3>
+                  <div class="concept-def">
+                    What your shares are worth in cash right now based on the latest market price: <code>Quantity &times; Current Share Price</code>.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Example:</strong> Holding 200 shares of a stock trading at ৳150 gives a current market value of ৳30,000.
+                </div>
+              </div>
+
+              <!-- Concept 5: Realized Profit or Loss -->
+              <div class="concept-card" data-searchable="true" data-category="portfolio">
+                <div>
+                  <h3 class="concept-title">Realized Profit or Loss</h3>
+                  <div class="concept-def">
+                    Actual, locked-in profit or loss made from selling shares. It equals your net sale proceeds (after deducting brokerage fees) minus the original cost of those shares.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Status:</strong> This money has left the market and is finalized in your pocket (or booked as a loss).
+                </div>
+              </div>
+
+              <!-- Concept 6: Unrealized Profit or Loss -->
+              <div class="concept-card" data-searchable="true" data-category="portfolio">
+                <div>
+                  <h3 class="concept-title">Unrealized Profit or Loss (Paper Gain/Loss)</h3>
+                  <div class="concept-def">
+                    The paper gain or loss on shares you still own. It equals <code>Market Value &minus; Invested Cost</code>. It rises and falls daily until you sell.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Example:</strong> If you invested ৳20,000 and the shares are now worth ৳23,000, your unrealized gain is +৳3,000 (+15.0%).
+                </div>
+              </div>
+
+              <!-- Concept 7: Total Portfolio Return -->
+              <div class="concept-card" data-searchable="true" data-category="portfolio">
+                <div>
+                  <h3 class="concept-title">Total Portfolio Return</h3>
+                  <div class="concept-def">
+                    The complete financial return of your portfolio. It combines your open paper gains, closed sales profits, and dividend income received.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Formula:</strong> <code>Total Return = Unrealized P/L + Realized P/L + Dividends</code>.
+                </div>
+              </div>
+
+              <!-- Concept 8: Dividend Income -->
+              <div class="concept-card" data-searchable="true" data-category="portfolio">
+                <div>
+                  <h3 class="concept-title">Dividend Income</h3>
+                  <div class="concept-def">
+                    The total cash earnings received from corporate dividends across your open holdings, boosting your overall portfolio gain.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>ShareSync Use:</strong> Tracked on your Dividends dashboard and factored directly into your total return percentage.
+                </div>
+              </div>
+
+              <!-- Concept 9: Benchmark Outperformance -->
+              <div class="concept-card" data-searchable="true" data-category="portfolio">
+                <div>
+                  <h3 class="concept-title">Benchmark Outperformance (Active Return)</h3>
+                  <div class="concept-def">
+                    The difference between your portfolio return and the DSEX benchmark return over the exact same dates: <code>Portfolio Return &minus; Benchmark Return</code>.
+                  </div>
+                </div>
+                <div class="concept-example">
+                  <strong>Example:</strong> If your portfolio grew +14% while DSEX rose +9%, your outperformance is +5%.
+                </div>
+              </div>
+
+              <div class="section-empty-notice d-none col-12 text-center py-4 text-muted small">
+                No matching portfolio concepts found.
+              </div>
+            </div>
+          </section>
+
+          <!-- =================================================================
+               SECTION C: FORMULAS USED IN SHARESYNC (CLEAN, NO LATEX)
+          ================================================================== -->
+          <section id="section-formulas" class="section-anchor mb-5">
+            <div class="learning-section-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div>
+                <h2>
+                  <i class="bi bi-calculator text-primary"></i>
+                  Formulas Used in ShareSync
+                </h2>
+                <p>The exact mathematical calculations implemented in ShareSync, presented in clean, readable equations with worked examples.</p>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleAllTechBtn">
+                <i class="bi bi-chevron-down me-1"></i>Show All Technical Details
+              </button>
+            </div>
+
+            <div id="formulas-container">
+              <!-- Formula 1: Weighted-Average Purchase Price -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>1. Weighted-Average Purchase Price</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Cost Basis</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">Weighted Average Buy Price</span>
+                  <span class="math-op">=</span>
+                  <span class="math-fraction">
+                    <span class="math-num">Total Cost of All Purchases</span>
+                    <span class="math-den">Total Shares Purchased</span>
+                  </span>
+                  <span class="math-op">=</span>
+                  <span class="math-fraction">
+                    <span class="math-num">∑ (Quantity × Purchase Price)</span>
+                    <span class="math-den">∑ Quantity</span>
+                  </span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> This calculates the true average price paid per share across all your purchase orders, giving larger orders proportionally more weight than small ones.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>You buy <strong>100 shares</strong> at <strong>৳200.00</strong> (cost = ৳20,000) and later buy <strong>300 shares</strong> at <strong>৳240.00</strong> (cost = ৳72,000):</div>
+                  <div class="font-monospace fw-semibold mt-1">Average Price = (৳20,000 + ৳72,000) ÷ (100 + 300) = ৳92,000 ÷ 400 = ৳230.00 per share</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote. (Notice that ৳230.00 reflects volume weighting, whereas a simple average would incorrectly state ৳220.00).</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Backend Service:</strong> <code>ReportService.GetHoldingsReportAsync</code> &amp; <code>TransactionService</code></div>
+                      <div><strong>MySQL Function:</strong> <code>fn_get_weighted_avg_price(p_portfolio_id, p_company_id)</code></div>
+                      <div><strong>Edge Case:</strong> If there are no BUY transactions, the denominator is zero. The code safely returns <code>0.00</code>.</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 2: Current Market Value -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>2. Current Market Value</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Valuation</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">Current Market Value</span>
+                  <span class="math-op">=</span>
+                  <span class="math-var">Current Shares Held</span>
+                  <span class="math-op">×</span>
+                  <span class="math-var">Current Share Price</span>
+                  <span class="math-op">×</span>
+                  <span class="math-var">FX Rate</span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> The current cash value of your open position based on the latest exchange trading price.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>You hold <strong>400 shares</strong> of GP at a current market price of <strong>৳241.20</strong> per share (FX Rate = 1.0 for BDT):</div>
+                  <div class="font-monospace fw-semibold mt-1">Market Value = 400 × ৳241.20 = ৳96,480.00</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Backend Service:</strong> <code>ReportService.GetHoldingsReportAsync</code></div>
+                      <div><strong>MySQL View:</strong> <code>vw_portfolio_holdings.current_market_value</code></div>
+                      <div><strong>Data Table:</strong> <code>companies.current_price</code>, <code>transactions</code>, <code>currency_exchange_rates</code></div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 3: Realized Profit or Loss -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>3. Realized Profit or Loss</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Closed Trades</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">Realized P/L</span>
+                  <span class="math-op">=</span>
+                  <span class="math-var">Net Sale Proceeds</span>
+                  <span class="math-op">−</span>
+                  <span class="math-var">Cost of Sold Shares</span>
+                  <br />
+                  <span class="math-var">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                  <span class="math-op">=</span>
+                  <span class="math-var">((Shares Sold × Sale Price) − Broker Fee)</span>
+                  <span class="math-op">−</span>
+                  <span class="math-var">(Shares Sold × Average Purchase Price)</span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> The actual profit or loss you lock in when selling shares, accounting for the brokerage fee paid on the trade.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>You sell <strong>100 shares</strong> at <strong>৳350.00</strong> with a broker fee of <strong>৳140.00</strong>. Your average purchase price was <strong>৳300.00</strong>:</div>
+                  <div class="font-monospace fw-semibold mt-1">Net Proceeds = (100 × ৳350.00) − ৳140.00 = ৳34,860.00<br />Cost of Sold Shares = 100 × ৳300.00 = ৳30,000.00<br />Realized Profit = ৳34,860.00 − ৳30,000.00 = +৳4,860.00</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Backend Service:</strong> <code>TransactionService.CreateTransactionAsync</code> &amp; <code>AnalyticsService</code></div>
+                      <div><strong>MySQL Function:</strong> <code>fn_calculate_realized_pl(p_portfolio_id, p_company_id)</code></div>
+                      <div><strong>Fee Rule:</strong> Transaction fees are deducted directly from sale proceeds to represent the true cash outcome.</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 4: Unrealized Profit or Loss -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>4. Unrealized Profit or Loss (Paper Gain/Loss)</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Open Positions</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">Unrealized P/L</span>
+                  <span class="math-op">=</span>
+                  <span class="math-var">Current Market Value</span>
+                  <span class="math-op">−</span>
+                  <span class="math-var">Total Invested Cost</span>
+                  <br />
+                  <span class="math-var">Unrealized P/L (%)</span>
+                  <span class="math-op">=</span>
+                  <span class="math-fraction">
+                    <span class="math-num">Unrealized P/L</span>
+                    <span class="math-den">Total Invested Cost</span>
+                  </span>
+                  <span class="math-op">×</span>
+                  <span class="math-var">100</span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> The paper profit or loss on the shares you currently hold. It fluctuates with the market and is only realized once you decide to sell.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>You hold <strong>300 shares</strong> bought at an average price of <strong>৳230.00</strong> (cost = ৳69,000.00). Today's share price is <strong>৳241.20</strong> (market value = ৳72,360.00):</div>
+                  <div class="font-monospace fw-semibold mt-1">Unrealized Gain = ৳72,360.00 − ৳69,000.00 = +৳3,360.00<br />Unrealized Gain (%) = (৳3,360.00 ÷ ৳69,000.00) × 100 = +4.87%</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Backend Service:</strong> <code>ReportService.GetHoldingsReportAsync</code> &amp; <code>AnalyticsService</code></div>
+                      <div><strong>MySQL Function:</strong> <code>fn_calculate_unrealized_pl(p_portfolio_id, p_company_id)</code></div>
+                      <div><strong>Zero Guard:</strong> If invested cost is 0, percentage return safely returns <code>0.00%</code>.</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 5: Total Portfolio Return -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>5. Total Portfolio Return</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Performance</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">Total Return</span>
+                  <span class="math-op">=</span>
+                  <span class="math-var">Unrealized P/L</span>
+                  <span class="math-op">+</span>
+                  <span class="math-var">Realized P/L</span>
+                  <span class="math-op">+</span>
+                  <span class="math-var">Dividend Income</span>
+                  <br />
+                  <span class="math-var">Total Return (%)</span>
+                  <span class="math-op">=</span>
+                  <span class="math-fraction">
+                    <span class="math-num">Total Return</span>
+                    <span class="math-den">Total Invested Cost</span>
+                  </span>
+                  <span class="math-op">×</span>
+                  <span class="math-var">100</span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> The complete measure of how much money your portfolio made across all sources: paper gains, closed trade profits, and cash dividends.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>Your portfolio has <strong>+৳3,360</strong> in unrealized gains, <strong>+৳4,860</strong> in realized profits, and <strong>৳2,500</strong> in dividend income, against <strong>৳69,000</strong> invested:</div>
+                  <div class="font-monospace fw-semibold mt-1">Total Return = ৳3,360 + ৳4,860 + ৳2,500 = +৳10,720.00<br />Total Return (%) = (৳10,720 ÷ ৳69,000) × 100 = +15.54%</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Backend Service:</strong> <code>AnalyticsService.GetAnalyticsAsync</code></div>
+                      <div><strong>Components:</strong> Combines active holdings view, completed trade ledger, and corporate dividend table.</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 6: Daily Return -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>6. Daily Return</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Price Series</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">Daily Return (%)</span>
+                  <span class="math-op">=</span>
+                  <span class="math-var">((Today's Price ÷ Yesterday's Price) − 1)</span>
+                  <span class="math-op">×</span>
+                  <span class="math-var">100</span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> The percentage change in a stock's closing price from one trading session to the next.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>A stock closed at <strong>৳200.00</strong> yesterday and closes at <strong>৳206.00</strong> today:</div>
+                  <div class="font-monospace fw-semibold mt-1">Daily Return = ((৳206.00 ÷ ৳200.00) − 1) × 100 = (1.03 − 1) × 100 = +3.00%</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Backend Service:</strong> <code>InvestmentIntelligenceService.GetHistoricalInvestmentProfileAsync</code></div>
+                      <div><strong>Rule:</strong> The earliest observation in a series has no prior price, so it produces no daily return.</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 7: CAGR -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>7. Compound Annual Growth Rate (CAGR)</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Growth Rate</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">CAGR (%)</span>
+                  <span class="math-op">=</span>
+                  <span class="math-var">((Ending Price ÷ Starting Price)<sup>(1 ÷ Years)</sup> − 1)</span>
+                  <span class="math-op">×</span>
+                  <span class="math-var">100</span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> The smoothed annual growth rate that explains how fast an investment grew year-over-year across multiple years.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>A stock rose from <strong>৳100.00</strong> to <strong>৳144.00</strong> over exactly <strong>2 years</strong>:</div>
+                  <div class="font-monospace fw-semibold mt-1">CAGR = ((144 ÷ 100)<sup>(1 ÷ 2)</sup> − 1) × 100 = (√1.44 − 1) × 100 = (1.20 − 1) × 100 = +20.00% per year</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Short-Period Fallback:</strong> If total history is under 1.0 year, exponential annualization math distorts reality. ShareSync automatically falls back to simple <code>Period Return</code> with label <code>"Period Return"</code>.</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 8: Annualized Volatility -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>8. Annualized Volatility</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Risk Measure</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">Annualized Volatility</span>
+                  <span class="math-op">=</span>
+                  <span class="math-var">Daily Standard Deviation</span>
+                  <span class="math-op">×</span>
+                  <span class="math-var">√252</span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> A standard measure of price fluctuation over a year. 252 is the standard number of exchange trading sessions in a year.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>If an equity's daily returns have a sample standard deviation of <strong>1.25%</strong>:</div>
+                  <div class="font-monospace fw-semibold mt-1">Annualized Volatility = 1.25% × √252 = 1.25% × 15.87 = 19.84%</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Backend Service:</strong> <code>InvestmentIntelligenceService</code></div>
+                      <div><strong>Interpretation:</strong> Volatility measures the width of swings. Lower volatility receives a higher risk score in ShareSync's 0–100 intelligence profile.</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 9: Maximum Drawdown -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>9. Maximum Peak-to-Trough Drawdown</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Capital Risk</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">Maximum Drawdown (%)</span>
+                  <span class="math-op">=</span>
+                  <span class="math-fraction">
+                    <span class="math-num">Lowest Trough Price − Historical Peak Price</span>
+                    <span class="math-den">Historical Peak Price</span>
+                  </span>
+                  <span class="math-op">×</span>
+                  <span class="math-var">100</span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> The worst historical percentage drop from a prior peak to the lowest valley, showing how much you could have lost during a severe downturn.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>A stock reached an all-time peak of <strong>৳200.00</strong> and later crashed to <strong>৳140.00</strong> before recovering:</div>
+                  <div class="font-monospace fw-semibold mt-1">Maximum Drawdown = ((৳140.00 − ৳200.00) ÷ ৳200.00) × 100 = (−৳60.00 ÷ ৳200.00) × 100 = −30.00%</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Backend Service:</strong> <code>InvestmentIntelligenceService</code> evaluates running peaks sequentially over chronological trading dates without look-ahead bias.</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 10: Simple Moving Averages -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>10. Simple Moving Averages (SMA50 &amp; SMA200)</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Trend Indicators</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">SMA 50</span>
+                  <span class="math-op">=</span>
+                  <span class="math-fraction">
+                    <span class="math-num">Sum of the Last 50 Closing Prices</span>
+                    <span class="math-den">50</span>
+                  </span>
+                  <span class="math-var">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                  <span class="math-var">SMA 200</span>
+                  <span class="math-op">=</span>
+                  <span class="math-fraction">
+                    <span class="math-num">Sum of the Last 200 Closing Prices</span>
+                    <span class="math-den">200</span>
+                  </span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> Rolling average price lines that smooth out day-to-day noise to reveal intermediate (50-day) and long-term (200-day) price trends.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>If the last 50 closing prices for GP add up to <strong>৳12,000.00</strong>:</div>
+                  <div class="font-monospace fw-semibold mt-1">SMA 50 = ৳12,000.00 ÷ 50 = ৳240.00</div>
+                  <div>When the current price (e.g. ৳241.20) sits above both SMA50 (৳240) and SMA200 (৳228), ShareSync classifies the trend as a <strong>Stronger Uptrend</strong>.</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Insufficient History Rule:</strong> If a company has fewer than 50 or 200 trading sessions, SMA returns <code>null</code>. ShareSync never fabricates missing historical data.</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 11: Benchmark Return & Outperformance -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>11. Benchmark Return &amp; Outperformance (Active Return)</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Market Comparison</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">Benchmark Return (%)</span>
+                  <span class="math-op">=</span>
+                  <span class="math-var">((Ending Index ÷ Starting Index) − 1)</span>
+                  <span class="math-op">×</span>
+                  <span class="math-var">100</span>
+                  <br />
+                  <span class="math-var">Outperformance (%)</span>
+                  <span class="math-op">=</span>
+                  <span class="math-var">Portfolio Return (%)</span>
+                  <span class="math-op">−</span>
+                  <span class="math-var">Benchmark Return (%)</span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> Shows whether your personal stock picks outperformed the broader Dhaka Stock Exchange index (DSEX) over the exact same period.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>Over a 6-month period, your portfolio achieved a <strong>+15.20%</strong> return, while the DSEX index rose from 5,000 to 5,500 (<strong>+10.00%</strong>):</div>
+                  <div class="font-monospace fw-semibold mt-1">Outperformance = +15.20% − (+10.00%) = +5.20% active return</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Backend Service:</strong> <code>BenchmarkService.ComparePortfolioAsync</code> aligns snapshots strictly against overlapping DSE trading dates.</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 12: Inflation-Adjusted Return -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>12. Inflation-Adjusted (Real) Return</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Purchasing Power</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">Real Return (%)</span>
+                  <span class="math-op">=</span>
+                  <span class="math-fraction">
+                    <span class="math-num">1 + (Nominal Return ÷ 100)</span>
+                    <span class="math-den">1 + (Cumulative Inflation ÷ 100)</span>
+                  </span>
+                  <span class="math-op">−</span>
+                  <span class="math-var">1</span>
+                  <span class="math-op">×</span>
+                  <span class="math-var">100</span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> Your true investment return in terms of purchasing power after stripping out Bangladesh CPI inflation.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>Your portfolio made a nominal return of <strong>+25.00%</strong> across a period with <strong>+15.00%</strong> cumulative inflation:</div>
+                  <div class="font-monospace fw-semibold mt-1">Real Return = ((1 + 0.25) ÷ (1 + 0.15) − 1) × 100 = ((1.25 ÷ 1.15) − 1) × 100 = (1.0870 − 1) × 100 = +8.70%</div>
+                  <div class="example-disclaimer">Illustrative example, not a live market quote.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Backend Service:</strong> <code>InflationService.CalculateRealReturn</code> uses official Bangladesh Bank annual rates from <code>inflation_rates</code>. If rates are missing, it safely returns <code>null</code>.</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Formula 13: Investment Intelligence Score -->
+              <div class="formula-card" data-searchable="true" data-category="formula">
+                <div class="formula-card-title">
+                  <span>13. Investment Intelligence Score (0–100)</span>
+                  <span class="badge bg-body-secondary text-secondary border fw-normal" style="font-size: 11px;">Analytical Score</span>
+                </div>
+
+                <div class="equation-box">
+                  <span class="math-var">Overall Score</span>
+                  <span class="math-op">=</span>
+                  <span class="math-var">(0.30 × Return)</span>
+                  <span class="math-op">+</span>
+                  <span class="math-var">(0.20 × Risk)</span>
+                  <span class="math-op">+</span>
+                  <span class="math-var">(0.20 × Drawdown)</span>
+                  <span class="math-op">+</span>
+                  <span class="math-var">(0.15 × Consistency)</span>
+                  <span class="math-op">+</span>
+                  <span class="math-var">(0.15 × Trend)</span>
+                </div>
+
+                <div class="formula-meaning">
+                  <strong>What it means:</strong> ShareSync's proprietary 100-point retrospective evaluation assessing a company's historical 5-year growth, volatility, drawdown protection, and price trend.
+                </div>
+
+                <div class="worked-example-box">
+                  <div class="worked-example-label"><i class="bi bi-check2-circle"></i> Worked Example</div>
+                  <div>A company achieves: Return = <strong>85</strong>, Risk = <strong>75</strong>, Drawdown = <strong>80</strong>, Consistency = <strong>70</strong>, Trend = <strong>100</strong>:</div>
+                  <div class="font-monospace fw-semibold mt-1">Overall Score = (0.30 × 85) + (0.20 × 75) + (0.20 × 80) + (0.15 × 70) + (0.15 × 100)<br />= 25.5 + 15.0 + 16.0 + 10.5 + 15.0 = 82 / 100</div>
+                  <div class="example-disclaimer">Academic Disclaimer: This is a retrospective historical analytical assessment, not future price prediction or financial advice.</div>
+                </div>
+
+                <div class="tech-details-collapse">
+                  <details>
+                    <summary class="tech-details-toggle">
+                      <i class="bi bi-gear me-1"></i> Technical details &amp; implementation
+                    </summary>
+                    <div class="tech-details-body">
+                      <div><strong>Backend Service:</strong> <code>InvestmentIntelligenceService.GetHistoricalInvestmentProfileAsync</code></div>
+                      <div><strong>Components Clamped:</strong> Each component is normalized and clamped between 0 and 100. Trend categories: Stronger Uptrend (100), Uptrend (75), Mixed (50), Downtrend (25).</div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <div class="section-empty-notice d-none col-12 text-center py-4 text-muted small">
+                No matching formulas found.
+              </div>
+            </div>
+          </section>
+
+          <!-- =================================================================
+               SECTION D: HOW SHARESYNC WORKS (SIMPLE 5-STEP FLOW)
+          ================================================================== -->
+          <section id="section-how-it-works" class="section-anchor mb-5">
+            <div class="learning-section-header">
+              <h2>
+                <i class="bi bi-lightning-charge text-warning"></i>
+                How ShareSync Works
+              </h2>
+              <p>How market prices and your personal trade entries transform into portfolio insights in five simple steps.</p>
+            </div>
+
+            <div class="how-it-works-flow">
+              <!-- Step 1 -->
+              <div class="step-card">
+                <div class="step-number-badge">1</div>
+                <h3 class="step-title">Collect Data</h3>
+                <p class="step-desc">
+                  Gathers market prices from exchange feeds, historical trading archives, and your personal BUY/SELL trade entries.
+                </p>
+              </div>
+
+              <!-- Step 2 -->
+              <div class="step-card">
+                <div class="step-number-badge">2</div>
+                <h3 class="step-title">Validate Data</h3>
+                <p class="step-desc">
+                  Checks that prices are reasonable, verifies trade dates, and filters out erroneous spikes before any math runs.
+                </p>
+              </div>
+
+              <!-- Step 3 -->
+              <div class="step-card">
+                <div class="step-number-badge">3</div>
+                <h3 class="step-title">Store Data</h3>
+                <p class="step-desc">
+                  Saves structured records safely into MySQL with exact decimal currency precision and ACID reliability guarantees.
+                </p>
+              </div>
+
+              <!-- Step 4 -->
+              <div class="step-card">
+                <div class="step-number-badge">4</div>
+                <h3 class="step-title">Calculate Metrics</h3>
+                <p class="step-desc">
+                  High-precision .NET 8 services compute your holdings, average cost basis, realized gains, volatility, and benchmark alpha.
+                </p>
+              </div>
+
+              <!-- Step 5 -->
+              <div class="step-card">
+                <div class="step-number-badge">5</div>
+                <h3 class="step-title">Show Insights</h3>
+                <p class="step-desc">
+                  Presents clear, responsive summaries, interactive charts, and reports across your desktop and mobile devices.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- ShareSync Application Scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/learning-center.js"></script>
+  </body>
+</html>

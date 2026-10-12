@@ -28,6 +28,7 @@ namespace ShareSync.Application.Services;
 /// bound to the newly created UserId, ensuring isolated financial accounting.
 /// 
 /// DATABASE: Table — app_users, portfolios
+/// FEATURE: Authentication and Authorization
 /// </summary>
 public class AuthService : IAuthService
 {

@@ -9,8 +9,10 @@ using ShareSync.Domain.Entities;
 namespace ShareSync.Application.Services;
 
 /// <summary>
-/// FEATURE: Multi-Portfolio Management
-/// FEATURE: Multi-Asset and Multi-Currency (LF-29)
+/// FEATURE: Portfolio Management
+/// FEATURE: Portfolio Valuation
+/// FEATURE: Realized and Unrealized P/L
+/// FEATURE: Currency Conversion
 /// HOLDINGS: Holding Valuation Engine
 /// 
 /// PURPOSE:
@@ -483,17 +485,21 @@ public class PortfolioService : IPortfolioService
         decimal? inflationRate = null;
         decimal? realReturnPct = null;
         string inflationStatus = "No active investments";
+        string? inflationPeriod = null;
+        string? latestCpiMonth = null;
 
         if (totalInvested > 0)
         {
-            var startYear = transactions.Any() ? transactions.Min(t => t.TransactionDate).Year : DateTime.UtcNow.Year;
-            var endYear = DateTime.UtcNow.Year;
             var country = baseCurrency.Equals("USD", StringComparison.OrdinalIgnoreCase) ? "US" : "BD";
+            var startDate = transactions.Any() ? transactions.Min(t => t.TransactionDate) : portfolio.CreatedAt;
+            var endDate = DateTime.UtcNow;
 
-            var realReturnResult = await _inflationService.CalculateRealReturnAsync(plPct, startYear, endYear, country, cancellationToken);
+            var realReturnResult = await _inflationService.CalculateRealReturnForDateRangeAsync(country, plPct, startDate, endDate, cancellationToken);
             inflationRate = realReturnResult.InflationRate;
             realReturnPct = realReturnResult.RealReturn;
             inflationStatus = realReturnResult.Status;
+            inflationPeriod = realReturnResult.Period;
+            latestCpiMonth = realReturnResult.LatestObservationMonth;
         }
 
         return new PortfolioSummaryDto
@@ -513,6 +519,8 @@ public class PortfolioService : IPortfolioService
             InflationRate = inflationRate,
             RealReturnPercentage = realReturnPct,
             InflationStatus = inflationStatus,
+            InflationPeriod = inflationPeriod,
+            LatestCpiMonth = latestCpiMonth,
             HoldingsCount = holdings.Count,
             TransactionsCount = transactions.Count
         };

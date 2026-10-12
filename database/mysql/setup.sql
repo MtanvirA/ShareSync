@@ -1,6 +1,7 @@
 -- ============================================================
 -- ShareSync - Master MySQL Setup & Deployment Script
 -- File: setup.sql
+-- FEATURE: MySQL Database and Data Integrity
 -- Description: Executes full schema creation, programmability, and seed data
 -- Usage: mysql -u root -p < database/mysql/setup.sql
 --   or within MySQL CLI: source database/mysql/setup.sql;

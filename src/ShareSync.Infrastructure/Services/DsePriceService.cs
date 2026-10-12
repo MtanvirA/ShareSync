@@ -6,12 +6,14 @@ using Microsoft.Extensions.Logging;
 using ShareSync.Application.Common.Helpers;
 using ShareSync.Application.Common.Interfaces;
 using ShareSync.Application.Common.Models;
+using ShareSync.Application.DTOs.MarketData;
 using ShareSync.Application.Interfaces;
 using ShareSync.Domain.Entities;
 
 namespace ShareSync.Infrastructure.Services;
 
 /// <summary>
+/// FEATURE: DSE Market Data
 /// DSE: Price Synchronization & Market Data Provider (LF-31)
 /// 
 /// DSE: Live Price Retrieval
@@ -37,6 +39,7 @@ public class DsePriceService : IDsePriceService
 {
     private readonly IApplicationDbContext _context;
     private readonly HttpClient _httpClient;
+    private readonly IStockChartBdClient? _stockChartClient;
     private readonly IAlertService? _alertService;
     private readonly ILogger<DsePriceService> _logger;
 
@@ -44,7 +47,16 @@ public class DsePriceService : IDsePriceService
         IApplicationDbContext context,
         HttpClient httpClient,
         ILogger<DsePriceService> logger)
-        : this(context, httpClient, null, logger)
+        : this(context, httpClient, null, null, logger)
+    {
+    }
+
+    public DsePriceService(
+        IApplicationDbContext context,
+        HttpClient httpClient,
+        IAlertService? alertService,
+        ILogger<DsePriceService> logger)
+        : this(context, httpClient, null, alertService, logger)
     {
     }
 
@@ -52,11 +64,13 @@ public class DsePriceService : IDsePriceService
     public DsePriceService(
         IApplicationDbContext context,
         HttpClient httpClient,
+        IStockChartBdClient? stockChartClient,
         IAlertService? alertService,
         ILogger<DsePriceService> logger)
     {
         _context = context;
         _httpClient = httpClient;
+        _stockChartClient = stockChartClient;
         _alertService = alertService;
         _logger = logger;
 
@@ -78,6 +92,15 @@ public class DsePriceService : IDsePriceService
         if (string.IsNullOrWhiteSpace(normalizedTicker))
         {
             return null;
+        }
+
+        if (_stockChartClient != null)
+        {
+            var stockChartQuote = await _stockChartClient.GetQuoteAsync(normalizedTicker, cancellationToken);
+            if (stockChartQuote != null)
+            {
+                return stockChartQuote;
+            }
         }
 
         var url = $"https://stockchartbd.com/api/v1.php?endpoint=quote&symbol={Uri.EscapeDataString(normalizedTicker)}";
@@ -362,6 +385,12 @@ public class DsePriceService : IDsePriceService
     private static DateTime _dseCompaniesCacheExpiry = DateTime.MinValue;
     private static readonly SemaphoreSlim _cacheLock = new(1, 1);
 
+    public static void ResetCaches()
+    {
+        _cachedDseCompanies = null;
+        _dseCompaniesCacheExpiry = DateTime.MinValue;
+    }
+
     public async Task<List<DseListedCompanyDto>> GetDseListedCompaniesAsync(CancellationToken cancellationToken = default)
     {
         await _cacheLock.WaitAsync(cancellationToken);
@@ -369,8 +398,18 @@ public class DsePriceService : IDsePriceService
         {
             if (_cachedDseCompanies == null || DateTime.UtcNow >= _dseCompaniesCacheExpiry)
             {
-                var fetched = await FetchAllDseCompaniesFromApiAsync(cancellationToken);
-                if (fetched.Count > 0)
+                List<DseListedCompanyDto>? fetched = null;
+                if (_stockChartClient != null)
+                {
+                    fetched = await _stockChartClient.GetCompaniesAsync(forceRefresh: false, cancellationToken);
+                }
+
+                if (fetched == null || fetched.Count == 0)
+                {
+                    fetched = await FetchAllDseCompaniesFromApiAsync(cancellationToken);
+                }
+
+                if (fetched != null && fetched.Count > 0)
                 {
                     _cachedDseCompanies = fetched;
                     _dseCompaniesCacheExpiry = DateTime.UtcNow.AddMinutes(30);
@@ -679,6 +718,204 @@ public class DsePriceService : IDsePriceService
             CurrentPrice = newCompany.CurrentPrice,
             MarketCap = newCompany.MarketCap
         };
+    }
+
+    public async Task<StockChartBdMarketSummaryDto?> GetMarketSummaryAsync(CancellationToken cancellationToken = default)
+    {
+        StockChartBdMarketSummaryDto? summary = null;
+        if (_stockChartClient != null)
+        {
+            summary = await _stockChartClient.GetMarketSummaryAsync(forceRefresh: false, cancellationToken);
+        }
+
+        if (summary == null)
+        {
+            return null;
+        }
+
+        if (summary.Indices != null && summary.Indices.Count > 0)
+        {
+            try
+            {
+                foreach (var (indexCode, indexDto) in summary.Indices)
+                {
+                    if (string.IsNullOrWhiteSpace(indexCode) || indexDto == null || indexDto.Close <= 0)
+                    {
+                        continue;
+                    }
+
+                    var code = indexCode.Trim().ToUpperInvariant();
+                    DateTime tradingDate = DateTime.UtcNow.Date;
+                    if (!string.IsNullOrWhiteSpace(indexDto.Date) &&
+                        DateTime.TryParse(indexDto.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                    {
+                        tradingDate = parsedDate.Date;
+                    }
+
+                    var existing = await _context.BenchmarkPriceHistories
+                        .FirstOrDefaultAsync(b => b.BenchmarkCode == code && b.TradingDate == tradingDate, cancellationToken);
+
+                    if (existing != null)
+                    {
+                        existing.CloseValue = indexDto.Close;
+                    }
+                    else
+                    {
+                        string benchmarkName = code switch
+                        {
+                            "DSEX" => "DSE Broad Index (DSEX)",
+                            "DS30" => "DSE 30 Index (DS30)",
+                            "DSES" => "DSE Shariah Index (DSES)",
+                            "CDSET" => "CSE-DSE Shariah Total Return (CDSET)",
+                            _ => $"{code} Index"
+                        };
+
+                        _context.BenchmarkPriceHistories.Add(new BenchmarkPriceHistory
+                        {
+                            BenchmarkCode = code,
+                            BenchmarkName = benchmarkName,
+                            TradingDate = tradingDate,
+                            CloseValue = indexDto.Close,
+                            Source = "StockChartBD Live API",
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to persist benchmark indices from market summary: {Message}", ex.Message);
+            }
+        }
+
+        return summary;
+    }
+
+    public async Task<ApiResponse<int>> SyncHistoricalPricesAsync(string tickerSymbol, int limit = 100, CancellationToken cancellationToken = default)
+    {
+        var normalizedTicker = MarketDataPathResolver.NormalizeTicker(tickerSymbol);
+        if (string.IsNullOrWhiteSpace(normalizedTicker))
+        {
+            return ApiResponse<int>.Fail("Ticker symbol is required.");
+        }
+
+        var company = await _context.Companies
+            .FirstOrDefaultAsync(c => c.TickerSymbol.ToUpper() == normalizedTicker.ToUpper(), cancellationToken);
+
+        if (company == null)
+        {
+            return ApiResponse<int>.Fail($"Company with ticker '{tickerSymbol}' was not found in the database.");
+        }
+
+        if (_stockChartClient == null)
+        {
+            return ApiResponse<int>.Fail("StockChartBD client is not available.");
+        }
+
+        var history = await _stockChartClient.GetHistoricalPricesAsync(normalizedTicker, limit, cancellationToken);
+        if (history == null || history.Count == 0)
+        {
+            return ApiResponse<int>.Ok(0, $"No historical price records returned for {normalizedTicker}.");
+        }
+
+        var existingDatesList = await _context.CompanyPriceHistories
+            .Where(h => h.CompanyId == company.CompanyId && h.TradingDate != null)
+            .Select(h => h.TradingDate!.Value.Date)
+            .ToListAsync(cancellationToken);
+
+        var existingDates = existingDatesList.ToHashSet();
+        var toAdd = new List<CompanyPriceHistory>();
+
+        foreach (var item in history)
+        {
+            if (string.IsNullOrWhiteSpace(item.Date)) continue;
+
+            if (!MarketDataPathResolver.TryParseTradingDate(item.Date, out DateTime validDate))
+            {
+                if (!DateTime.TryParse(item.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out validDate))
+                {
+                    continue;
+                }
+            }
+
+            if (existingDates.Contains(validDate.Date))
+            {
+                continue;
+            }
+
+            decimal cl = item.Close;
+            if (!MarketDataPathResolver.IsValidPrice(cl))
+            {
+                continue;
+            }
+
+            decimal? op = item.Open > 0 ? item.Open : cl;
+            decimal? hi = item.High > 0 ? item.High : Math.Max(op ?? cl, cl);
+            decimal? lo = item.Low > 0 ? item.Low : Math.Min(op ?? cl, cl);
+
+            if (!MarketDataPathResolver.ValidateAndHarmonizeOhlc(cl, ref op, ref hi, ref lo))
+            {
+                continue;
+            }
+
+            existingDates.Add(validDate.Date);
+            toAdd.Add(new CompanyPriceHistory
+            {
+                CompanyId = company.CompanyId,
+                TradingDate = validDate.Date,
+                RecordedAt = validDate,
+                Price = cl,
+                OpenPrice = op,
+                HighPrice = hi,
+                LowPrice = lo,
+                Volume = item.Volume,
+                Source = "StockChartBD History API",
+                SourceDataset = "StockChartBD Historical Price Feed",
+                ImportBatchId = $"SYNC_HIST_{DateTime.UtcNow:yyyyMMdd}",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        if (toAdd.Count > 0)
+        {
+            await _context.CompanyPriceHistories.AddRangeAsync(toAdd, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Successfully persisted {Count} historical price records for {Ticker}.", toAdd.Count, normalizedTicker);
+        }
+
+        return ApiResponse<int>.Ok(toAdd.Count, $"Successfully synchronized {toAdd.Count} historical price records for {company.TickerSymbol}.");
+    }
+
+    public async Task<StockChartBdFinancialsDto?> GetCompanyFinancialsAsync(string tickerSymbol, CancellationToken cancellationToken = default)
+    {
+        if (_stockChartClient == null)
+        {
+            return null;
+        }
+
+        return await _stockChartClient.GetFinancialsAsync(tickerSymbol, cancellationToken);
+    }
+
+    public async Task<StockChartBdHealthDto?> GetCompanyHealthAsync(string tickerSymbol, CancellationToken cancellationToken = default)
+    {
+        if (_stockChartClient == null)
+        {
+            return null;
+        }
+
+        return await _stockChartClient.GetHealthAsync(tickerSymbol, cancellationToken);
+    }
+
+    public Task<StockChartBdDiagnosticsDto> GetApiDiagnosticsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_stockChartClient != null)
+        {
+            return Task.FromResult(_stockChartClient.GetDiagnostics());
+        }
+
+        return Task.FromResult(new StockChartBdDiagnosticsDto());
     }
 }
 

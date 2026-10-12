@@ -8,6 +8,10 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service tracking investment goals, target accumulation milestones, and real-time portfolio progress.
+/// FEATURE: Portfolio Goals
+/// </summary>
 public class PortfolioGoalService : IPortfolioGoalService
 {
     private readonly IApplicationDbContext _context;

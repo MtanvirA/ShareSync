@@ -1,6 +1,8 @@
 -- ============================================================
 -- ShareSync - MySQL Demo Data Validation Script
 -- File: 03_demo_validation.sql
+-- FEATURE: MySQL Database and Data Integrity
+-- FEATURE: Historical Reconciliation
 -- Description: Comprehensive verification of referential integrity,
 --              financial consistency, and demonstration readiness
 -- Usage:
@@ -31,6 +33,7 @@ SELECT
     (SELECT COUNT(*) FROM portfolio_snapshots)     AS snapshots_count,
     (SELECT COUNT(*) FROM transaction_audit)       AS audits_count,
     (SELECT COUNT(*) FROM inflation_rates)         AS inflation_rates_count,
+    (SELECT COUNT(*) FROM cpi_index_observations)  AS cpi_observations_count,
     (SELECT COUNT(*) FROM currency_exchange_rates) AS fx_rates_count,
     (SELECT COUNT(*) FROM benchmark_price_history) AS benchmark_history_count,
     (SELECT COUNT(*) FROM company_price_history)   AS company_price_history_count;

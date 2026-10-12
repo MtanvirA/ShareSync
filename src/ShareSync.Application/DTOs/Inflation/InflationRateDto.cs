@@ -21,5 +21,12 @@ public class RealReturnCalculationResultDto
     public bool IsDataAvailable { get; set; }
     public string Status { get; set; } = "Calculated";
     public string Methodology { get; set; } = "Fisher-model Real Return = ((1 + Nominal / 100) / (1 + Inflation / 100) - 1) * 100";
+    public decimal? StartingCpiIndex { get; set; }
+    public decimal? EndingCpiIndex { get; set; }
+    public string? ObservationPeriodStart { get; set; }
+    public string? ObservationPeriodEnd { get; set; }
+    public string? LatestObservationMonth { get; set; }
+    public string? Source { get; set; }
+    public string? SourceUrl { get; set; }
 }
 

@@ -12,6 +12,10 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service exporting analytical reports into downloadable formats (CSV, Excel, PDF, JSON).
+/// FEATURE: Reports and Exports
+/// </summary>
 public class ReportExportService : IReportExportService
 {
     static ReportExportService()

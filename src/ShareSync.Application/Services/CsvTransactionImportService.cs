@@ -11,6 +11,11 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service providing high-speed batch import and validation of transaction records from CSV files.
+/// FEATURE: CSV Import
+/// FEATURE: Transactions
+/// </summary>
 public class CsvTransactionImportService : ICsvTransactionImportService
 {
     private const int MaxAllowedRows = 1000;

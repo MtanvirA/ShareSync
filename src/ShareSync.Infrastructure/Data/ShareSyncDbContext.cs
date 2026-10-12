@@ -7,6 +7,7 @@ namespace ShareSync.Infrastructure.Data;
 /// <summary>
 /// DATABASE: DbContext — ShareSync MySQL Data Context
 /// DATABASE: MySQL Provider (Pomelo.EntityFrameworkCore.MySql)
+/// FEATURE: MySQL Database and Data Integrity
 /// 
 /// DATABASE: Entity Mapping
 /// Configures Fluent API relational object mappings for all 18 core database entities:
@@ -45,6 +46,7 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
     public DbSet<PortfolioGoal> PortfolioGoals => Set<PortfolioGoal>();
     public DbSet<PortfolioHoldingView> PortfolioHoldings => Set<PortfolioHoldingView>();
     public DbSet<InflationRate> InflationRates => Set<InflationRate>();
+    public DbSet<CpiIndexObservation> CpiIndexObservations => Set<CpiIndexObservation>();
     public DbSet<CurrencyExchangeRate> CurrencyExchangeRates => Set<CurrencyExchangeRate>();
     public DbSet<BenchmarkPriceHistory> BenchmarkPriceHistories => Set<BenchmarkPriceHistory>();
 
@@ -818,6 +820,50 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
                 .IsRequired();
 
             entity.HasIndex(e => new { e.CountryCode, e.Year }, "UQ_INFLATION_RATES_COUNTRY_YEAR").IsUnique();
+        });
+
+        // 15b. CPI_INDEX_OBSERVATIONS (Monthly CPI Index Series)
+        modelBuilder.Entity<CpiIndexObservation>(entity =>
+        {
+            entity.ToTable("CPI_INDEX_OBSERVATIONS", t =>
+            {
+                t.HasCheckConstraint("CK_CPI_INDEX_POSITIVE", "CPI_INDEX > 0");
+            });
+            entity.HasKey(e => e.ObservationId).HasName("PK_CPI_INDEX_OBSERVATIONS");
+
+            entity.Property(e => e.ObservationId)
+                .HasColumnName("OBSERVATION_ID")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.CountryCode)
+                .HasColumnName("COUNTRY_CODE")
+                .HasMaxLength(10)
+                .IsRequired();
+
+            entity.Property(e => e.ObservationDate)
+                .HasColumnName("OBSERVATION_DATE")
+                .IsRequired();
+
+            entity.Property(e => e.CpiIndex)
+                .HasColumnName("CPI_INDEX")
+                .HasPrecision(8, 4)
+                .IsRequired();
+
+            entity.Property(e => e.Source)
+                .HasColumnName("SOURCE")
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(e => e.SourceUrl)
+                .HasColumnName("SOURCE_URL")
+                .HasMaxLength(255);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("CREATED_AT")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            entity.HasIndex(e => new { e.CountryCode, e.ObservationDate }, "UQ_CPI_OBSERVATIONS_COUNTRY_DATE").IsUnique();
         });
 
         // 16. CURRENCY_EXCHANGE_RATES (LF-29 Multi-Currency Valuation)

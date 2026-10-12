@@ -1,40 +1,47 @@
 using Microsoft.EntityFrameworkCore;
 using ShareSync.Application.Common.Interfaces;
 using ShareSync.Application.DTOs.Inflation;
+using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
 /// <summary>
-/// FEATURE: Inflation-Adjusted Return (LF-28)
+/// FEATURE: Inflation and Real Return
 /// 
 /// INFLATION: CPI Data
 /// Provides access to official and calibrated historical consumer price index (CPI) annual inflation rates
-/// sourced from the Bangladesh Bureau of Statistics (BBS) / Bangladesh Bank (for Bangladesh "BD")
+/// and monthly CPI index levels sourced from the Bangladesh Bureau of Statistics (BBS) / Bangladesh Bank (for Bangladesh "BD")
 /// and the U.S. Bureau of Labor Statistics (BLS) (for United States "US").
 /// 
 /// CALCULATION: Real Return (Fisher Equation)
 /// Computes purchasing-power adjusted returns: Real Return = ((1 + Nominal Return) / (1 + Cumulative Inflation)) - 1.
 /// 
 /// BUSINESS RULE: Missing-Data Integrity
-/// If any single year in the requested evaluation window is missing from both the relational database
+/// If any single period in the requested evaluation window is missing from both the relational database
 /// and the verified baseline, the service returns null (unavailable) rather than silently assuming 0% inflation.
 /// </summary>
 public interface IInflationService
 {
     /// <summary>
-    /// INFLATION: Cumulative Rate Retrieval
+    /// INFLATION: Cumulative Rate Retrieval (Annual compounding)
     /// Calculates compounding multi-year inflation over a closed interval [startYear, endYear].
     /// </summary>
     Task<decimal?> GetCumulativeInflationRateAsync(string countryCode, int startYear, int endYear, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// CALCULATION: Real Return
+    /// INFLATION: Date-Based Cumulative Rate Retrieval (Monthly CPI Index Level)
+    /// Formula: Cumulative Inflation (%) = ((Ending CPI Index / Starting CPI Index) - 1) * 100
+    /// </summary>
+    Task<decimal?> GetCumulativeInflationRateForPeriodAsync(string countryCode, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// CALCULATION: Real Return (Fisher Equation)
     /// Formula: Real Return = [ (1 + Nominal / 100) / (1 + Inflation / 100) - 1 ] * 100
     /// </summary>
     decimal? CalculateRealReturn(decimal nominalReturnPct, decimal? inflationRatePct);
 
     /// <summary>
-    /// FEATURE: Real Return for Period
+    /// FEATURE: Real Return for Annual Period
     /// Combines cumulative inflation lookup and Fisher equation real return calculation.
     /// </summary>
     Task<RealReturnCalculationResultDto> CalculateRealReturnForPeriodAsync(string countryCode, decimal nominalReturnPct, int startYear, int endYear, CancellationToken cancellationToken = default);
@@ -45,10 +52,22 @@ public interface IInflationService
     Task<RealReturnCalculationResultDto> CalculateRealReturnAsync(decimal nominalReturnPct, int startYear, int endYear, string countryCode = "BD", CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// FEATURE: Date-Range Real Return Calculation (Monthly CPI Index Series)
+    /// Evaluates cumulative inflation and purchasing power return over an investment horizon [startDate, endDate].
+    /// </summary>
+    Task<RealReturnCalculationResultDto> CalculateRealReturnForDateRangeAsync(string countryCode, decimal nominalReturnPct, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// INFLATION: Annual Series Retrieval
     /// Returns ordered chronological annual inflation rates for chart rendering and audits.
     /// </summary>
     Task<List<InflationRateDto>> GetHistoricalRatesAsync(string countryCode, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// INFLATION: Monthly CPI Observation Retrieval
+    /// Returns ordered chronological monthly CPI index levels for audit and provenance verification.
+    /// </summary>
+    Task<List<CpiIndexObservationDto>> GetCpiObservationsAsync(string countryCode, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -56,17 +75,17 @@ public interface IInflationService
 /// 
 /// PURPOSE:
 /// Evaluates whether portfolio investment returns generated true economic purchasing power growth
-/// after stripping out the erosive effects of annual consumer price index (CPI) currency inflation.
+/// after stripping out the erosive effects of consumer price index (CPI) currency inflation.
 /// 
-/// DATABASE: Table — inflation_rates
-/// Interacts with the MySQL `inflation_rates` table via EF Core, utilizing a static fallback dictionary
+/// DATABASE: Tables — inflation_rates & cpi_index_observations
+/// Interacts with the MySQL database via EF Core, utilizing verified BBS/BLS static fallbacks
 /// for offline resilience and demonstration determinism.
 /// </summary>
 public class InflationService : IInflationService
 {
     private readonly IApplicationDbContext _context;
 
-    // INFLATION: Documented official baseline rates (Bangladesh Bank / BBS and US BLS)
+    // INFLATION: Documented official annual baseline rates (Bangladesh Bank / BBS and US BLS)
     private static readonly Dictionary<(string, int), decimal> StaticBaselineRates = new()
     {
         { ("BD", 2020), 5.65m },
@@ -83,6 +102,36 @@ public class InflationService : IInflationService
         { ("US", 2025), 2.80m }
     };
 
+    // INFLATION: Official monthly CPI Index series (Base: 2021-22 = 100, General National Index)
+    // Sourced from Bangladesh Bureau of Statistics (BBS) Price & Wage Releases through August 2026.
+    private static readonly Dictionary<(string, int, int), (decimal Index, string Source, string SourceUrl)> StaticBaselineCpiObservations = new()
+    {
+        { ("BD", 2024, 9),  (130.6100m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2024, 10), (133.3179m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2024, 11), (132.6561m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2024, 12), (131.2964m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 1),  (131.4872m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 2),  (131.2854m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 3),  (132.9763m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 4),  (133.5048m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 5),  (133.0813m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 6),  (133.8462m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 7),  (136.8319m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 8),  (140.0624m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 9),  (141.5266m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 10), (144.2073m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 11), (143.6473m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2025, 12), (142.4371m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2026, 1),  (142.7712m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2026, 2),  (143.2784m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2026, 3),  (144.5586m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2026, 4),  (145.5748m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2026, 5),  (145.6140m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2026, 6),  (146.1060m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2026, 7),  (148.2145m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") },
+        { ("BD", 2026, 8),  (151.6366m, "Bangladesh Bureau of Statistics (BBS) - National General CPI (Base 2021-22=100)", "https://bbs.gov.bd/site/page/29b379ff-7bac-41d9-b321-e41929bab4a1") }
+    };
+
     public InflationService(IApplicationDbContext context)
     {
         _context = context;
@@ -90,25 +139,11 @@ public class InflationService : IInflationService
 
     /// <summary>
     /// INFLATION: CPI Data
-    /// CALCULATION: Cumulative Inflation
+    /// CALCULATION: Cumulative Inflation (Annual series)
     /// 
     /// Formula:
     /// Cumulative Factor = Product_{y = startYear}^{endYear} (1 + Rate_y / 100)
     /// Cumulative Inflation (%) = (Cumulative Factor - 1.0) * 100
-    /// 
-    /// PURPOSE:
-    /// Compounds individual annual inflation figures across the requested time window.
-    /// 
-    /// INPUT:
-    /// countryCode: "BD" (Bangladesh) or "US" (United States).
-    /// startYear, endYear: Integer years defining the historical measurement horizon.
-    /// 
-    /// OUTPUT:
-    /// Compounded percentage inflation rate (e.g. 35.42%), or null if data is incomplete.
-    /// 
-    /// BUSINESS RULE: Missing-Data Integrity
-    /// If any year in [startYear, endYear] is absent from DB and static baselines, returns null.
-    /// Does not invent 0% to prevent misleading investors into false purchasing-power calculations.
     /// </summary>
     public async Task<decimal?> GetCumulativeInflationRateAsync(string countryCode, int startYear, int endYear, CancellationToken cancellationToken = default)
     {
@@ -149,22 +184,21 @@ public class InflationService : IInflationService
     }
 
     /// <summary>
+    /// INFLATION: Date-Based Cumulative Rate Retrieval (Monthly CPI Index Levels)
+    /// Formula: Cumulative Inflation (%) = ((Ending CPI Index / Starting CPI Index) - 1) * 100
+    /// </summary>
+    public async Task<decimal?> GetCumulativeInflationRateForPeriodAsync(string countryCode, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
+    {
+        var result = await CalculateRealReturnForDateRangeAsync(countryCode, 0m, startDate, endDate, cancellationToken);
+        return result.InflationRatePercentage;
+    }
+
+    /// <summary>
     /// CALCULATION: Real Return (Fisher Equation)
     /// 
     /// Formula:
     /// (1 + r_real) = (1 + r_nominal) / (1 + i)
     /// Real Return (%) = [ ( (1 + Nominal / 100) / (1 + Inflation / 100) ) - 1 ] * 100
-    /// 
-    /// Meaning:
-    /// Exact Fisher formula for purchasing power adjustment rather than crude linear subtraction (Nominal - Inflation).
-    /// Linear subtraction overstates returns during high inflation periods (e.g., 9-10% inflation in BD).
-    /// 
-    /// Inputs:
-    /// nominalReturnPct: Total percentage gain or loss of the portfolio/asset.
-    /// inflationRatePct: Total cumulative CPI inflation rate over the matching timeframe.
-    /// 
-    /// Output:
-    /// Real rate of return percentage rounded to 2 decimal places, or null if inflation data is missing.
     /// </summary>
     public decimal? CalculateRealReturn(decimal nominalReturnPct, decimal? inflationRatePct)
     {
@@ -186,9 +220,7 @@ public class InflationService : IInflationService
 
     /// <summary>
     /// FEATURE: Inflation-Adjusted Return
-    /// API: Real Return Calculation Endpoint Backend
-    /// 
-    /// Evaluates cumulative inflation and computes real return for a specific sovereign economy and date range.
+    /// API: Real Return Calculation Endpoint Backend (Annual series)
     /// </summary>
     public async Task<RealReturnCalculationResultDto> CalculateRealReturnForPeriodAsync(
         string countryCode,
@@ -212,7 +244,7 @@ public class InflationService : IInflationService
         {
             result.RealReturnPercentage = CalculateRealReturn(nominalReturnPct, inflationRate.Value);
             result.IsDataAvailable = true;
-            result.Status = "Adjusted via official CPI inflation series";
+            result.Status = "Adjusted via official annual CPI inflation series";
         }
         else
         {
@@ -235,11 +267,177 @@ public class InflationService : IInflationService
     }
 
     /// <summary>
-    /// INFLATION: CPI Data Retrieval
+    /// FEATURE: Date-Range Real Return Calculation (Monthly CPI Index Series)
+    /// Evaluates cumulative inflation and purchasing power return over an investment horizon [startDate, endDate].
+    /// Uses official monthly Consumer Price Index (CPI) index levels.
+    /// Formula: Cumulative Inflation (%) = ((Ending CPI / Starting CPI) - 1) * 100
+    /// </summary>
+    public async Task<RealReturnCalculationResultDto> CalculateRealReturnForDateRangeAsync(
+        string countryCode,
+        decimal nominalReturnPct,
+        DateTime startDate,
+        DateTime endDate,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedCountry = string.IsNullOrWhiteSpace(countryCode) ? "BD" : countryCode.Trim().ToUpperInvariant();
+
+        var result = new RealReturnCalculationResultDto
+        {
+            NominalReturnPercentage = Math.Round(nominalReturnPct, 2),
+            CountryCode = normalizedCountry,
+            IsDataAvailable = false
+        };
+
+        if (startDate > endDate)
+        {
+            result.Status = "Invalid date range: start date cannot be after end date.";
+            return result;
+        }
+
+        // 1. Country isolation: Check USD portfolio support
+        if (normalizedCountry == "US")
+        {
+            // Report limitation explicitly rather than using Bangladesh CPI for a US-dollar portfolio
+            result.Period = $"{startDate:MMM yyyy} - {endDate:MMM yyyy}";
+            result.Status = "Monthly CPI index coverage for United States (USD) is currently unavailable.";
+            return result;
+        }
+
+        // 2. Load observations from DB, falling back to static baseline for resilience/unit tests
+        var dbObservations = await _context.CpiIndexObservations
+            .AsNoTracking()
+            .Where(o => o.CountryCode == normalizedCountry)
+            .OrderBy(o => o.ObservationDate)
+            .ToListAsync(cancellationToken);
+
+        var observations = new List<CpiIndexObservation>();
+        if (dbObservations.Any())
+        {
+            observations.AddRange(dbObservations);
+        }
+        else
+        {
+            // Fallback to verified static baseline
+            var baselineList = StaticBaselineCpiObservations
+                .Where(kvp => kvp.Key.Item1 == normalizedCountry)
+                .OrderBy(kvp => kvp.Key.Item2).ThenBy(kvp => kvp.Key.Item3)
+                .Select((kvp, idx) => new CpiIndexObservation
+                {
+                    ObservationId = idx + 1,
+                    CountryCode = kvp.Key.Item1,
+                    ObservationDate = new DateTime(kvp.Key.Item2, kvp.Key.Item3, 1),
+                    CpiIndex = kvp.Value.Index,
+                    Source = kvp.Value.Source,
+                    SourceUrl = kvp.Value.SourceUrl
+                });
+            observations.AddRange(baselineList);
+        }
+
+        if (!observations.Any())
+        {
+            result.Period = $"{startDate:MMM yyyy} - {endDate:MMM yyyy}";
+            result.Status = $"No CPI index observations available for country {normalizedCountry}.";
+            return result;
+        }
+
+        // 3. Validate non-positive index values explicitly
+        if (observations.Any(o => o.CpiIndex <= 0m))
+        {
+            result.Period = $"{startDate:MMM yyyy} - {endDate:MMM yyyy}";
+            result.Status = "Invalid non-positive CPI index observation encountered.";
+            return result;
+        }
+
+        // 4. Map observations by (Year, Month)
+        var obsMap = observations.ToDictionary(
+            o => (o.ObservationDate.Year, o.ObservationDate.Month),
+            o => o);
+
+        var minDate = observations.Min(o => o.ObservationDate);
+        var maxDate = observations.Max(o => o.ObservationDate);
+
+        var startMonth = new DateTime(startDate.Year, startDate.Month, 1);
+        var reqEndMonth = new DateTime(endDate.Year, endDate.Month, 1);
+
+        // Check if start period is supported
+        if (startMonth > maxDate)
+        {
+            result.Period = $"{startMonth:MMM yyyy} - {reqEndMonth:MMM yyyy}";
+            result.Status = $"Investment start period ({startMonth:MMM yyyy}) is after latest published CPI observation ({maxDate:MMM yyyy}).";
+            return result;
+        }
+
+        if (startMonth < minDate)
+        {
+            result.Period = $"{startMonth:MMM yyyy} - {reqEndMonth:MMM yyyy}";
+            result.Status = $"CPI observation missing for start period ({startMonth:MMM yyyy}). Earliest available observation is {minDate:MMM yyyy}.";
+            return result;
+        }
+
+        if (!obsMap.TryGetValue((startMonth.Year, startMonth.Month), out var startObs))
+        {
+            result.Period = $"{startMonth:MMM yyyy} - {reqEndMonth:MMM yyyy}";
+            result.Status = $"CPI observation missing for start month {startMonth:MMM yyyy}.";
+            return result;
+        }
+
+        // Effective end observation: Use latest available official observation if current calendar month is not yet published
+        var effectiveEndMonth = reqEndMonth >= maxDate ? maxDate : reqEndMonth;
+        if (!obsMap.TryGetValue((effectiveEndMonth.Year, effectiveEndMonth.Month), out var endObs))
+        {
+            result.Period = $"{startMonth:MMM yyyy} - {effectiveEndMonth:MMM yyyy}";
+            result.Status = $"CPI observation missing for end month {effectiveEndMonth:MMM yyyy}.";
+            return result;
+        }
+
+        // 5. Verify continuous monthly coverage between start and effective end
+        var cursor = startMonth;
+        while (cursor <= effectiveEndMonth)
+        {
+            if (!obsMap.TryGetValue((cursor.Year, cursor.Month), out var stepObs) || stepObs.CpiIndex <= 0m)
+            {
+                result.Period = $"{startMonth:MMM yyyy} - {effectiveEndMonth:MMM yyyy}";
+                result.Status = $"Missing intermediate CPI observation for {cursor:MMM yyyy}.";
+                return result;
+            }
+            cursor = cursor.AddMonths(1);
+        }
+
+        // 6. Calculate cumulative inflation using official CPI index levels
+        // Formula: Cumulative Inflation (%) = ((Ending CPI Index / Starting CPI Index) - 1) * 100
+        var cumulativeInflationPct = ((endObs.CpiIndex / startObs.CpiIndex) - 1.0m) * 100.0m;
+        var roundedInflation = Math.Round(cumulativeInflationPct, 2);
+
+        // 7. Calculate real return using Fisher equation
+        var realReturnPct = CalculateRealReturn(nominalReturnPct, roundedInflation);
+
+        result.InflationRatePercentage = roundedInflation;
+        result.RealReturnPercentage = realReturnPct;
+        result.IsDataAvailable = true;
+        result.Period = $"{startObs.ObservationDate:MMM yyyy} - {endObs.ObservationDate:MMM yyyy}";
+        result.StartingCpiIndex = startObs.CpiIndex;
+        result.EndingCpiIndex = endObs.CpiIndex;
+        result.ObservationPeriodStart = startObs.ObservationDate.ToString("MMM yyyy");
+        result.ObservationPeriodEnd = endObs.ObservationDate.ToString("MMM yyyy");
+        result.LatestObservationMonth = maxDate.ToString("MMM yyyy");
+        result.Source = endObs.Source;
+        result.SourceUrl = endObs.SourceUrl;
+
+        if (reqEndMonth > maxDate)
+        {
+            result.Status = $"Adjusted via official BBS CPI index (Base 2021-22 = 100) through {endObs.ObservationDate:MMM yyyy} (latest published)";
+        }
+        else
+        {
+            result.Status = $"Adjusted via official BBS CPI index (Base 2021-22 = 100) for {result.Period}";
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// INFLATION: Annual Series Retrieval
     /// DATABASE: Table — inflation_rates
-    /// 
-    /// Fetches all registered annual CPI inflation records for the specified sovereign entity,
-    /// sorted chronologically by year. Falls back to static documented benchmarks if the table is unpopulated.
     /// </summary>
     public async Task<List<InflationRateDto>> GetHistoricalRatesAsync(string countryCode, CancellationToken cancellationToken = default)
     {
@@ -261,7 +459,6 @@ public class InflationService : IInflationService
 
         if (!dbRates.Any())
         {
-            // Fallback to documented academic/demo baseline
             return StaticBaselineRates
                 .Where(kvp => kvp.Key.Item1 == normalizedCountry)
                 .OrderBy(kvp => kvp.Key.Item2)
@@ -277,5 +474,48 @@ public class InflationService : IInflationService
         }
 
         return dbRates;
+    }
+
+    /// <summary>
+    /// INFLATION: Monthly CPI Observation Retrieval
+    /// DATABASE: Table — cpi_index_observations
+    /// </summary>
+    public async Task<List<CpiIndexObservationDto>> GetCpiObservationsAsync(string countryCode, CancellationToken cancellationToken = default)
+    {
+        var normalizedCountry = string.IsNullOrWhiteSpace(countryCode) ? "BD" : countryCode.Trim().ToUpperInvariant();
+
+        var dbObservations = await _context.CpiIndexObservations
+            .AsNoTracking()
+            .Where(o => o.CountryCode == normalizedCountry)
+            .OrderBy(o => o.ObservationDate)
+            .Select(o => new CpiIndexObservationDto
+            {
+                ObservationId = o.ObservationId,
+                CountryCode = o.CountryCode,
+                ObservationDate = o.ObservationDate,
+                CpiIndex = o.CpiIndex,
+                Source = o.Source,
+                SourceUrl = o.SourceUrl
+            })
+            .ToListAsync(cancellationToken);
+
+        if (!dbObservations.Any())
+        {
+            return StaticBaselineCpiObservations
+                .Where(kvp => kvp.Key.Item1 == normalizedCountry)
+                .OrderBy(kvp => kvp.Key.Item2).ThenBy(kvp => kvp.Key.Item3)
+                .Select((kvp, idx) => new CpiIndexObservationDto
+                {
+                    ObservationId = idx + 1,
+                    CountryCode = kvp.Key.Item1,
+                    ObservationDate = new DateTime(kvp.Key.Item2, kvp.Key.Item3, 1),
+                    CpiIndex = kvp.Value.Index,
+                    Source = kvp.Value.Source,
+                    SourceUrl = kvp.Value.SourceUrl
+                })
+                .ToList();
+        }
+
+        return dbObservations;
     }
 }

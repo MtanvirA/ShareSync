@@ -8,6 +8,10 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service providing what-if hypothetical trade simulations to forecast portfolio weights, cost basis, and cash balances.
+/// FEATURE: Simulator
+/// </summary>
 public class SimulatorService : ISimulatorService
 {
     private readonly IApplicationDbContext _context;

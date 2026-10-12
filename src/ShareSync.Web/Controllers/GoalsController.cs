@@ -7,6 +7,11 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Goals Controller
+/// Manages user financial targets, target wealth amounts, timeline milestones, and goal progress tracking.
+/// FEATURE: Portfolio Goals
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]

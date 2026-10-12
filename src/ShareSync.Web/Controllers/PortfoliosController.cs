@@ -10,7 +10,8 @@ namespace ShareSync.Web.Controllers;
 
 /// <summary>
 /// API: Portfolios Controller
-/// FEATURE: Multi-Portfolio Management
+/// FEATURE: Portfolio Management
+/// FEATURE: Portfolio Valuation
 /// 
 /// SECURITY: Ownership Isolation
 /// Every request resolves authenticated UserId from JWT claims and restricts CRUD operations

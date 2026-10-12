@@ -8,6 +8,10 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service managing custom stock watchlists, monitored securities, target price alerts, and notes.
+/// FEATURE: Watchlists
+/// </summary>
 public class WatchlistService : IWatchlistService
 {
     private readonly IApplicationDbContext _context;

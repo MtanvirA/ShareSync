@@ -5,6 +5,11 @@ using ShareSync.Infrastructure.Data;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Health Controller
+/// Verifies application runtime health and authoritative MySQL database connectivity and table counts.
+/// FEATURE: MySQL Database and Data Integrity
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class HealthController : ControllerBase

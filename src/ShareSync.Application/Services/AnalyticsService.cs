@@ -9,6 +9,10 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service computing portfolio analytics, sector diversification, position concentration metrics, and performance charts.
+/// FEATURE: Portfolio Analytics
+/// </summary>
 public class AnalyticsService : IAnalyticsService
 {
     private readonly IApplicationDbContext _context;

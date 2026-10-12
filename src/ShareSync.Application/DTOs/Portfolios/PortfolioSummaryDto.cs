@@ -18,6 +18,8 @@ public class PortfolioSummaryDto
     public decimal? InflationRate { get; set; }
     public decimal? RealReturnPercentage { get; set; }
     public string? InflationStatus { get; set; }
+    public string? InflationPeriod { get; set; }
+    public string? LatestCpiMonth { get; set; }
     public int HoldingsCount { get; set; }
     public int TransactionsCount { get; set; }
 }

@@ -7,6 +7,11 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Simulator Controller
+/// Executes hypothetical investment scenarios (BUY/SELL), projecting portfolio impact without mutating actual positions.
+/// FEATURE: Simulator
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]

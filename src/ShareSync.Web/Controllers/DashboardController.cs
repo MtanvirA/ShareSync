@@ -5,6 +5,12 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Dashboard Controller
+/// Aggregates portfolio valuations, day performance, top assets, historical chart curves, and recent activity.
+/// FEATURE: Portfolio Management
+/// FEATURE: Portfolio Valuation
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

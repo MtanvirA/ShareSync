@@ -34,11 +34,14 @@ ShareSync is a full-featured, academic web-based portfolio tracking and financia
 
 ## Documentation Quick Links
 
+- [Codebase Navigation & Feature Tags](docs/CODEBASE_NAVIGATION.md) *(Essential for live demonstration & viva)*
+- [Database Objects Viva & Demo Map](docs/DATABASE_VIVA_MAP.md)
+- [Teacher Demonstration Runbook](docs/TEACHER_DEMO_RUNBOOK.md)
+- [Teacher Viva Cheat Sheet](docs/TEACHER_VIVA_CHEAT_SHEET.md)
 - [MySQL Setup Guide](docs/SETUP.md)
-- [Teacher Demonstration Guide](docs/MYSQL_DEMO_GUIDE.md)
-- [Database Systems Viva Cheat Sheet](docs/MYSQL_VIVA.md)
 - [Database Schema & Programmability](docs/DATABASE.md)
 - [System Architecture](docs/ARCHITECTURE.md)
+- [Project Structure & Organization](docs/PROJECT_STRUCTURE.md)
 - [Automated Testing](docs/TESTING.md)
 - [MySQL Kit & SQL Scripts](database/mysql/README.md)
 - [Dataset Details](docs/DATASET.md)
@@ -46,9 +49,43 @@ ShareSync is a full-featured, academic web-based portfolio tracking and financia
 
 ---
 
+## Live Demonstration Feature Search (`Ctrl + Shift + F`)
+
+Every major module in the repository includes standardized tags across C# XML documentation, frontend JavaScript, and MySQL SQL scripts. Evaluators can instantly press **`Ctrl + Shift + F`** in VS Code to locate any feature implementation:
+
+| Standard Feature Tag | Scope |
+|---|---|
+| `FEATURE: Authentication and Authorization` | JWT login, registration, PBKDF2 hashing, multi-role security |
+| `FEATURE: Company Catalog and Search` | 400+ DSE company listings, sector filtering, ticker search |
+| `FEATURE: Portfolio Management` | Multi-portfolio isolation, cash balances, asset allocation |
+| `FEATURE: Portfolio Valuation` | Dynamic valuation, daily snapshots, VWAP accounting |
+| `FEATURE: Transactions` | Atomic BUY/SELL execution, fee deduction, oversell prevention |
+| `FEATURE: Realized and Unrealized P/L` | Mark-to-market calculations, stored functions, gain/loss ledger |
+| `FEATURE: Dividend Management` | Corporate cash distributions, historical dividend yield |
+| `FEATURE: DSE Market Data` | Real-time quote retrieval, StockChartBD integration, rate limiting |
+| `FEATURE: Historical Price Data` | Harvard Dataverse DSE 1999–2025 dataset, daily OHLCV series |
+| `FEATURE: Benchmark Analysis` | DSEX, DS30, and DSES index tracking and portfolio active returns |
+| `FEATURE: Portfolio Analytics` | Sector exposure, performance breakdown, asset concentration |
+| `FEATURE: Investment Intelligence` | Retrospective CAGR, Annualized Volatility, Max Drawdown, scoring |
+| `FEATURE: Inflation and Real Return` | Bangladesh Bank / BBS CPI indices, Fisher Equation real returns |
+| `FEATURE: Currency Conversion` | Multi-currency FX conversion rates (BDT, USD, EUR, GBP) |
+| `FEATURE: Portfolio Goals` | Target milestone tracking and real-time progress calculations |
+| `FEATURE: Watchlists` | Custom investor watchlists with target price alerts |
+| `FEATURE: Alerts and Notifications` | Real-time price ceiling/floor alerts and user notification feed |
+| `FEATURE: Reports and Exports` | PDF/Excel/CSV exportable financial reports and audit ledgers |
+| `FEATURE: Simulator` | Hypothetical execution sandbox and return simulator |
+| `FEATURE: CSV Import` | Bulk transaction upload with format validation |
+| `FEATURE: MySQL Database and Data Integrity` | 18 3NF tables, constraints, foreign keys, triggers, stored routines |
+| `FEATURE: Historical Reconciliation` | OHLC geometry validation, deduplication, quarantine engine |
+| `FEATURE: Learning Center` | Interactive financial literacy, DSE market mechanics hub |
+
+*For complete file-by-file symbol mapping, see [docs/CODEBASE_NAVIGATION.md](docs/CODEBASE_NAVIGATION.md).*
+
+---
+
 ## Database Architecture
 
-The MySQL database schema (`sharesync`) consists of **17 normalized relational tables** engineered in Third Normal Form (3NF):
+The MySQL database schema (`sharesync`) consists of **18 normalized relational tables** engineered in Third Normal Form (3NF):
 
 ```
 sharesync
@@ -68,6 +105,7 @@ sharesync
 ├── notifications              # User notifications center
 ├── portfolio_goals            # Financial goals & progress tracking
 ├── inflation_rates            # Annual consumer price index inflation rates (LF-28)
+├── cpi_index_observations     # Monthly official CPI index series for inflation (LF-28)
 └── currency_exchange_rates    # Foreign currency exchange rates for FX valuation (LF-29)
 ```
 
@@ -75,6 +113,9 @@ sharesync
 - **View (`vw_portfolio_holdings`):** Calculates net shares, volume-weighted average cost, market value, and unrealized P/L on demand.
 - **Function (`fn_get_weighted_avg_price`):** Calculates volume-weighted average purchase price for any portfolio and company.
 - **Function (`fn_calculate_unrealized_pl`):** Computes mark-to-market unrealized gain or loss.
+- **Function (`fn_calculate_realized_pl`):** Computes realized profit or loss from liquidated shares.
+- **Function (`fn_calculate_net_cash_flow`):** Computes cumulative net capital cash flow.
+- **Function (`fn_calculate_real_return`):** Computes purchasing-power real return via Fisher Equation.
 - **Procedure (`sp_record_transaction`):** Validates transaction parameters, checks for oversell violations on SELL orders, and inserts atomically.
 - **Procedure (`sp_generate_portfolio_snapshot`):** Aggregates net holdings valuation and upserts daily snapshots.
 - **Triggers (`trg_transactions_after_*`):** Transparently writes full before/after audit entries to `transaction_audit`.

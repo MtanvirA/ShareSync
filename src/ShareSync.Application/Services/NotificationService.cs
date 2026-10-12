@@ -9,6 +9,10 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service managing real-time and persistent notification delivery, unread counts, and user acknowledgment.
+/// FEATURE: Alerts and Notifications
+/// </summary>
 public class NotificationService : INotificationService
 {
     private readonly IApplicationDbContext _context;

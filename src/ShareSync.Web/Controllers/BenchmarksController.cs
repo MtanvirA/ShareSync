@@ -10,7 +10,7 @@ namespace ShareSync.Web.Controllers;
 
 /// <summary>
 /// API: Benchmarks Controller
-/// FEATURE: Benchmark Comparison (LF-30)
+/// FEATURE: Benchmark Analysis
 /// 
 /// Routes: /api/benchmarks
 /// Compares investor portfolio returns against Dhaka Stock Exchange (DSE) benchmarks (DSEX, DS30, DSES).

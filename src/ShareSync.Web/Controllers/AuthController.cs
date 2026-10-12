@@ -8,17 +8,26 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// Handles user registration, authentication, JWT token issuance, session profile retrieval, and password management.
+/// FEATURE: Authentication and Authorization
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IMfaService? _mfaService;
 
-    public AuthController(IAuthService authService, ICurrentUserService currentUserService)
+    public AuthController(
+        IAuthService authService,
+        ICurrentUserService currentUserService,
+        IMfaService? mfaService = null)
     {
         _authService = authService;
         _currentUserService = currentUserService;
+        _mfaService = mfaService;
     }
 
     [HttpPost("register")]
@@ -118,5 +127,57 @@ public class AuthController : ControllerBase
     {
         // JWT stateless logout: client discards token
         return Ok(ApiResponse.Ok("Logout successful. Client session cleared."));
+    }
+
+    [HttpGet("mfa/status")]
+    [Authorize]
+    public IActionResult GetMfaStatus()
+    {
+        var status = _mfaService?.GetFoundationStatus() ?? new MfaFoundationStatus();
+        return Ok(ApiResponse<MfaFoundationStatus>.Ok(status));
+    }
+
+    [HttpPost("mfa/generate")]
+    [Authorize]
+    public IActionResult GenerateMfaKey()
+    {
+        if (_mfaService == null)
+        {
+            return StatusCode(StatusCodes.Status501NotImplemented, ApiResponse.Fail("MFA service is not configured."));
+        }
+
+        var secret = _mfaService.GenerateSecretKey();
+        var email = _currentUserService.Email ?? "investor@sharesync.com";
+        var uri = _mfaService.GenerateTotpUri(email, secret);
+
+        var dto = new MfaSetupDto
+        {
+            SecretKey = secret,
+            TotpUri = uri,
+            Digits = 6,
+            PeriodSeconds = 30,
+            Message = "Use this secret key or URI to link an authenticator app (e.g. Google Authenticator). Full mandatory prompt enforcement is scheduled for future enterprise release."
+        };
+
+        return Ok(ApiResponse<MfaSetupDto>.Ok(dto));
+    }
+
+    [HttpPost("mfa/verify")]
+    [Authorize]
+    public IActionResult VerifyMfaCode([FromBody] VerifyMfaRequestDto request)
+    {
+        if (_mfaService == null)
+        {
+            return StatusCode(StatusCodes.Status501NotImplemented, ApiResponse.Fail("MFA service is not configured."));
+        }
+
+        var isValid = _mfaService.ValidateTotpCode(request.SecretKey, request.Code);
+        var response = new VerifyMfaResponseDto
+        {
+            IsValid = isValid,
+            Message = isValid ? "Code verified successfully." : "Invalid or expired verification code."
+        };
+
+        return Ok(ApiResponse<VerifyMfaResponseDto>.Ok(response));
     }
 }

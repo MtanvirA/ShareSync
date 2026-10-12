@@ -12,6 +12,9 @@ public class TransactionDto
     public decimal Quantity { get; set; }
     public decimal PricePerShare { get; set; }
     public decimal TotalAmount { get; set; }
+    public decimal Fee { get; set; }
+    public decimal NetAmount { get; set; }
+    public decimal? RealizedProfitLoss { get; set; }
     public DateTime TransactionDate { get; set; }
     public string? Notes { get; set; }
 }

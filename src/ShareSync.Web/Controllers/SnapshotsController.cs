@@ -6,6 +6,11 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Snapshots Controller
+/// Historical mark-to-market daily portfolio snapshot generation, storage, and retrieval.
+/// FEATURE: Portfolio Valuation
+/// </summary>
 [ApiController]
 [Authorize]
 public class SnapshotsController : ControllerBase

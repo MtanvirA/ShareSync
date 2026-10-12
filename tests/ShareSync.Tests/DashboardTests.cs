@@ -188,6 +188,7 @@ public class DashboardTests
         Assert.True(response.Success);
 
         var data = response.Data;
+        Assert.NotNull(data);
         Assert.Equal("Tanvir Ahmed", data.UserFullName);
         Assert.Equal(2, data.Summary.PortfoliosCount);
         Assert.Equal(3, data.Summary.HoldingsCount); // GP, SQUR, BX
@@ -238,6 +239,7 @@ public class DashboardTests
         Assert.True(response.Success);
 
         var data = response.Data;
+        Assert.NotNull(data);
         Assert.Equal(2, data.Summary.HoldingsCount); // GP and SQUR only
         Assert.Equal(41000m, data.Summary.TotalPortfolioValue); // 30,000 + 11,000
         Assert.Equal(38000m, data.Summary.TotalInvested); // 28,000 + 10,000
@@ -293,12 +295,14 @@ public class DashboardTests
         var user1Res = await dashboardService.GetDashboardDataAsync(userId: 1);
 
         // Assert: User 2 has 1 portfolio with 500 GP shares @ 300 = 150,000
+        Assert.NotNull(user2Res.Data);
         Assert.Equal(1, user2Res.Data.Summary.PortfoliosCount);
         Assert.Equal(1, user2Res.Data.Summary.HoldingsCount);
         Assert.Equal(150000m, user2Res.Data.Summary.TotalPortfolioValue);
         Assert.Equal(125000m, user2Res.Data.Summary.TotalInvested);
 
         // User 1 has 65,000 market value and 2 portfolios
+        Assert.NotNull(user1Res.Data);
         Assert.Equal(65000m, user1Res.Data.Summary.TotalPortfolioValue);
         Assert.Equal(2, user1Res.Data.Summary.PortfoliosCount);
 
@@ -325,6 +329,7 @@ public class DashboardTests
 
         // Assert
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         var perf = response.Data.Performance;
         Assert.NotNull(perf);
         Assert.Equal(35000m, perf.StartingValue);

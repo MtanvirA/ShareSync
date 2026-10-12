@@ -326,6 +326,7 @@ public class AuthenticationTests
 
         // Assert
         Assert.True(result.Success);
+        Assert.NotNull(result.Data);
         Assert.Equal("Updated Investor Name", result.Data.Name);
         var dbUser = await context.Users.FindAsync(10);
         Assert.Equal("Updated Investor Name", dbUser!.Name);

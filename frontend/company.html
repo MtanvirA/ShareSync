@@ -16,6 +16,7 @@
         var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
         var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
         document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-bs-theme", theme);
       })();
     </script>
 
@@ -283,10 +284,41 @@
               <i class="bi bi-bar-chart-line"></i>
               <span> Reports </span>
             </a>
-            <a href="activity.html" class="sidebar-link">
-              <i class="bi bi-clock-history"></i>
-              <span> Activity </span>
-            </a>
+            <!-- Compact More Dropdown -->
+            <div class="dropdown d-inline-block position-relative" id="navMoreDropdown">
+              <button
+                class="sidebar-link dropdown-toggle bg-transparent border-0"
+                type="button"
+                id="moreNavDropdownBtn"
+                data-bs-toggle="dropdown"
+                data-bs-popper-config='{"strategy":"fixed"}'
+                aria-expanded="false"
+              >
+                <i class="bi bi-three-dots"></i>
+                <span>More</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow border" aria-labelledby="moreNavDropdownBtn" style="min-width: 210px; font-size: 13px; z-index: 1060;">
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="learning-center.html" id="navLearningCenterLink">
+                    <i class="bi bi-mortarboard-fill text-primary"></i>
+                    <span>Learn &amp; Formulas</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="activity.html" id="navActivityLink">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Activity Log</span>
+                  </a>
+                </li>
+                <li class="admin-only-nav"><hr class="dropdown-divider my-1"></li>
+                <li class="admin-only-nav">
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger fw-semibold admin-only-nav" href="admin.html" id="adminNavTabLink">
+                    <i class="bi bi-shield-lock-fill text-danger"></i>
+                    <span>Admin Control</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
           </nav>
         </div>
 
@@ -637,7 +669,11 @@
               <div class="mb-3">
                 <label for="companyWatchlistTargetInput" class="form-label fw-semibold">Target Price (৳) <span class="text-muted fw-normal">(optional)</span></label>
                 <input type="number" step="0.01" min="0" class="form-control" id="companyWatchlistTargetInput" placeholder="e.g. 260.00" />
-                <div class="form-text">You will be alerted when the market price touches or crosses this target.</div>
+                <div class="d-flex align-items-center justify-content-between mt-1 text-muted" style="font-size: 12px;" id="companyWatchlistCurrentPriceContainer">
+                  <span>Current price:</span>
+                  <span class="fw-semibold text-primary" id="companyWatchlistCurrentPricePreview" style="cursor: pointer;" title="Click to use as target price">৳0.00</span>
+                </div>
+                <div class="form-text mt-1">You will be alerted when the market price touches or crosses this target.</div>
               </div>
             </div>
             <div class="modal-footer border-top justify-content-between">

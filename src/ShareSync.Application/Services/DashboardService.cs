@@ -51,11 +51,17 @@ public class DashboardService : IDashboardService
         var dividendData = dividendRes.Data ?? new DTOs.Reports.DividendIncomeReportDto();
 
         // 5. Build Summary
+        var reportSummaryRes = await _reportService.GetReportSummaryAsync(userId, portfolioId, cancellationToken);
+        var repSummary = reportSummaryRes.Data;
+
         var summary = new DashboardSummaryDto
         {
             TotalPortfolioValue = holdingsData.TotalMarketValue,
             TotalInvested = holdingsData.TotalInvested,
             TotalUnrealizedProfitLoss = holdingsData.TotalUnrealizedProfitLoss,
+            TotalRealizedProfitLoss = repSummary?.TotalRealizedProfitLoss ?? 0m,
+            TotalFees = repSummary?.TotalFees ?? 0m,
+            NetCashFlow = repSummary?.NetCashFlow ?? 0m,
             ProfitLossPercentage = holdingsData.TotalProfitLossPercentage,
             TotalDividendIncome = dividendData.TotalIncome,
             PortfoliosCount = portfoliosCount,
@@ -91,7 +97,7 @@ public class DashboardService : IDashboardService
         var recentTransactions = new List<DashboardRecentTransactionDto>();
         if (userPortfolioIds.Any())
         {
-            recentTransactions = await _context.Transactions
+            var rawRecent = await _context.Transactions
                 .AsNoTracking()
                 .Include(t => t.Company)
                 .Include(t => t.Portfolio)
@@ -99,21 +105,63 @@ public class DashboardService : IDashboardService
                 .OrderByDescending(t => t.TransactionDate)
                 .ThenByDescending(t => t.TransactionId)
                 .Take(5)
-                .Select(t => new DashboardRecentTransactionDto
+                .ToListAsync(cancellationToken);
+
+            var sellPairs = rawRecent
+                .Where(t => t.TransactionType == "SELL")
+                .Select(t => (t.PortfolioId, t.CompanyId))
+                .Distinct()
+                .ToList();
+
+            var portIds = sellPairs.Select(p => p.PortfolioId).Distinct().ToList();
+            var compIds = sellPairs.Select(p => p.CompanyId).Distinct().ToList();
+
+            var allBuys = await _context.Transactions
+                .AsNoTracking()
+                .Where(t => portIds.Contains(t.PortfolioId) && compIds.Contains(t.CompanyId) && t.TransactionType == "BUY")
+                .ToListAsync(cancellationToken);
+
+            var avgCostMap = allBuys
+                .GroupBy(b => (b.PortfolioId, b.CompanyId))
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var qty = g.Sum(x => x.Quantity);
+                        var cost = g.Sum(x => x.Quantity * x.PricePerShare);
+                        return qty > 0 ? cost / qty : 0m;
+                    });
+
+            recentTransactions = rawRecent.Select(t =>
+            {
+                var totalVal = Math.Round(t.Quantity * t.PricePerShare, 2);
+                var feeVal = Math.Round(t.Fee, 2);
+                var netVal = t.TransactionType == "BUY" ? totalVal + feeVal : totalVal - feeVal;
+                decimal? rPL = null;
+                if (t.TransactionType == "SELL")
+                {
+                    avgCostMap.TryGetValue((t.PortfolioId, t.CompanyId), out var avgCost);
+                    rPL = Math.Round((totalVal - feeVal) - (t.Quantity * avgCost), 2);
+                }
+
+                return new DashboardRecentTransactionDto
                 {
                     TransactionId = t.TransactionId,
                     PortfolioId = t.PortfolioId,
-                    PortfolioName = t.Portfolio.PortfolioName,
+                    PortfolioName = t.Portfolio?.PortfolioName ?? string.Empty,
                     CompanyId = t.CompanyId,
-                    CompanyName = t.Company.CompanyName,
-                    TickerSymbol = t.Company.TickerSymbol,
+                    CompanyName = t.Company?.CompanyName ?? string.Empty,
+                    TickerSymbol = t.Company?.TickerSymbol ?? string.Empty,
                     TransactionType = t.TransactionType,
                     Quantity = t.Quantity,
                     PricePerShare = t.PricePerShare,
-                    TotalValue = Math.Round(t.Quantity * t.PricePerShare, 2),
+                    TotalValue = totalVal,
+                    Fee = feeVal,
+                    NetAmount = netVal,
+                    RealizedProfitLoss = rPL,
                     TransactionDate = t.TransactionDate
-                })
-                .ToListAsync(cancellationToken);
+                };
+            }).ToList();
         }
 
         // 8. Re-use Performance Snapshots & Chart Datasets

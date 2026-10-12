@@ -20,6 +20,7 @@
         var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
         var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
         document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-bs-theme", theme);
       })();
     </script>
 
@@ -388,16 +389,41 @@
 
                     </a>
 
-                    <a href="activity.html"
-                       class="sidebar-link">
-
-                        <i class="bi bi-clock-history"></i>
-
-                        <span>
-                            Activity
-                        </span>
-
-                    </a>
+                    <!-- Compact More Dropdown -->
+                    <div class="dropdown d-inline-block position-relative" id="navMoreDropdown">
+                      <button
+                        class="sidebar-link dropdown-toggle bg-transparent border-0"
+                        type="button"
+                        id="moreNavDropdownBtn"
+                        data-bs-toggle="dropdown"
+                        data-bs-popper-config='{"strategy":"fixed"}'
+                        aria-expanded="false"
+                      >
+                        <i class="bi bi-three-dots"></i>
+                        <span>More</span>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end shadow border" aria-labelledby="moreNavDropdownBtn" style="min-width: 210px; font-size: 13px; z-index: 1060;">
+                        <li>
+                          <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="learning-center.html" id="navLearningCenterLink">
+                            <i class="bi bi-mortarboard-fill text-primary"></i>
+                            <span>Learn &amp; Formulas</span>
+                          </a>
+                        </li>
+                        <li>
+                          <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="activity.html" id="navActivityLink">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Activity Log</span>
+                          </a>
+                        </li>
+                        <li class="admin-only-nav"><hr class="dropdown-divider my-1"></li>
+                        <li class="admin-only-nav">
+                          <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger fw-semibold admin-only-nav" href="admin.html" id="adminNavTabLink">
+                            <i class="bi bi-shield-lock-fill text-danger"></i>
+                            <span>Admin Control</span>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
 
                 </nav>
 
@@ -645,6 +671,94 @@
 
                             <strong class="summary-value" id="reportSummaryTransactions">
                                 0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-check2-circle"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Realized P/L
+                            </span>
+
+                            <strong class="summary-value" id="reportSummaryRealizedPL">
+                                ৳0.00
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-calculator"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Total P/L
+                            </span>
+
+                            <strong class="summary-value" id="reportSummaryTotalPL">
+                                ৳0.00
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-receipt"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Total Fees
+                            </span>
+
+                            <strong class="summary-value" id="reportSummaryTotalFees">
+                                ৳0.00
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                    <div class="summary-card">
+
+                        <div class="summary-icon">
+
+                            <i class="bi bi-cash-stack"></i>
+
+                        </div>
+
+                        <div>
+
+                            <span class="summary-label">
+                                Net Cash Flow
+                            </span>
+
+                            <strong class="summary-value" id="reportSummaryNetCashFlow">
+                                ৳0.00
                             </strong>
 
                         </div>

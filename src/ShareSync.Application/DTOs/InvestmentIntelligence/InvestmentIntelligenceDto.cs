@@ -42,6 +42,7 @@ public class SummaryDto
     public decimal EndingPrice { get; set; }
     public decimal HistoricalReturnPercentage { get; set; }
     public decimal CagrPercentage { get; set; }
+    public string AnnualizedMetricLabel { get; set; } = "CAGR";
 }
 
 public class RiskDto

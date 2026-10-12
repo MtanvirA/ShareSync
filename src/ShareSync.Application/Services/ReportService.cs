@@ -8,15 +8,70 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// FEATURE: Reports and Exports
+/// FEATURE: Realized and Unrealized P/L
+/// FEATURE: Inflation and Real Return
+/// 
+/// REPORT: Comprehensive Financial Reporting
+/// Generates audit-grade financial statements and analytical reports across 7 domain modules:
+/// 1. Holdings Valuation Report (Positions, Weighted Average Cost, Market Value, Unrealized P/L)
+/// 2. Portfolio Performance Report (Nominal Return, Benchmark Outperformance, Inflation-Adjusted Real Return)
+/// 3. Transaction History & Cash Flow Ledger (Gross Volume, Brokerage Fees, Net Cash Flow, Realized P/L)
+/// 4. Company & Sector Allocation Breakdown (Portfolio Concentration, Sector Diversification)
+/// 5. Dividend Income Statement (Gross Payouts, Dividend Yield, Cash Inflow)
+/// 6. Watchlist & Target Price Monitor (Distance to Target, Trading Alerts)
+/// 7. Executive Report Summary (Consolidated Top-Level KPIs)
+/// 
+/// CALCULATION: Net Cash Flow
+/// Formula: Net Cash Flow = Total SELL Net Inflow - Total BUY Net Outflow
+/// 
+/// CALCULATION: Realized P/L
+/// Formula: Realized P/L = (SELL Gross Value - SELL Fee) - (SELL Quantity * Weighted Average Buy Cost)
+/// 
+/// SECURITY: Ownership Isolation
+/// Every report query strictly validates that target portfolios belong to the requesting authenticated user.
+/// 
+/// DATABASE: MySQL
+/// Uses EF Core with AsNoTracking() read-optimized queries for high-throughput reporting performance.
+/// </summary>
 public class ReportService : IReportService
 {
     private readonly IApplicationDbContext _context;
+    private readonly IInflationService _inflationService;
+    private readonly ICurrencyService _currencyService;
 
     public ReportService(IApplicationDbContext context)
+        : this(context, new InflationService(context), new CurrencyService(context))
     {
-        _context = context;
     }
 
+    public ReportService(
+        IApplicationDbContext context,
+        IInflationService inflationService,
+        ICurrencyService currencyService)
+    {
+        _context = context;
+        _inflationService = inflationService;
+        _currencyService = currencyService;
+    }
+
+    /// <summary>
+    /// REPORT: Holdings Valuation Report
+    /// HOLDINGS: Current Quantity & Valuation
+    /// CALCULATION: Weighted Average Cost
+    /// CALCULATION: Market Value
+    /// CALCULATION: Unrealized P/L
+    /// 
+    /// Formula:
+    /// Current Quantity = SUM(BUY) - SUM(SELL)
+    /// Weighted Average Cost = SUM(BUY Qty * BUY Price) / SUM(BUY Qty)
+    /// Market Value = Current Quantity * Current Market Price
+    /// Unrealized P/L = Market Value - (Current Quantity * Weighted Average Cost)
+    /// Unrealized P/L (%) = (Unrealized P/L / Total Cost Basis) * 100
+    /// 
+    /// Filters out completely liquidated positions (Quantity <= 0) to report only active holdings.
+    /// </summary>
     public async Task<ApiResponse<PortfolioHoldingsReportDto>> GetHoldingsReportAsync(
         int userId,
         int? portfolioId = null,
@@ -60,14 +115,43 @@ public class ReportService : IReportService
             .ToListAsync(cancellationToken);
 
         List<PortfolioHoldingsReportItemDto> items;
+        var exchangeRates = await _currencyService.GetAllRatesAsync(cancellationToken);
 
+        // FEATURE: Multi-Portfolio Dashboard Aggregation
+        // CALCULATION: Aggregated Portfolio Value with Multi-Currency FX Conversion
+        // Multi-currency conversion to portfolio base currency ensures all holdings aggregate accurately into base currency
         if (viewHoldings.Any())
         {
+            var compIds = viewHoldings.Select(vh => vh.CompanyId).Distinct().ToList();
+            var portIds = viewHoldings.Select(vh => vh.PortfolioId).Distinct().ToList();
+            var companies = await _context.Companies
+                .AsNoTracking()
+                .Where(c => compIds.Contains(c.CompanyId))
+                .ToDictionaryAsync(c => c.CompanyId, cancellationToken);
+            var portfolios = await _context.Portfolios
+                .AsNoTracking()
+                .Where(p => portIds.Contains(p.PortfolioId))
+                .ToDictionaryAsync(p => p.PortfolioId, cancellationToken);
+
             items = viewHoldings.Select(h =>
             {
-                var invested = Math.Round(h.CurrentQuantity * h.WeightedAverageBuyPrice, 2);
+                var comp = companies.GetValueOrDefault(h.CompanyId);
+                var port = portfolios.GetValueOrDefault(h.PortfolioId);
+                var aType = comp?.AssetType ?? "EQUITY";
+                var aCurr = comp?.Currency ?? "BDT";
+                var portCurr = port?.Currency ?? "BDT";
+                var fxRate = 1.0m;
+                if (!string.Equals(aCurr, portCurr, StringComparison.OrdinalIgnoreCase))
+                {
+                    var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals(portCurr, StringComparison.OrdinalIgnoreCase));
+                    if (r != null) fxRate = r.Rate;
+                }
+
+                var invested = Math.Round(h.CurrentQuantity * h.WeightedAverageBuyPrice * fxRate, 2);
+                var marketVal = Math.Round(h.CurrentMarketValue * fxRate, 2);
+                var unrealizedPL = Math.Round(h.UnrealizedProfitLoss * fxRate, 2);
                 var plPct = invested > 0
-                    ? Math.Round((h.UnrealizedProfitLoss / invested) * 100, 2)
+                    ? Math.Round((unrealizedPL / invested) * 100, 2)
                     : 0m;
 
                 return new PortfolioHoldingsReportItemDto
@@ -80,9 +164,12 @@ public class ReportService : IReportService
                     CurrentQuantity = h.CurrentQuantity,
                     WeightedAverageBuyPrice = Math.Round(h.WeightedAverageBuyPrice, 2),
                     CurrentMarketPrice = Math.Round(h.CurrentPrice, 2),
+                    AssetType = aType,
+                    Currency = aCurr,
+                    ExchangeRate = fxRate,
                     InvestedValue = invested,
-                    CurrentMarketValue = Math.Round(h.CurrentMarketValue, 2),
-                    UnrealizedProfitLoss = Math.Round(h.UnrealizedProfitLoss, 2),
+                    CurrentMarketValue = marketVal,
+                    UnrealizedProfitLoss = unrealizedPL,
                     ProfitLossPercentage = plPct
                 };
             }).ToList();
@@ -116,8 +203,19 @@ public class ReportService : IReportService
                 var totalBuyCost = buyTxs.Sum(t => t.Quantity * t.PricePerShare);
                 var avgBuyPrice = buyQty > 0 ? totalBuyCost / buyQty : 0m;
                 var currentPrice = company.CurrentPrice;
-                var marketVal = netQty * currentPrice;
-                var investedVal = netQty * avgBuyPrice;
+                var aType = company.AssetType ?? "EQUITY";
+                var aCurr = company.Currency ?? "BDT";
+                var portCurr = portfolio.Currency ?? "BDT";
+
+                var fxRate = 1.0m;
+                if (!string.Equals(aCurr, portCurr, StringComparison.OrdinalIgnoreCase))
+                {
+                    var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals(portCurr, StringComparison.OrdinalIgnoreCase));
+                    if (r != null) fxRate = r.Rate;
+                }
+
+                var marketVal = netQty * currentPrice * fxRate;
+                var investedVal = netQty * avgBuyPrice * fxRate;
                 var unrealizedPL = marketVal - investedVal;
                 var plPct = investedVal > 0 ? (unrealizedPL / investedVal) * 100 : 0m;
 
@@ -131,6 +229,9 @@ public class ReportService : IReportService
                     CurrentQuantity = netQty,
                     WeightedAverageBuyPrice = Math.Round(avgBuyPrice, 2),
                     CurrentMarketPrice = Math.Round(currentPrice, 2),
+                    AssetType = aType,
+                    Currency = aCurr,
+                    ExchangeRate = fxRate,
                     InvestedValue = Math.Round(investedVal, 2),
                     CurrentMarketValue = Math.Round(marketVal, 2),
                     UnrealizedProfitLoss = Math.Round(unrealizedPL, 2),
@@ -161,6 +262,16 @@ public class ReportService : IReportService
         return ApiResponse<PortfolioHoldingsReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Portfolio Performance Report
+    /// FEATURE: Inflation-Adjusted Return (LF-28)
+    /// CALCULATION: Real Return (Fisher Equation)
+    /// CALCULATION: Total P/L
+    /// 
+    /// Aggregates historical portfolio valuation trajectory over selected timeframes ("1M", "3M", "6M", "1Y", "ALL").
+    /// Computes nominal return percentage, incorporates DSE index benchmark outperformance,
+    /// and adjusts for compounding CPI inflation using official BBS statistics.
+    /// </summary>
     public async Task<ApiResponse<PortfolioPerformanceReportDto>> GetPerformanceReportAsync(
         int userId,
         int? portfolioId = null,
@@ -296,9 +407,45 @@ public class ReportService : IReportService
             report.NetChangePercentage = 0;
         }
 
+        // Calculate Inflation-Adjusted Return for Performance Report
+        var baseCurrency = targetPortfolio.Currency ?? "BDT";
+        report.BaseCurrency = baseCurrency;
+        var country = baseCurrency.Equals("USD", StringComparison.OrdinalIgnoreCase) ? "US" : "BD";
+
+        var startYear = startDate?.Year ?? (snapshots.Any() ? snapshots.First().SnapshotDate.Year : DateTime.UtcNow.Year);
+        var endYear = DateTime.UtcNow.Year;
+
+        var realReturnCalc = await _inflationService.CalculateRealReturnAsync(
+            report.NominalReturnPercentage,
+            startYear,
+            endYear,
+            country,
+            cancellationToken);
+
+        report.InflationRate = realReturnCalc.InflationRate;
+        report.RealReturnPercentage = realReturnCalc.RealReturn;
+        report.InflationStatus = realReturnCalc.Status;
+
         return ApiResponse<PortfolioPerformanceReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Transaction History & Cash Flow Ledger
+    /// FEATURE: Realized Profit/Loss (LF-26)
+    /// FEATURE: Transaction Fees and Net Cash Flow (LF-27)
+    /// TRANSACTION: Ledger Audit
+    /// CALCULATION: Net Cash Flow
+    /// CALCULATION: Realized P/L
+    /// 
+    /// Formula:
+    /// BUY: Net Cash Outflow = (Quantity * Price) + Fee
+    /// SELL: Net Cash Inflow = (Quantity * Price) - Fee
+    /// Net Cash Flow = Total SELL Inflow - Total BUY Outflow
+    /// Realized P/L on SELL = (Gross Sell Proceeds - Fee) - (Quantity * Weighted Average Buy Cost)
+    /// Total Fees = Total BUY Fees + Total SELL Fees
+    /// 
+    /// Tracks every historical trade, currency conversions, applied commission fees, and realized investment return.
+    /// </summary>
     public async Task<ApiResponse<TransactionHistoryReportDto>> GetTransactionHistoryReportAsync(
         int userId,
         int? portfolioId = null,
@@ -313,7 +460,7 @@ public class ReportService : IReportService
             .AsNoTracking()
             .Include(t => t.Portfolio)
             .Include(t => t.Company)
-            .Where(t => t.Portfolio.UserId == userId);
+            .Where(t => t.Portfolio != null && t.Portfolio.UserId == userId);
 
         if (portfolioId.HasValue)
         {
@@ -348,26 +495,93 @@ public class ReportService : IReportService
             .ThenByDescending(t => t.TransactionId)
             .ToListAsync(cancellationToken);
 
-        var items = transactions.Select(t => new TransactionHistoryReportItemDto
+        var exchangeRates = await _currencyService.GetAllRatesAsync(cancellationToken);
+
+        var items = transactions.Select(t =>
         {
-            TransactionId = t.TransactionId,
-            PortfolioId = t.PortfolioId,
-            PortfolioName = t.Portfolio?.PortfolioName ?? string.Empty,
-            CompanyId = t.CompanyId,
-            CompanyName = t.Company?.CompanyName ?? string.Empty,
-            TickerSymbol = t.Company?.TickerSymbol ?? string.Empty,
-            TransactionType = t.TransactionType,
-            Quantity = t.Quantity,
-            PricePerShare = t.PricePerShare,
-            TotalTransactionValue = Math.Round(t.Quantity * t.PricePerShare, 2),
-            TransactionDate = t.TransactionDate
+            var aType = t.Company?.AssetType ?? "EQUITY";
+            var aCurr = t.Company?.Currency ?? "BDT";
+            var portCurr = t.Portfolio?.Currency ?? "BDT";
+            decimal fxRate = 1.0m;
+            if (!string.Equals(aCurr, portCurr, StringComparison.OrdinalIgnoreCase))
+            {
+                var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals(portCurr, StringComparison.OrdinalIgnoreCase));
+                if (r != null) fxRate = r.Rate;
+            }
+
+            return new TransactionHistoryReportItemDto
+            {
+                TransactionId = t.TransactionId,
+                PortfolioId = t.PortfolioId,
+                PortfolioName = t.Portfolio?.PortfolioName ?? string.Empty,
+                CompanyId = t.CompanyId,
+                CompanyName = t.Company?.CompanyName ?? string.Empty,
+                TickerSymbol = t.Company?.TickerSymbol ?? string.Empty,
+                AssetType = aType,
+                Currency = aCurr,
+                ExchangeRate = fxRate,
+                TransactionType = t.TransactionType,
+                Quantity = t.Quantity,
+                PricePerShare = t.PricePerShare,
+                TotalTransactionValue = Math.Round(t.Quantity * t.PricePerShare, 2),
+                Fee = Math.Round(t.Fee, 2),
+                NetAmount = t.TransactionType == "BUY"
+                    ? Math.Round(t.Quantity * t.PricePerShare + t.Fee, 2)
+                    : Math.Round(t.Quantity * t.PricePerShare - t.Fee, 2),
+                TransactionDate = t.TransactionDate
+            };
         }).ToList();
 
-        var buyItems = items.Where(i => i.TransactionType == "BUY").ToList();
+        // Calculate Realized P/L for SELL items
         var sellItems = items.Where(i => i.TransactionType == "SELL").ToList();
+        if (sellItems.Any())
+        {
+            var sellPairs = sellItems.Select(s => (s.PortfolioId, s.CompanyId)).Distinct().ToList();
+            var portIds = sellPairs.Select(p => p.PortfolioId).Distinct().ToList();
+            var compIds = sellPairs.Select(p => p.CompanyId).Distinct().ToList();
+
+            var allBuys = await _context.Transactions
+                .AsNoTracking()
+                .Where(t => portIds.Contains(t.PortfolioId) && compIds.Contains(t.CompanyId) && t.TransactionType == "BUY")
+                .ToListAsync(cancellationToken);
+
+            var avgCostMap = allBuys
+                .GroupBy(b => (b.PortfolioId, b.CompanyId))
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var qty = g.Sum(x => x.Quantity);
+                        var cost = g.Sum(x => x.Quantity * x.PricePerShare);
+                        return qty > 0 ? cost / qty : 0m;
+                    });
+
+            foreach (var s in sellItems)
+            {
+                if (avgCostMap.TryGetValue((s.PortfolioId, s.CompanyId), out var avgCost))
+                {
+                    s.RealizedProfitLoss = Math.Round((s.TotalTransactionValue - s.Fee) - (s.Quantity * avgCost), 2);
+                }
+                else
+                {
+                    s.RealizedProfitLoss = Math.Round(s.TotalTransactionValue - s.Fee, 2);
+                }
+            }
+        }
+
+        var buyItems = items.Where(i => i.TransactionType == "BUY").ToList();
 
         var totalBuyVal = Math.Round(buyItems.Sum(i => i.TotalTransactionValue), 2);
+        var totalBuyFees = Math.Round(buyItems.Sum(i => i.Fee), 2);
+        var totalBuyOutflow = Math.Round(totalBuyVal + totalBuyFees, 2);
+
         var totalSellVal = Math.Round(sellItems.Sum(i => i.TotalTransactionValue), 2);
+        var totalSellFees = Math.Round(sellItems.Sum(i => i.Fee), 2);
+        var totalSellInflow = Math.Round(totalSellVal - totalSellFees, 2);
+
+        var totalFees = Math.Round(totalBuyFees + totalSellFees, 2);
+        var netCashFlow = Math.Round(totalSellInflow - totalBuyOutflow, 2);
+        var totalRealizedPL = Math.Round(sellItems.Sum(i => i.RealizedProfitLoss ?? 0m), 2);
 
         var report = new TransactionHistoryReportDto
         {
@@ -375,14 +589,27 @@ public class ReportService : IReportService
             BuyCount = buyItems.Count,
             SellCount = sellItems.Count,
             TotalBuyValue = totalBuyVal,
+            TotalBuyFees = totalBuyFees,
+            TotalBuyOutflow = totalBuyOutflow,
             TotalSellValue = totalSellVal,
-            NetCashFlow = totalSellVal - totalBuyVal,
+            TotalSellFees = totalSellFees,
+            TotalSellInflow = totalSellInflow,
+            TotalFees = totalFees,
+            TotalRealizedProfitLoss = totalRealizedPL,
+            NetCashFlow = netCashFlow,
             Transactions = items
         };
 
         return ApiResponse<TransactionHistoryReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Company & Sector Allocation Breakdown
+    /// CALCULATION: Sector Weight & Diversification
+    /// 
+    /// Aggregates equity exposures by economic sectors (e.g., Pharmaceuticals, Banking, Telecommunications).
+    /// Computes percentage allocations to quantify concentration risk versus diversification.
+    /// </summary>
     public async Task<ApiResponse<CompanySectorReportDto>> GetCompanySectorReportAsync(
         int userId,
         int? portfolioId = null,
@@ -421,10 +648,11 @@ public class ReportService : IReportService
         var transactions = await _context.Transactions
             .AsNoTracking()
             .Include(t => t.Company)
-                .ThenInclude(c => c.Sector)
+                .ThenInclude(c => c!.Sector)
             .Where(t => userPortfolioIds.Contains(t.PortfolioId) && t.Company != null)
             .ToListAsync(cancellationToken);
 
+        var exchangeRates = await _currencyService.GetAllRatesAsync(cancellationToken);
         var companyList = new List<CompanyInvestmentItemDto>();
         var companyGroups = transactions.GroupBy(t => t.CompanyId);
 
@@ -437,10 +665,18 @@ public class ReportService : IReportService
 
             if (netQty <= 0) continue;
 
+            var aCurr = comp.Currency ?? "BDT";
+            var fxRate = 1.0m;
+            if (!aCurr.Equals("BDT", StringComparison.OrdinalIgnoreCase))
+            {
+                var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals("BDT", StringComparison.OrdinalIgnoreCase));
+                if (r != null) fxRate = r.Rate;
+            }
+
             var totalBuyCost = cg.Where(t => t.TransactionType == "BUY").Sum(t => t.Quantity * t.PricePerShare);
             var avgBuyPrice = buyQty > 0 ? totalBuyCost / buyQty : 0m;
-            var invested = Math.Round(netQty * avgBuyPrice, 2);
-            var marketVal = Math.Round(netQty * comp.CurrentPrice, 2);
+            var invested = Math.Round(netQty * avgBuyPrice * fxRate, 2);
+            var marketVal = Math.Round(netQty * comp.CurrentPrice * fxRate, 2);
             var pl = marketVal - invested;
 
             companyList.Add(new CompanyInvestmentItemDto
@@ -501,6 +737,14 @@ public class ReportService : IReportService
         return ApiResponse<CompanySectorReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Dividend Income Statement
+    /// FEATURE: Dividend Income Tracking
+    /// CALCULATION: Dividend Yield & Payout Total
+    /// 
+    /// Aggregates historical corporate dividend announcements matching investor share ownership dates.
+    /// Calculates gross passive income yield and cash distributions over requested tax years.
+    /// </summary>
     public async Task<ApiResponse<DividendIncomeReportDto>> GetDividendIncomeReportAsync(
         int userId,
         int? companyId = null,
@@ -633,6 +877,13 @@ public class ReportService : IReportService
         return ApiResponse<DividendIncomeReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Watchlist & Target Price Monitor
+    /// FEATURE: Watchlists & Price Target Alerts
+    /// 
+    /// Tracks user watchlists against current trading quotes, measuring price deviations
+    /// and highlighting securities that have broken below or above established price targets.
+    /// </summary>
     public async Task<ApiResponse<WatchlistTargetReportDto>> GetWatchlistTargetReportAsync(
         int userId,
         int? watchlistId = null,
@@ -708,6 +959,11 @@ public class ReportService : IReportService
         return ApiResponse<WatchlistTargetReportDto>.Ok(report);
     }
 
+    /// <summary>
+    /// REPORT: Executive Report Summary
+    /// Aggregates high-level portfolio KPIs: total holdings value, total unrealized P/L,
+    /// dividend earnings, and transaction volume into a unified single-call dashboard statement.
+    /// </summary>
     public async Task<ApiResponse<ReportSummaryDto>> GetReportSummaryAsync(
         int userId,
         int? portfolioId = null,
@@ -728,16 +984,50 @@ public class ReportService : IReportService
             .Select(p => p.PortfolioId)
             .ToListAsync(cancellationToken);
 
-        var txCount = await _context.Transactions
+        var userTxs = await _context.Transactions
             .AsNoTracking()
-            .CountAsync(t => userPortfolioIds.Contains(t.PortfolioId), cancellationToken);
+            .Where(t => userPortfolioIds.Contains(t.PortfolioId))
+            .ToListAsync(cancellationToken);
+
+        decimal totalRealizedPL = 0m;
+        var groupedByComp = userTxs.GroupBy(t => (t.PortfolioId, t.CompanyId));
+        foreach (var group in groupedByComp)
+        {
+            var buyTxs = group.Where(t => t.TransactionType == "BUY").ToList();
+            var sellTxs = group.Where(t => t.TransactionType == "SELL").ToList();
+            if (!sellTxs.Any()) continue;
+
+            var totalBuyQty = buyTxs.Sum(t => t.Quantity);
+            var totalBuyCost = buyTxs.Sum(t => t.Quantity * t.PricePerShare);
+            var avgBuyPrice = totalBuyQty > 0 ? totalBuyCost / totalBuyQty : 0m;
+
+            foreach (var s in sellTxs)
+            {
+                totalRealizedPL += (s.Quantity * s.PricePerShare - s.Fee) - (s.Quantity * avgBuyPrice);
+            }
+        }
+        totalRealizedPL = Math.Round(totalRealizedPL, 2);
+
+        var buyList = userTxs.Where(t => t.TransactionType == "BUY").ToList();
+        var sellList = userTxs.Where(t => t.TransactionType == "SELL").ToList();
+
+        var buyCostTotal = buyList.Sum(t => t.Quantity * t.PricePerShare);
+        var buyFeesTotal = buyList.Sum(t => t.Fee);
+        var sellProceedsTotal = sellList.Sum(t => t.Quantity * t.PricePerShare);
+        var sellFeesTotal = sellList.Sum(t => t.Fee);
+
+        var totalFees = Math.Round(buyFeesTotal + sellFeesTotal, 2);
+        var netCashFlow = Math.Round((sellProceedsTotal - sellFeesTotal) - (buyCostTotal + buyFeesTotal), 2);
 
         var summary = new ReportSummaryDto
         {
             TotalPortfolioValue = holdings?.TotalMarketValue ?? 0m,
             TotalUnrealizedProfitLoss = holdings?.TotalUnrealizedProfitLoss ?? 0m,
+            TotalRealizedProfitLoss = totalRealizedPL,
+            TotalFees = totalFees,
+            NetCashFlow = netCashFlow,
             TotalDividendIncome = dividends?.TotalIncome ?? 0m,
-            TotalTransactionsCount = txCount
+            TotalTransactionsCount = userTxs.Count
         };
 
         return ApiResponse<ReportSummaryDto>.Ok(summary);
@@ -748,10 +1038,14 @@ public class ReportService : IReportService
         var transactions = await _context.Transactions
             .AsNoTracking()
             .Include(t => t.Company)
+            .Include(t => t.Portfolio)
             .Where(t => t.PortfolioId == portfolioId && t.Company != null)
             .ToListAsync(cancellationToken);
 
         if (!transactions.Any()) return 0m;
+
+        var exchangeRates = await _currencyService.GetAllRatesAsync(cancellationToken);
+        var portCurr = transactions.First().Portfolio?.Currency ?? "BDT";
 
         decimal total = 0m;
         var groups = transactions.GroupBy(t => t.CompanyId);
@@ -764,8 +1058,16 @@ public class ReportService : IReportService
 
             if (netQty > 0)
             {
-                var price = group.First().Company!.CurrentPrice;
-                total += netQty * price;
+                var comp = group.First().Company!;
+                var price = comp.CurrentPrice;
+                var aCurr = comp.Currency ?? "BDT";
+                var fxRate = 1.0m;
+                if (!string.Equals(aCurr, portCurr, StringComparison.OrdinalIgnoreCase))
+                {
+                    var r = exchangeRates.FirstOrDefault(x => x.FromCurrency.Equals(aCurr, StringComparison.OrdinalIgnoreCase) && x.ToCurrency.Equals(portCurr, StringComparison.OrdinalIgnoreCase));
+                    if (r != null) fxRate = r.Rate;
+                }
+                total += netQty * price * fxRate;
             }
         }
 

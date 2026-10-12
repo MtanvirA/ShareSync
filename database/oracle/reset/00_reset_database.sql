@@ -54,7 +54,14 @@ DECLARE
         'SECTORS',
         'WATCHLISTS',
         'PORTFOLIOS',
-        'APP_USERS'
+        'APP_USERS',
+        'ALERTS',
+        'NOTIFICATIONS',
+        'PORTFOLIO_GOALS',
+        'COMPANY_PRICE_HISTORY',
+        'INFLATION_RATES',
+        'CURRENCY_EXCHANGE_RATES',
+        'BENCHMARK_PRICE_HISTORY'
     );
 BEGIN
     FOR i IN 1..v_tables.COUNT LOOP

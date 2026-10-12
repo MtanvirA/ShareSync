@@ -6,6 +6,10 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service providing global search functionality across companies, sectors, portfolios, and watchlists.
+/// FEATURE: Company Catalog and Search
+/// </summary>
 public class SearchService : ISearchService
 {
     private readonly IApplicationDbContext _context;

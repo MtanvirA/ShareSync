@@ -270,4 +270,182 @@ public class FinancialCalculationConsistencyTests
         Assert.Equal(pSummary5.TotalInvested, dSummary5.TotalInvested);
         Assert.Equal(pSummary5.UnrealizedProfitLoss, dSummary5.TotalUnrealizedProfitLoss);
     }
+
+    [Fact]
+    public async Task MultiCurrencyHoldings_PortfolioReportAndDashboardConsistency()
+    {
+        using var context = CreateInMemoryDbContext();
+        const int userId = 1;
+        const int portfolioId = 20;
+
+        var user = new AppUser { UserId = userId, Name = "Test User", Email = "test@sharesync.com", PasswordHash = "hash", Role = "INVESTOR" };
+        var sector = new Sector { SectorId = 1, SectorName = "Technology" };
+        var usdCompany = new Company
+        {
+            CompanyId = 200,
+            CompanyName = "SPDR S&P 500 ETF",
+            TickerSymbol = "SPY",
+            SectorId = 1,
+            CurrentPrice = 580.00m,
+            Currency = "USD",
+            AssetType = "ETF",
+            Sector = sector
+        };
+        var portfolio = new Portfolio
+        {
+            PortfolioId = portfolioId,
+            UserId = userId,
+            PortfolioName = "Global Multi-Asset Portfolio",
+            Currency = "BDT",
+            User = user
+        };
+
+        context.Users.Add(user);
+        context.Sectors.Add(sector);
+        context.Companies.Add(usdCompany);
+        context.Portfolios.Add(portfolio);
+        context.CurrencyExchangeRates.Add(new CurrencyExchangeRate
+        {
+            RateId = 1,
+            FromCurrency = "USD",
+            ToCurrency = "BDT",
+            ExchangeRate = 121.50m,
+            EffectiveDate = DateTime.UtcNow,
+            Source = "Test"
+        });
+        await context.SaveChangesAsync();
+
+        var t = new Transaction
+        {
+            TransactionId = 10,
+            PortfolioId = portfolioId,
+            CompanyId = 200,
+            TransactionType = "BUY",
+            Quantity = 30,
+            PricePerShare = 550.00m,
+            TransactionDate = DateTime.UtcNow.AddDays(-5),
+            Company = usdCompany,
+            Portfolio = portfolio
+        };
+        context.Transactions.Add(t);
+        await context.SaveChangesAsync();
+
+        var portfolioService = new PortfolioService(context);
+        var reportService = new ReportService(context);
+        var dashboardService = new DashboardService(context, reportService);
+
+        var pSummary = (await portfolioService.GetPortfolioByIdAsync(portfolioId, userId)).Data!;
+        var rReport = (await reportService.GetHoldingsReportAsync(userId, portfolioId)).Data!;
+        var dSummary = (await dashboardService.GetDashboardDataAsync(userId, portfolioId)).Data!.Summary;
+
+        // 30 shares * 580 USD * 121.50 BDT/USD = 2,114,100 BDT
+        const decimal expectedMarketVal = 30 * 580.00m * 121.50m;
+        // 30 shares * 550 USD * 121.50 BDT/USD = 2,004,750 BDT
+        const decimal expectedInvested = 30 * 550.00m * 121.50m;
+
+        Assert.Equal(expectedMarketVal, pSummary.TotalValue);
+        Assert.Equal(expectedInvested, pSummary.TotalInvested);
+        Assert.Equal(pSummary.TotalValue, rReport.TotalMarketValue);
+        Assert.Equal(pSummary.TotalInvested, rReport.TotalInvested);
+        Assert.Equal(pSummary.TotalValue, dSummary.TotalPortfolioValue);
+        Assert.Equal(pSummary.TotalInvested, dSummary.TotalInvested);
+    }
+
+    [Fact]
+    public async Task PortfolioHoldings_FractionalAverageBuyPrice_AggregatesWithoutPrematureRoundingDrift()
+    {
+        using var context = CreateInMemoryDbContext();
+        const int userId = 1;
+        const int portfolioId = 30;
+        const int companyId = 300;
+
+        var user = new AppUser { UserId = userId, Name = "Audit User", Email = "audit@sharesync.com", PasswordHash = "hash", Role = "INVESTOR" };
+        var sector = new Sector { SectorId = 1, SectorName = "Financials" };
+        var company = new Company
+        {
+            CompanyId = companyId,
+            CompanyName = "BRAC Bank PLC",
+            TickerSymbol = "BRACBANK",
+            SectorId = 1,
+            CurrentPrice = 66.40m,
+            Currency = "BDT",
+            Sector = sector
+        };
+        var portfolio = new Portfolio
+        {
+            PortfolioId = portfolioId,
+            UserId = userId,
+            PortfolioName = "Main Investment Portfolio",
+            Currency = "BDT",
+            User = user
+        };
+
+        context.Users.Add(user);
+        context.Sectors.Add(sector);
+        context.Companies.Add(company);
+        context.Portfolios.Add(portfolio);
+
+        // Buy 1: 1,400 @ 59.50 = 83,300
+        // Buy 2: 1,400 @ 60.2142857... -> total cost 167,600 for 2,800 shares -> WABP = 167,600 / 2,800 = 59.857142857...
+        context.Transactions.Add(new Transaction
+        {
+            TransactionId = 101,
+            PortfolioId = portfolioId,
+            CompanyId = companyId,
+            TransactionType = "BUY",
+            Quantity = 1400,
+            PricePerShare = 59.50m,
+            TransactionDate = DateTime.UtcNow.AddDays(-10),
+            Company = company,
+            Portfolio = portfolio
+        });
+        context.Transactions.Add(new Transaction
+        {
+            TransactionId = 102,
+            PortfolioId = portfolioId,
+            CompanyId = companyId,
+            TransactionType = "BUY",
+            Quantity = 1400,
+            PricePerShare = 60.2142857m,
+            TransactionDate = DateTime.UtcNow.AddDays(-8),
+            Company = company,
+            Portfolio = portfolio
+        });
+        // Sell: 200 shares -> Remaining Net Qty = 2,600 shares
+        context.Transactions.Add(new Transaction
+        {
+            TransactionId = 103,
+            PortfolioId = portfolioId,
+            CompanyId = companyId,
+            TransactionType = "SELL",
+            Quantity = 200,
+            PricePerShare = 65.00m,
+            TransactionDate = DateTime.UtcNow.AddDays(-3),
+            Company = company,
+            Portfolio = portfolio
+        });
+        await context.SaveChangesAsync();
+
+        var portfolioService = new PortfolioService(context);
+        var reportService = new ReportService(context);
+        var dashboardService = new DashboardService(context, reportService);
+
+        var pSummary = (await portfolioService.GetPortfolioByIdAsync(portfolioId, userId)).Data!;
+        var rReport = (await reportService.GetHoldingsReportAsync(userId, portfolioId)).Data!;
+        var dSummary = (await dashboardService.GetDashboardDataAsync(userId, portfolioId)).Data!.Summary;
+
+        // Portfolio summary Unrealized P/L must equal the exact sum of holdings Unrealized P/L
+        var holdingsUplSum = pSummary.Holdings.Sum(h => h.UnrealizedProfitLoss);
+        Assert.Equal(holdingsUplSum, pSummary.UnrealizedProfitLoss);
+
+        // Portfolio summary must match Report and Dashboard without rounding drift
+        Assert.Equal(pSummary.TotalValue, rReport.TotalMarketValue);
+        Assert.Equal(pSummary.TotalInvested, rReport.TotalInvested);
+        Assert.Equal(pSummary.UnrealizedProfitLoss, rReport.TotalUnrealizedProfitLoss);
+
+        Assert.Equal(pSummary.TotalValue, dSummary.TotalPortfolioValue);
+        Assert.Equal(pSummary.TotalInvested, dSummary.TotalInvested);
+        Assert.Equal(pSummary.UnrealizedProfitLoss, dSummary.TotalUnrealizedProfitLoss);
+    }
 }
+

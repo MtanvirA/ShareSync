@@ -8,7 +8,13 @@ USE sharesync;
 
 -- ============================================================
 -- 1. fn_get_weighted_avg_price
--- Calculates the volume-weighted average buy price for holdings
+-- DATABASE: Stored Function — fn_get_weighted_avg_price
+-- SQL CONCEPT: FUNCTION
+-- FEATURE: Portfolio Valuation
+-- FEATURE: Realized and Unrealized P/L
+-- CALCULATION: Weighted Average Cost
+-- Formula: Weighted Average Buy Price = SUM(quantity * price_per_share) / SUM(quantity)
+-- Purpose: Calculates volume-weighted average purchase cost for a company within a portfolio.
 -- ============================================================
 DELIMITER //
 
@@ -43,7 +49,12 @@ END //
 
 -- ============================================================
 -- 2. fn_calculate_unrealized_pl
--- Calculates mark-to-market unrealized profit/loss for a holding
+-- DATABASE: Stored Function — fn_calculate_unrealized_pl
+-- SQL CONCEPT: FUNCTION
+-- FEATURE: Realized and Unrealized P/L
+-- CALCULATION: Unrealized P/L
+-- Formula: Unrealized P/L = Current Quantity * (Current Market Price - Weighted Average Cost)
+-- Purpose: Mark-to-market valuation gain or loss for an open equity position.
 -- ============================================================
 DROP FUNCTION IF EXISTS fn_calculate_unrealized_pl //
 CREATE FUNCTION fn_calculate_unrealized_pl (
@@ -92,6 +103,97 @@ BEGIN
     SET v_total_cost_basis   = v_current_qty * v_weighted_avg_cost;
 
     RETURN ROUND(v_current_market_val - v_total_cost_basis, 2);
+END //
+
+-- ============================================================
+-- 3. fn_calculate_realized_pl
+-- DATABASE: Stored Function — fn_calculate_realized_pl
+-- SQL CONCEPT: FUNCTION
+-- FEATURE: Realized and Unrealized P/L
+-- CALCULATION: Realized P/L
+-- Formula: Realized P/L = SUM( (Sell Qty * Sell Price - Sell Fee) - (Sell Qty * Weighted Avg Buy Price) )
+-- Purpose: Realized profit or loss generated upon liquidation of holdings.
+-- ============================================================
+DROP FUNCTION IF EXISTS fn_calculate_realized_pl //
+CREATE FUNCTION fn_calculate_realized_pl (
+    p_portfolio_id INT,
+    p_company_id   INT
+) RETURNS DECIMAL(20,2)
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_total_realized_pl DECIMAL(20,2) DEFAULT 0.00;
+
+    SELECT COALESCE(SUM(
+        (t.quantity * t.price_per_share - COALESCE(t.fee, 0.00)) - 
+        (t.quantity * fn_get_weighted_avg_price(t.portfolio_id, t.company_id))
+    ), 0.00)
+    INTO v_total_realized_pl
+    FROM transactions t
+    WHERE t.portfolio_id = p_portfolio_id
+      AND t.transaction_type = 'SELL'
+      AND (p_company_id IS NULL OR t.company_id = p_company_id);
+
+    RETURN ROUND(v_total_realized_pl, 2);
+END //
+
+-- ============================================================
+-- 4. fn_calculate_net_cash_flow
+-- DATABASE: Stored Function — fn_calculate_net_cash_flow
+-- SQL CONCEPT: FUNCTION
+-- FEATURE: Transactions
+-- CALCULATION: Net Cash Flow
+-- Formula: Net Cash Flow = Total Net Sale Inflow - Total Net Purchase Outflow
+-- Purpose: Net capital injection or withdrawal across all portfolio operations.
+-- ============================================================
+DROP FUNCTION IF EXISTS fn_calculate_net_cash_flow //
+CREATE FUNCTION fn_calculate_net_cash_flow (
+    p_portfolio_id INT
+) RETURNS DECIMAL(20,2)
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_total_sell_inflow  DECIMAL(20,2) DEFAULT 0.00;
+    DECLARE v_total_buy_outflow  DECIMAL(20,2) DEFAULT 0.00;
+
+    SELECT
+        COALESCE(SUM(CASE WHEN transaction_type = 'SELL' THEN (quantity * price_per_share - COALESCE(fee, 0.00)) ELSE 0.00 END), 0.00),
+        COALESCE(SUM(CASE WHEN transaction_type = 'BUY'  THEN (quantity * price_per_share + COALESCE(fee, 0.00)) ELSE 0.00 END), 0.00)
+    INTO
+        v_total_sell_inflow,
+        v_total_buy_outflow
+    FROM transactions
+    WHERE portfolio_id = p_portfolio_id;
+
+    RETURN ROUND(v_total_sell_inflow - v_total_buy_outflow, 2);
+END //
+
+-- ============================================================
+-- 5. fn_calculate_real_return
+-- DATABASE: Stored Function — fn_calculate_real_return
+-- SQL CONCEPT: FUNCTION
+-- FEATURE: Inflation and Real Return
+-- CALCULATION: Real Return (Fisher Equation)
+-- Formula: Real Return = [ ( (1 + Nominal / 100) / (1 + Inflation / 100) ) - 1 ] * 100
+-- Purpose: Converts nominal investment return into true purchasing power gain/loss.
+-- ============================================================
+DROP FUNCTION IF EXISTS fn_calculate_real_return //
+CREATE FUNCTION fn_calculate_real_return (
+    p_nominal_return DECIMAL(14,4),
+    p_inflation_rate DECIMAL(6,2)
+) RETURNS DECIMAL(14,4)
+DETERMINISTIC
+CONTAINS SQL
+BEGIN
+    IF p_inflation_rate IS NULL OR p_nominal_return IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    IF (1.0000 + (p_inflation_rate / 100.0000)) = 0 THEN
+        RETURN 0.0000;
+    END IF;
+
+    RETURN ROUND((((1.0000 + (p_nominal_return / 100.0000)) / (1.0000 + (p_inflation_rate / 100.0000))) - 1.0000) * 100.0000, 4);
 END //
 
 DELIMITER ;

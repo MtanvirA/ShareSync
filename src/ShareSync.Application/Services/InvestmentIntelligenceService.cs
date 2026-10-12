@@ -1,10 +1,11 @@
-using System;
-using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ShareSync.Application.Common.Exceptions;
+using ShareSync.Application.Common.Helpers;
 using ShareSync.Application.Common.Interfaces;
 using ShareSync.Application.Common.Models;
 using ShareSync.Application.DTOs.InvestmentIntelligence;
@@ -13,6 +14,18 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// FEATURE: Investment Intelligence
+/// INVESTMENT INTELLIGENCE: Analysis
+/// DSE: Historical Data
+/// 
+/// PURPOSE:
+/// Performs rigorous quantitative and retrospective statistical profiling of any DSE-listed
+/// security over an arbitrary or default 5-year rolling trading window.
+/// Calculates CAGR, annualized volatility, peak-to-trough maximum drawdown, moving averages,
+/// positive-day consistency, trend classifications, and a composite multi-factor score.
+/// Guarantees zero look-ahead bias through strict chronological sorting.
+/// </summary>
 public class InvestmentIntelligenceService : IInvestmentIntelligenceService
 {
     private readonly IApplicationDbContext _context;
@@ -22,6 +35,29 @@ public class InvestmentIntelligenceService : IInvestmentIntelligenceService
         _context = context;
     }
 
+    /// <summary>
+    /// INVESTMENT INTELLIGENCE: Five-Year Window
+    /// CALCULATION: CAGR
+    /// CALCULATION: Annualized Volatility
+    /// CALCULATION: Maximum Drawdown
+    /// CALCULATION: SMA 50
+    /// CALCULATION: SMA 200
+    /// INVESTMENT INTELLIGENCE: Trend
+    /// INVESTMENT INTELLIGENCE: Score
+    /// 
+    /// FORMULAS &amp; METHODOLOGY:
+    /// 1. Period Return % = ((EndingPrice / StartingPrice) - 1) * 100
+    /// 2. CAGR % = (Pow(EndingPrice / StartingPrice, 1.0 / Years) - 1) * 100
+    /// 3. Daily Volatility = Sample StdDev of daily logarithmic/percentage returns
+    /// 4. Annualized Volatility = Daily Volatility * Sqrt(252 trading days)
+    /// 5. Drawdown = ((CurrentPrice - RunningPeak) / RunningPeak) * 100
+    /// 6. Maximum Drawdown = Min(Drawdown) across window
+    /// 7. Trend = Bullish (Price > SMA50 > SMA200), Bearish (Price < SMA50 < SMA200), or Neutral
+    /// 8. Multi-Factor Score (0-100) = Weighted combination of Return, Volatility penalty, Drawdown penalty, and Consistency
+    /// 
+    /// INPUT: companyId, fromDate, toDate
+    /// OUTPUT: HistoricalInvestmentProfileDto with summary, risk, chart data, consistency, and score
+    /// </summary>
     public async Task<ApiResponse<HistoricalInvestmentProfileDto>> GetHistoricalInvestmentProfileAsync(
         int companyId, 
         DateTime? fromDate = null, 
@@ -99,11 +135,18 @@ public class InvestmentIntelligenceService : IInvestmentIntelligenceService
         decimal endingPrice = windowData.Last().Price;
         decimal historicalReturn = startingPrice > 0 ? ((endingPrice / startingPrice) - 1) * 100 : 0;
         
-        // Phase 5: CAGR
+        // Phase 5: CAGR / Period Return
         decimal cagr = 0;
-        if (years > 0 && startingPrice > 0 && endingPrice > 0)
+        string annualizedMetricLabel = "CAGR";
+        if (years >= 1.0 && startingPrice > 0 && endingPrice > 0)
         {
             cagr = (decimal)(Math.Pow((double)(endingPrice / startingPrice), 1.0 / years) - 1) * 100;
+            annualizedMetricLabel = "CAGR";
+        }
+        else if (years > 0 && startingPrice > 0)
+        {
+            cagr = historicalReturn;
+            annualizedMetricLabel = "Period Return";
         }
         
         profile.Summary = new SummaryDto
@@ -111,7 +154,8 @@ public class InvestmentIntelligenceService : IInvestmentIntelligenceService
             StartingPrice = startingPrice,
             EndingPrice = endingPrice,
             HistoricalReturnPercentage = Math.Round(historicalReturn, 2),
-            CagrPercentage = Math.Round(cagr, 2)
+            CagrPercentage = Math.Round(cagr, 2),
+            AnnualizedMetricLabel = annualizedMetricLabel
         };
 
         // Phase 6, 7, 8, 9: Daily Returns, Volatility, Drawdown, Consistency
@@ -362,13 +406,24 @@ public class InvestmentIntelligenceService : IInvestmentIntelligenceService
     {
         try
         {
-            var csvPath = @"E:\Projects\Oracle+WebProgramming\ShareSync\Dhaka Stock Exchange Historical Data (1999-2025)\DSE_Data.csv";
-            if (!System.IO.File.Exists(csvPath)) return;
+            var instrumentCsv = MarketDataPathResolver.LocateInstrumentCsv(tickerSymbol);
+            var csvPath = instrumentCsv ?? MarketDataPathResolver.LocateDseCsv();
+            if (string.IsNullOrWhiteSpace(csvPath) || !File.Exists(csvPath)) return;
 
-            var normalizedTicker = tickerSymbol.Trim().ToUpperInvariant();
+            var normalizedTicker = MarketDataPathResolver.NormalizeTicker(tickerSymbol);
+            var canonicalTicker = MarketDataPathResolver.ResolveCanonicalTicker(tickerSymbol);
+            var candidateCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                normalizedTicker,
+                canonicalTicker
+            };
+            if (canonicalTicker == "SQUAREPHARMA") candidateCodes.Add("SQURPHARMA");
+            if (canonicalTicker == "GRAMEEN1MF") candidateCodes.Add("GRAMEENS2");
+            if (canonicalTicker == "AMCL(PRAN)") { candidateCodes.Add("AMCLPRAN"); candidateCodes.Add("AMCL(PRAN)"); }
+
             var lines = new List<string>();
 
-            using (var reader = new System.IO.StreamReader(csvPath))
+            using (var reader = new StreamReader(csvPath))
             {
                 string? header = await reader.ReadLineAsync(cancellationToken);
                 while (!reader.EndOfStream)
@@ -376,39 +431,56 @@ public class InvestmentIntelligenceService : IInvestmentIntelligenceService
                     var line = await reader.ReadLineAsync(cancellationToken);
                     if (string.IsNullOrWhiteSpace(line)) continue;
                     var parts = line.Split(',');
-                    if (parts.Length >= 7 && string.Equals(parts[0].Trim(), normalizedTicker, StringComparison.OrdinalIgnoreCase))
+                    if (parts.Length >= 6)
                     {
-                        lines.Add(line);
+                        var code = parts[0].Trim();
+                        if (candidateCodes.Contains(code))
+                        {
+                            lines.Add(line);
+                        }
                     }
                 }
             }
 
             if (!lines.Any()) return;
 
+            var existingDatesList = await _context.CompanyPriceHistories
+                .Where(h => h.CompanyId == companyId && h.TradingDate != null)
+                .Select(h => h.TradingDate!.Value)
+                .ToListAsync(cancellationToken);
+            var existingDates = existingDatesList.ToHashSet();
+
             var dedup = new Dictionary<string, CompanyPriceHistory>();
             foreach (var line in lines)
             {
                 var parts = line.Split(',');
-                var dateStr = parts[1].Trim();
-                var dParts = dateStr.Split('-');
-                if (dParts.Length != 3) continue;
+                if (parts.Length < 7) continue;
 
-                if (!int.TryParse(dParts[0], out int y) || !int.TryParse(dParts[1], out int m) || !int.TryParse(dParts[2], out int d))
+                if (!MarketDataPathResolver.TryParseTradingDate(parts[1], out DateTime validDate))
                     continue;
 
-                DateTime validDate = new DateTime(y, m, d);
+                if (existingDates.Contains(validDate.Date))
+                    continue;
 
-                if (!decimal.TryParse(parts[5].Trim(), out decimal close) || close <= 0) continue;
-                if (!decimal.TryParse(parts[2].Trim(), out decimal open) || open <= 0) open = close;
-                if (!decimal.TryParse(parts[3].Trim(), out decimal high) || high <= 0) high = Math.Max(open, close);
-                if (!decimal.TryParse(parts[4].Trim(), out decimal low) || low <= 0) low = Math.Min(open, close);
-                long? vol = long.TryParse(parts[6].Trim(), out long v) ? v : null;
+                if (!decimal.TryParse(parts[5].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal close) || !MarketDataPathResolver.IsValidPrice(close))
+                    continue;
+
+                decimal? open = decimal.TryParse(parts[2].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal o) && o > 0 ? o : close;
+                decimal? high = decimal.TryParse(parts[3].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal h) && h > 0 ? h : Math.Max(open ?? close, close);
+                decimal? low = decimal.TryParse(parts[4].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal l) && l > 0 ? l : Math.Min(open ?? close, close);
+
+                if (!MarketDataPathResolver.ValidateAndHarmonizeOhlc(close, ref open, ref high, ref low))
+                    continue;
+
+                long? vol = null;
+                if (long.TryParse(parts[6].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out long v) && v >= 0)
+                    vol = v;
 
                 var key = validDate.ToString("yyyy-MM-dd");
                 dedup[key] = new CompanyPriceHistory
                 {
                     CompanyId = companyId,
-                    TradingDate = validDate,
+                    TradingDate = validDate.Date,
                     RecordedAt = validDate,
                     Price = close,
                     OpenPrice = open,
@@ -416,8 +488,9 @@ public class InvestmentIntelligenceService : IInvestmentIntelligenceService
                     LowPrice = low,
                     Volume = vol,
                     Source = "Harvard Dataverse",
-                    SourceDataset = "Dhaka Stock Exchange Historical Data",
+                    SourceDataset = "Dhaka Stock Exchange Historical Data (1999-2025)",
                     SourceDoi = "10.7910/DVN/XIFYT1",
+                    ImportBatchId = $"CSV_SEED_{DateTime.UtcNow:yyyyMMdd}",
                     CreatedAt = DateTime.UtcNow
                 };
             }

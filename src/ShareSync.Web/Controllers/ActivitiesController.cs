@@ -7,6 +7,12 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Activities Controller
+/// Unified audit timeline aggregating trades, dividend deposits, goal adjustments, and alert occurrences.
+/// FEATURE: Transactions
+/// FEATURE: Portfolio Management
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]

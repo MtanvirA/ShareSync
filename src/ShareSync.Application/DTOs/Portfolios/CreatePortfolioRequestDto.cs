@@ -10,4 +10,7 @@ public class CreatePortfolioRequestDto
 
     [StringLength(255, ErrorMessage = "Description cannot exceed 255 characters.")]
     public string? Description { get; set; }
+
+    [StringLength(10)]
+    public string? Currency { get; set; } = "BDT";
 }

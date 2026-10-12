@@ -5,6 +5,11 @@ using ShareSync.Infrastructure.Data;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Health Controller
+/// Verifies application runtime health and authoritative MySQL database connectivity and table counts.
+/// FEATURE: MySQL Database and Data Integrity
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class HealthController : ControllerBase
@@ -64,7 +69,7 @@ public class HealthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Database connectivity check failed.");
-            return StatusCode(500, ApiResponse.Fail($"Database connectivity check failed: {ex.Message}"));
+            return StatusCode(500, ApiResponse.Fail("Database connectivity check failed. Please check server logs."));
         }
     }
 }

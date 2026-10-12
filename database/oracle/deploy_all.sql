@@ -28,6 +28,9 @@ PROMPT 1. Creating Core Schema Tables...
 @@schema/13_alerts.sql;
 @@schema/15_notifications.sql;
 @@schema/16_portfolio_goals.sql;
+@@schema/17_inflation_rates.sql;
+@@schema/18_currency_exchange_rates.sql;
+@@schema/19_benchmark_price_history.sql;
 
 PROMPT 2. Creating Performance & Analytical Indexes...
 @@schema/11_reporting_indexes.sql;
@@ -38,6 +41,9 @@ PROMPT 3. Creating Analytical Views...
 PROMPT 4. Creating Stored Functions...
 @@functions/01_fn_calculate_unrealized_pl.sql;
 @@functions/02_fn_get_weighted_avg_price.sql;
+@@functions/03_fn_calculate_realized_pl.sql;
+@@functions/04_fn_calculate_net_cash_flow.sql;
+@@functions/05_fn_calculate_real_return.sql;
 
 PROMPT 5. Creating Stored Procedures...
 @@procedures/01_sp_record_transaction.sql;
@@ -57,6 +63,7 @@ PROMPT 7. Loading Reference & Seed Data...
 @@seed/08_insert_portfolio_snapshots.sql;
 @@seed/09_insert_company_price_history.sql;
 @@seed/10_demo_dataset.sql;
+@@seed/11_insert_benchmark_price_history.sql;
 
 COMMIT;
 

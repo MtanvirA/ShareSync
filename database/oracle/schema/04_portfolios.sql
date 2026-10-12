@@ -3,6 +3,7 @@ CREATE TABLE portfolios (
     user_id         NUMBER NOT NULL,
     portfolio_name  VARCHAR2(100) NOT NULL,
     description     VARCHAR2(255),
+    currency        VARCHAR2(10) DEFAULT 'BDT' NOT NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
     CONSTRAINT pk_portfolios
@@ -10,6 +11,9 @@ CREATE TABLE portfolios (
 
     CONSTRAINT uq_portfolios_user_name
         UNIQUE (user_id, portfolio_name),
+
+    CONSTRAINT ck_portfolios_currency
+        CHECK (currency IN ('BDT', 'USD')),
 
     CONSTRAINT fk_portfolios_user
         FOREIGN KEY (user_id)

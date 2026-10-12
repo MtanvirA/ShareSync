@@ -7,6 +7,11 @@ using ShareSync.Infrastructure.Data;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Sectors Controller
+/// Lists DSE industry classifications, sector mappings, and associated listed security counts.
+/// FEATURE: Company Catalog and Search
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]

@@ -174,6 +174,7 @@ public class ReportTests
         var response = await service.GetCompanySectorReportAsync(userId: 1, portfolioId: 1);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         var data = response.Data;
 
         // User 1 has 2 companies: GP (120 shares * 300 = 36,000) and SQURPHARMA (50 shares * 220 = 11,000)
@@ -203,6 +204,7 @@ public class ReportTests
         var response = await service.GetTransactionHistoryReportAsync(userId: 1);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         var data = response.Data;
 
         // User 1 has 4 transactions (3 BUY, 1 SELL)
@@ -227,6 +229,7 @@ public class ReportTests
         var response = await service.GetTransactionHistoryReportAsync(userId: 1, transactionType: "SELL");
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         Assert.Single(response.Data.Transactions);
         Assert.Equal("SELL", response.Data.Transactions[0].TransactionType);
         Assert.Equal(9300m, response.Data.TotalSellValue);
@@ -241,6 +244,7 @@ public class ReportTests
         var response = await service.GetPerformanceReportAsync(userId: 1, portfolioId: 1);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         var data = response.Data;
 
         Assert.Equal(2, data.Snapshots.Count);
@@ -259,6 +263,7 @@ public class ReportTests
         var response = await service.GetDividendIncomeReportAsync(userId: 1);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         var data = response.Data;
 
         // User 1 holds:
@@ -279,6 +284,7 @@ public class ReportTests
         var response = await service.GetWatchlistTargetReportAsync(userId: 1, watchlistId: 1);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         var data = response.Data;
 
         Assert.Equal(2, data.TotalItems);
@@ -305,6 +311,7 @@ public class ReportTests
         var response = await service.GetReportSummaryAsync(userId: 1);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         var data = response.Data;
 
         Assert.Equal(4, data.TotalTransactionsCount);
@@ -319,16 +326,19 @@ public class ReportTests
 
         // User 2 transactions report should ONLY contain User 2's 1 transaction
         var txRes = await service.GetTransactionHistoryReportAsync(userId: 2);
+        Assert.NotNull(txRes.Data);
         Assert.Single(txRes.Data.Transactions);
         Assert.Equal("BX", txRes.Data.Transactions[0].TickerSymbol);
 
         // User 2 performance report should NOT contain User 1's snapshots
         var perfRes = await service.GetPerformanceReportAsync(userId: 2, portfolioId: 2);
+        Assert.NotNull(perfRes.Data);
         Assert.Single(perfRes.Data.Snapshots);
         Assert.Equal(20000m, perfRes.Data.CurrentValue);
 
         // User 2 watchlist report should be empty (no watchlists for User 2)
         var wlRes = await service.GetWatchlistTargetReportAsync(userId: 2);
+        Assert.NotNull(wlRes.Data);
         Assert.Empty(wlRes.Data.Items);
     }
 }

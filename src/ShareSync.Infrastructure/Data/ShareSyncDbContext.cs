@@ -4,6 +4,25 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Infrastructure.Data;
 
+/// <summary>
+/// DATABASE: DbContext — ShareSync MySQL Data Context
+/// DATABASE: MySQL Provider (Pomelo.EntityFrameworkCore.MySql)
+/// FEATURE: MySQL Database and Data Integrity
+/// 
+/// DATABASE: Entity Mapping
+/// Configures Fluent API relational object mappings for all 18 core database entities:
+/// - Primary keys (HasKey, HasName)
+/// - Auto-increment identity generation (ValueGeneratedOnAdd)
+/// - Precision configuration for monetary amounts (decimal(18,2), decimal(18,4), decimal(18,6))
+/// - Unique business constraints (UQ_APP_USERS_EMAIL, UQ_COMPANIES_TICKER, UQ_PORTFOLIOS_USER_NAME)
+/// - Referential foreign keys and cascade/restrict deletion rules
+/// - Composite primary keys (e.g. WatchlistItem on WatchlistId + CompanyId)
+/// - Keyless read-only database view mapping (vw_portfolio_holdings)
+/// 
+/// SECURITY: SQL Injection Protection
+/// EF Core translates LINQ expressions into parameterized SQL queries with bind variables (@p0, @p1).
+/// User inputs are never concatenated into raw SQL strings, neutralizing SQL injection vectors.
+/// </summary>
 public class ShareSyncDbContext : DbContext, IApplicationDbContext
 {
     public ShareSyncDbContext(DbContextOptions<ShareSyncDbContext> options)
@@ -26,6 +45,10 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<PortfolioGoal> PortfolioGoals => Set<PortfolioGoal>();
     public DbSet<PortfolioHoldingView> PortfolioHoldings => Set<PortfolioHoldingView>();
+    public DbSet<InflationRate> InflationRates => Set<InflationRate>();
+    public DbSet<CpiIndexObservation> CpiIndexObservations => Set<CpiIndexObservation>();
+    public DbSet<CurrencyExchangeRate> CurrencyExchangeRates => Set<CurrencyExchangeRate>();
+    public DbSet<BenchmarkPriceHistory> BenchmarkPriceHistories => Set<BenchmarkPriceHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -104,6 +127,8 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
             {
                 t.HasCheckConstraint("CK_COMPANIES_PRICE", "CURRENT_PRICE > 0");
                 t.HasCheckConstraint("CK_COMPANIES_MARKET_CAP", "MARKET_CAP IS NULL OR MARKET_CAP >= 0");
+                t.HasCheckConstraint("CK_COMPANIES_ASSET_TYPE", "ASSET_TYPE IN ('EQUITY', 'ETF', 'MUTUAL_FUND', 'CASH')");
+                t.HasCheckConstraint("CK_COMPANIES_CURRENCY", "CURRENCY IN ('BDT', 'USD')");
             });
             entity.HasKey(e => e.CompanyId).HasName("PK_COMPANIES");
 
@@ -134,6 +159,18 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
                 .HasColumnName("MARKET_CAP")
                 .HasPrecision(20, 2);
 
+            entity.Property(e => e.AssetType)
+                .HasColumnName("ASSET_TYPE")
+                .HasMaxLength(20)
+                .HasDefaultValue("EQUITY")
+                .IsRequired();
+
+            entity.Property(e => e.Currency)
+                .HasColumnName("CURRENCY")
+                .HasMaxLength(10)
+                .HasDefaultValue("BDT")
+                .IsRequired();
+
             entity.Property(e => e.IsActive)
                 .HasColumnName("IS_ACTIVE")
                 .HasDefaultValue(true)
@@ -156,7 +193,10 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
         // 4. PORTFOLIOS
         modelBuilder.Entity<Portfolio>(entity =>
         {
-            entity.ToTable("PORTFOLIOS");
+            entity.ToTable("PORTFOLIOS", t =>
+            {
+                t.HasCheckConstraint("CK_PORTFOLIOS_CURRENCY", "CURRENCY IN ('BDT', 'USD')");
+            });
             entity.HasKey(e => e.PortfolioId).HasName("PK_PORTFOLIOS");
 
             entity.Property(e => e.PortfolioId)
@@ -175,6 +215,12 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Description)
                 .HasColumnName("DESCRIPTION")
                 .HasMaxLength(255);
+
+            entity.Property(e => e.Currency)
+                .HasColumnName("CURRENCY")
+                .HasMaxLength(10)
+                .HasDefaultValue("BDT")
+                .IsRequired();
 
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("CREATED_AT")
@@ -269,6 +315,7 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
                 t.HasCheckConstraint("CK_TRANSACTIONS_TYPE", "TRANSACTION_TYPE IN ('BUY', 'SELL')");
                 t.HasCheckConstraint("CK_TRANSACTIONS_QUANTITY", "QUANTITY > 0");
                 t.HasCheckConstraint("CK_TRANSACTIONS_PRICE", "PRICE_PER_SHARE > 0");
+                t.HasCheckConstraint("CK_TRANSACTIONS_FEE", "FEE >= 0");
             });
             entity.HasKey(e => e.TransactionId).HasName("PK_TRANSACTIONS");
 
@@ -297,6 +344,12 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.PricePerShare)
                 .HasColumnName("PRICE_PER_SHARE")
                 .HasPrecision(14, 2)
+                .IsRequired();
+
+            entity.Property(e => e.Fee)
+                .HasColumnName("FEE")
+                .HasPrecision(14, 2)
+                .HasDefaultValue(0.00m)
                 .IsRequired();
 
             entity.Property(e => e.TransactionDate)
@@ -727,6 +780,215 @@ public class ShareSyncDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.CurrentMarketValue).HasColumnName("CURRENT_MARKET_VALUE").HasPrecision(20, 2);
             entity.Property(e => e.WeightedAverageBuyPrice).HasColumnName("WEIGHTED_AVERAGE_BUY_PRICE").HasPrecision(14, 2);
             entity.Property(e => e.UnrealizedProfitLoss).HasColumnName("UNREALIZED_PROFIT_LOSS").HasPrecision(20, 2);
+        });
+
+        // 15. INFLATION_RATES (LF-28 Real Return Calculation)
+        modelBuilder.Entity<InflationRate>(entity =>
+        {
+            entity.ToTable("INFLATION_RATES", t =>
+            {
+                t.HasCheckConstraint("CK_INFLATION_RATES_YEAR", "YEAR >= 1900 AND YEAR <= 2100");
+            });
+            entity.HasKey(e => e.RateId).HasName("PK_INFLATION_RATES");
+
+            entity.Property(e => e.RateId)
+                .HasColumnName("RATE_ID")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.CountryCode)
+                .HasColumnName("COUNTRY_CODE")
+                .HasMaxLength(10)
+                .IsRequired();
+
+            entity.Property(e => e.Year)
+                .HasColumnName("YEAR")
+                .IsRequired();
+
+            entity.Property(e => e.Rate)
+                .HasColumnName("INFLATION_RATE")
+                .HasPrecision(6, 2)
+                .IsRequired();
+
+            entity.Property(e => e.Source)
+                .HasColumnName("SOURCE")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("CREATED_AT")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            entity.HasIndex(e => new { e.CountryCode, e.Year }, "UQ_INFLATION_RATES_COUNTRY_YEAR").IsUnique();
+        });
+
+        // 15b. CPI_INDEX_OBSERVATIONS (Monthly CPI Index Series)
+        modelBuilder.Entity<CpiIndexObservation>(entity =>
+        {
+            entity.ToTable("CPI_INDEX_OBSERVATIONS", t =>
+            {
+                t.HasCheckConstraint("CK_CPI_INDEX_POSITIVE", "CPI_INDEX > 0");
+            });
+            entity.HasKey(e => e.ObservationId).HasName("PK_CPI_INDEX_OBSERVATIONS");
+
+            entity.Property(e => e.ObservationId)
+                .HasColumnName("OBSERVATION_ID")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.CountryCode)
+                .HasColumnName("COUNTRY_CODE")
+                .HasMaxLength(10)
+                .IsRequired();
+
+            entity.Property(e => e.ObservationDate)
+                .HasColumnName("OBSERVATION_DATE")
+                .IsRequired();
+
+            entity.Property(e => e.CpiIndex)
+                .HasColumnName("CPI_INDEX")
+                .HasPrecision(8, 4)
+                .IsRequired();
+
+            entity.Property(e => e.Source)
+                .HasColumnName("SOURCE")
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(e => e.SourceUrl)
+                .HasColumnName("SOURCE_URL")
+                .HasMaxLength(255);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("CREATED_AT")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            entity.HasIndex(e => new { e.CountryCode, e.ObservationDate }, "UQ_CPI_OBSERVATIONS_COUNTRY_DATE").IsUnique();
+        });
+
+        // 16. CURRENCY_EXCHANGE_RATES (LF-29 Multi-Currency Valuation)
+        modelBuilder.Entity<CurrencyExchangeRate>(entity =>
+        {
+            entity.ToTable("CURRENCY_EXCHANGE_RATES", t =>
+            {
+                t.HasCheckConstraint("CK_CURRENCY_EXCHANGE_RATES_RATE", "EXCHANGE_RATE > 0");
+            });
+            entity.HasKey(e => e.RateId).HasName("PK_CURRENCY_EXCHANGE_RATES");
+
+            entity.Property(e => e.RateId)
+                .HasColumnName("RATE_ID")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.FromCurrency)
+                .HasColumnName("FROM_CURRENCY")
+                .HasMaxLength(10)
+                .IsRequired();
+
+            entity.Property(e => e.ToCurrency)
+                .HasColumnName("TO_CURRENCY")
+                .HasMaxLength(10)
+                .IsRequired();
+
+            entity.Property(e => e.ExchangeRate)
+                .HasColumnName("EXCHANGE_RATE")
+                .HasPrecision(14, 4)
+                .IsRequired();
+
+            entity.Property(e => e.EffectiveDate)
+                .HasColumnName("EFFECTIVE_DATE")
+                .HasColumnType("date")
+                .IsRequired();
+
+            entity.Property(e => e.Source)
+                .HasColumnName("SOURCE")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("CREATED_AT")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            entity.HasIndex(e => new { e.FromCurrency, e.ToCurrency, e.EffectiveDate }, "UQ_CURRENCY_EXCHANGE_RATES").IsUnique();
+        });
+
+        // 17. BENCHMARK_PRICE_HISTORY (LF-30 Database-Backed Benchmark History)
+        modelBuilder.Entity<BenchmarkPriceHistory>(entity =>
+        {
+            entity.ToTable("BENCHMARK_PRICE_HISTORY", t =>
+            {
+                t.HasCheckConstraint("CK_BENCH_CLOSE", "CLOSE_VALUE > 0");
+                t.HasCheckConstraint("CK_BENCH_OPEN", "OPEN_VALUE IS NULL OR OPEN_VALUE > 0");
+                t.HasCheckConstraint("CK_BENCH_HIGH", "HIGH_VALUE IS NULL OR HIGH_VALUE > 0");
+                t.HasCheckConstraint("CK_BENCH_LOW", "LOW_VALUE IS NULL OR LOW_VALUE > 0");
+                t.HasCheckConstraint("CK_BENCH_VOLUME", "VOLUME IS NULL OR VOLUME >= 0");
+            });
+
+            entity.HasKey(e => e.BenchmarkPriceHistoryId).HasName("PK_BENCHMARK_PRICE_HISTORY");
+
+            entity.Property(e => e.BenchmarkPriceHistoryId)
+                .HasColumnName("BENCHMARK_PRICE_HISTORY_ID")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.BenchmarkCode)
+                .HasColumnName("BENCHMARK_CODE")
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(e => e.BenchmarkName)
+                .HasColumnName("BENCHMARK_NAME")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(e => e.TradingDate)
+                .HasColumnName("TRADING_DATE")
+                .HasColumnType("date")
+                .IsRequired();
+
+            entity.Property(e => e.CloseValue)
+                .HasColumnName("CLOSE_VALUE")
+                .HasPrecision(14, 2)
+                .IsRequired();
+
+            entity.Property(e => e.OpenValue)
+                .HasColumnName("OPEN_VALUE")
+                .HasPrecision(14, 2);
+
+            entity.Property(e => e.HighValue)
+                .HasColumnName("HIGH_VALUE")
+                .HasPrecision(14, 2);
+
+            entity.Property(e => e.LowValue)
+                .HasColumnName("LOW_VALUE")
+                .HasPrecision(14, 2);
+
+            entity.Property(e => e.Volume)
+                .HasColumnName("VOLUME");
+
+            entity.Property(e => e.Source)
+                .HasColumnName("SOURCE")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(e => e.SourceDataset)
+                .HasColumnName("SOURCE_DATASET")
+                .HasMaxLength(255);
+
+            entity.Property(e => e.SourceDoi)
+                .HasColumnName("SOURCE_DOI")
+                .HasMaxLength(100);
+
+            entity.Property(e => e.ImportBatchId)
+                .HasColumnName("IMPORT_BATCH_ID")
+                .HasMaxLength(100);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("CREATED_AT")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            entity.HasIndex(e => new { e.BenchmarkCode, e.TradingDate }, "UQ_BENCH_CODE_DATE").IsUnique();
+            entity.HasIndex(e => new { e.BenchmarkCode, e.TradingDate }, "IDX_BENCH_CODE_DATE");
         });
     }
 }

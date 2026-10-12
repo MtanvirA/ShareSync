@@ -10,6 +10,7 @@ public class BenchmarkComparisonDto
     public string DataLimitationNotice { get; set; } = "Controlled reference benchmark index for performance attribution and comparison. Not a live market execution feed.";
     public string Period { get; set; } = "ALL";
     public bool HasSufficientData { get; set; } = true;
+    public bool IsFallback { get; set; } = false;
     public string? Message { get; set; }
     public List<string> AvailablePeriods { get; set; } = new();
 
@@ -22,6 +23,8 @@ public class BenchmarkComparisonDto
     public decimal BenchmarkReturnPercentage { get; set; }
 
     public decimal OutperformancePercentage { get; set; }
+    public decimal ActiveReturnPercentage => OutperformancePercentage;
+    public string AttributionMetricLabel { get; set; } = "Benchmark Outperformance";
     public bool IsOutperforming { get; set; }
 
     public List<string> Labels { get; set; } = new();

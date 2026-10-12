@@ -8,6 +8,11 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Alerts Controller
+/// Configures and manages investor price threshold alerts, portfolio trigger conditions, and alert states.
+/// FEATURE: Alerts and Notifications
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]

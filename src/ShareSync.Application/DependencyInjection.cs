@@ -30,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped<IActivityTimelineService, ActivityTimelineService>();
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<IInvestmentIntelligenceService, InvestmentIntelligenceService>();
+        services.AddScoped<IInflationService, InflationService>();
+        services.AddScoped<ICurrencyService, CurrencyService>();
 
         return services;
     }

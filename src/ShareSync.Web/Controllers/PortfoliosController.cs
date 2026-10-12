@@ -8,6 +8,17 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Portfolios Controller
+/// FEATURE: Portfolio Management
+/// FEATURE: Portfolio Valuation
+/// 
+/// SECURITY: Ownership Isolation
+/// Every request resolves authenticated UserId from JWT claims and restricts CRUD operations
+/// exclusively to portfolios owned by that user.
+/// 
+/// Routes: /api/portfolios
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
@@ -27,6 +38,10 @@ public class PortfoliosController : ControllerBase
         return _currentUserService.UserId ?? throw new UnauthorizedException("User session is invalid.");
     }
 
+    /// <summary>
+    /// API: GET /api/portfolios
+    /// Retrieves all portfolios belonging to the authenticated user with aggregated positions and returns.
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetUserPortfolios(CancellationToken cancellationToken)
     {
@@ -35,6 +50,10 @@ public class PortfoliosController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// API: GET /api/portfolios/{id}
+    /// Retrieves a specific portfolio by ID with holdings and valuation breakdown.
+    /// </summary>
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetPortfolio(int id, CancellationToken cancellationToken)
     {

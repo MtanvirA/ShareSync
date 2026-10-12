@@ -1,13 +1,14 @@
 -- ============================================================
 -- ShareSync - MySQL End-to-End Verification Test Script
 -- File: 07_tests.sql
+-- FEATURE: MySQL Database and Data Integrity
 -- Description: Automated test cases verifying schema integrity, triggers, procedures & views
 -- ============================================================
 
 USE sharesync;
 
 -- ============================================================
--- TEST 1: VERIFY ALL 14 TABLES EXIST
+-- TEST 1: VERIFY ALL 18 TABLES EXIST
 -- ============================================================
 SELECT 
     table_name,
@@ -18,7 +19,7 @@ WHERE table_schema = 'sharesync' AND table_type = 'BASE TABLE'
 ORDER BY table_name;
 
 -- ============================================================
--- TEST 2: ROW COUNT AUDIT ACROSS ALL ENTITIES
+-- TEST 2: ROW COUNT AUDIT ACROSS ALL ENTITIES (18 TABLES)
 -- ============================================================
 SELECT 'APP_USERS' AS entity, COUNT(*) AS total_rows FROM app_users
 UNION ALL SELECT 'SECTORS', COUNT(*) FROM sectors
@@ -31,9 +32,13 @@ UNION ALL SELECT 'DIVIDENDS', COUNT(*) FROM dividends
 UNION ALL SELECT 'TRANSACTION_AUDIT', COUNT(*) FROM transaction_audit
 UNION ALL SELECT 'PORTFOLIO_SNAPSHOTS', COUNT(*) FROM portfolio_snapshots
 UNION ALL SELECT 'COMPANY_PRICE_HISTORY', COUNT(*) FROM company_price_history
+UNION ALL SELECT 'BENCHMARK_PRICE_HISTORY', COUNT(*) FROM benchmark_price_history
 UNION ALL SELECT 'ALERTS', COUNT(*) FROM alerts
 UNION ALL SELECT 'NOTIFICATIONS', COUNT(*) FROM notifications
-UNION ALL SELECT 'PORTFOLIO_GOALS', COUNT(*) FROM portfolio_goals;
+UNION ALL SELECT 'PORTFOLIO_GOALS', COUNT(*) FROM portfolio_goals
+UNION ALL SELECT 'INFLATION_RATES', COUNT(*) FROM inflation_rates
+UNION ALL SELECT 'CPI_INDEX_OBSERVATIONS', COUNT(*) FROM cpi_index_observations
+UNION ALL SELECT 'CURRENCY_EXCHANGE_RATES', COUNT(*) FROM currency_exchange_rates;
 
 -- ============================================================
 -- TEST 3: VIEW VERIFICATION (vw_portfolio_holdings)
@@ -83,16 +88,18 @@ ORDER BY audit_id DESC
 LIMIT 3;
 
 -- ============================================================
--- TEST 5: STORED FUNCTION EXECUTION
+-- TEST 5: STORED FUNCTION EXECUTION (LF-26 & LF-27)
 -- ============================================================
 SELECT 
     fn_get_weighted_avg_price(1, 1) AS gp_weighted_avg_price,
-    fn_calculate_unrealized_pl(1, 1) AS gp_unrealized_profit_loss;
+    fn_calculate_unrealized_pl(1, 1) AS gp_unrealized_profit_loss,
+    fn_calculate_realized_pl(1, 1) AS gp_realized_profit_loss,
+    fn_calculate_net_cash_flow(1) AS portfolio_1_net_cash_flow;
 
 -- ============================================================
 -- TEST 6: STORED PROCEDURE EXECUTION & RETURN VALUES
 -- ============================================================
-CALL sp_record_transaction(1, 2, 'BUY', 25.0000, 225.00, 'test_runner', @v_id, @v_status, @v_msg);
+CALL sp_record_transaction(1, 2, 'BUY', 25.0000, 225.00, 10.00, 'test_runner', @v_id, @v_status, @v_msg);
 SELECT @v_id AS new_tx_id, @v_status AS status, @v_msg AS msg;
 
 -- Cleanup the test row
@@ -112,3 +119,27 @@ SELECT
 FROM companies c
 INNER JOIN company_price_history h ON c.company_id = h.company_id
 GROUP BY c.company_id, c.ticker_symbol;
+
+-- ============================================================
+-- TEST 8: BENCHMARK HISTORY INTEGRITY CHECK (LF-30)
+-- ============================================================
+SELECT 
+    benchmark_code,
+    benchmark_name,
+    COUNT(benchmark_price_history_id) AS total_observations,
+    MIN(trading_date) AS earliest_date,
+    MAX(trading_date) AS latest_date,
+    ROUND(AVG(close_value), 2) AS avg_close
+FROM benchmark_price_history
+GROUP BY benchmark_code, benchmark_name;
+
+-- ============================================================
+-- TEST 9: INFLATION & CURRENCY RATE CHECKS (LF-28 & LF-29)
+-- ============================================================
+SELECT country_code, COUNT(*) AS inflation_years, MIN(year) AS start_yr, MAX(year) AS end_yr
+FROM inflation_rates
+GROUP BY country_code;
+
+SELECT from_currency, to_currency, exchange_rate, effective_date
+FROM currency_exchange_rates;
+

@@ -10,6 +10,13 @@ DELIMITER //
 
 -- ============================================================
 -- 1. trg_transactions_after_insert
+-- DATABASE: Trigger — trg_transactions_after_insert
+-- SQL CONCEPT: TRIGGER
+-- FEATURE: MySQL Database and Data Integrity
+-- FEATURE: Transactions
+-- AUDIT: Transaction Audit Trail
+-- Timing: AFTER INSERT ON transactions FOR EACH ROW
+-- Purpose: Automatically records every newly inserted trade into the transaction_audit table.
 -- ============================================================
 DROP TRIGGER IF EXISTS trg_transactions_after_insert //
 CREATE TRIGGER trg_transactions_after_insert
@@ -27,12 +34,19 @@ BEGIN
         'INSERT',
         CURRENT_TIMESTAMP,
         COALESCE(CURRENT_USER(), 'SYSTEM'),
-        CONCAT('Trigger: ', NEW.transaction_type, ' ', CAST(NEW.quantity AS CHAR), ' shares at price ', CAST(NEW.price_per_share AS CHAR), ' for Portfolio #', CAST(NEW.portfolio_id AS CHAR), ', Company #', CAST(NEW.company_id AS CHAR))
+        CONCAT('Trigger: ', NEW.transaction_type, ' ', CAST(NEW.quantity AS CHAR), ' shares at price ', CAST(NEW.price_per_share AS CHAR), ' (Fee: ', CAST(COALESCE(NEW.fee, 0.00) AS CHAR), ') for Portfolio #', CAST(NEW.portfolio_id AS CHAR), ', Company #', CAST(NEW.company_id AS CHAR))
     );
 END //
 
 -- ============================================================
 -- 2. trg_transactions_after_update
+-- DATABASE: Trigger — trg_transactions_after_update
+-- SQL CONCEPT: TRIGGER
+-- FEATURE: MySQL Database and Data Integrity
+-- FEATURE: Transactions
+-- AUDIT: Transaction Audit Trail
+-- Timing: AFTER UPDATE ON transactions FOR EACH ROW
+-- Purpose: Records before/after deltas for modified transaction records.
 -- ============================================================
 DROP TRIGGER IF EXISTS trg_transactions_after_update //
 CREATE TRIGGER trg_transactions_after_update
@@ -50,13 +64,19 @@ BEGIN
         'UPDATE',
         CURRENT_TIMESTAMP,
         COALESCE(CURRENT_USER(), 'SYSTEM'),
-        CONCAT('Trigger: Updated tx #', CAST(OLD.transaction_id AS CHAR), '. Qty ', CAST(OLD.quantity AS CHAR), '->', CAST(NEW.quantity AS CHAR), ', Price ', CAST(OLD.price_per_share AS CHAR), '->', CAST(NEW.price_per_share AS CHAR))
+        CONCAT('Trigger: Updated tx #', CAST(OLD.transaction_id AS CHAR), '. Qty ', CAST(OLD.quantity AS CHAR), '->', CAST(NEW.quantity AS CHAR), ', Price ', CAST(OLD.price_per_share AS CHAR), '->', CAST(NEW.price_per_share AS CHAR), ', Fee ', CAST(COALESCE(OLD.fee, 0.00) AS CHAR), '->', CAST(COALESCE(NEW.fee, 0.00) AS CHAR))
     );
 END //
 
 -- ============================================================
 -- 3. trg_transactions_after_delete
--- Preserves audit history with transaction_id = NULL and full detail
+-- DATABASE: Trigger — trg_transactions_after_delete
+-- SQL CONCEPT: TRIGGER
+-- FEATURE: MySQL Database and Data Integrity
+-- FEATURE: Transactions
+-- AUDIT: Transaction Audit Trail
+-- Timing: AFTER DELETE ON transactions FOR EACH ROW
+-- Purpose: Preserves audit history with transaction_id = NULL and full detail string.
 -- ============================================================
 DROP TRIGGER IF EXISTS trg_transactions_after_delete //
 CREATE TRIGGER trg_transactions_after_delete
@@ -74,7 +94,7 @@ BEGIN
         'DELETE',
         CURRENT_TIMESTAMP,
         COALESCE(CURRENT_USER(), 'SYSTEM'),
-        CONCAT('Trigger: Deleted tx #', CAST(OLD.transaction_id AS CHAR), ': ', OLD.transaction_type, ' ', CAST(OLD.quantity AS CHAR), ' shares at price ', CAST(OLD.price_per_share AS CHAR), ' (Portfolio ID ', CAST(OLD.portfolio_id AS CHAR), ', Company ID ', CAST(OLD.company_id AS CHAR), ')')
+        CONCAT('Trigger: Deleted tx #', CAST(OLD.transaction_id AS CHAR), ': ', OLD.transaction_type, ' ', CAST(OLD.quantity AS CHAR), ' shares at price ', CAST(OLD.price_per_share AS CHAR), ' (Fee: ', CAST(COALESCE(OLD.fee, 0.00) AS CHAR), ', Portfolio ID ', CAST(OLD.portfolio_id AS CHAR), ', Company ID ', CAST(OLD.company_id AS CHAR), ')')
     );
 END //
 

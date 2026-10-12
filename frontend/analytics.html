@@ -14,6 +14,7 @@
         var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
         var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
         document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-bs-theme", theme);
       })();
     </script>
 
@@ -59,7 +60,8 @@
       .hhi-gauge-bar {
         height: 10px;
         border-radius: 5px;
-        background: #e2e8f0;
+        background: var(--color-surface-soft);
+        border: 1px solid var(--color-border);
         overflow: hidden;
         position: relative;
       }
@@ -328,10 +330,41 @@
                         <span>Reports</span>
                     </a>
 
-            <a href="activity.html" class="sidebar-link">
-              <i class="bi bi-clock-history"></i>
-              <span>Activity</span>
-            </a>
+                    <!-- Compact More Dropdown -->
+                    <div class="dropdown d-inline-block position-relative" id="navMoreDropdown">
+                      <button
+                        class="sidebar-link dropdown-toggle bg-transparent border-0"
+                        type="button"
+                        id="moreNavDropdownBtn"
+                        data-bs-toggle="dropdown"
+                        data-bs-popper-config='{"strategy":"fixed"}'
+                        aria-expanded="false"
+                      >
+                        <i class="bi bi-three-dots"></i>
+                        <span>More</span>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end shadow border" aria-labelledby="moreNavDropdownBtn" style="min-width: 210px; font-size: 13px; z-index: 1060;">
+                        <li>
+                          <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="learning-center.html" id="navLearningCenterLink">
+                            <i class="bi bi-mortarboard-fill text-primary"></i>
+                            <span>Learn &amp; Formulas</span>
+                          </a>
+                        </li>
+                        <li>
+                          <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="activity.html" id="navActivityLink">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Activity Log</span>
+                          </a>
+                        </li>
+                        <li class="admin-only-nav"><hr class="dropdown-divider my-1"></li>
+                        <li class="admin-only-nav">
+                          <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger fw-semibold admin-only-nav" href="admin.html" id="adminNavTabLink">
+                            <i class="bi bi-shield-lock-fill text-danger"></i>
+                            <span>Admin Control</span>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
                 </nav>
             </div>
 
@@ -581,13 +614,25 @@
                             </div>
                         </div>
 
-                        <!-- Total Return -->
+                        <!-- Total Return (Nominal) -->
                         <div class="col-xl col-md-6 col-sm-12">
                             <div class="analytics-card h-100" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(124, 58, 237, 0.05)); border-color: rgba(37, 99, 235, 0.2);">
                                 <div class="metric-label text-primary">Total Economic Return</div>
                                 <div class="metric-value" id="kpiTotalReturn">৳0.00</div>
                                 <div class="metric-sub">
-                                    Total Return: <span class="badge" id="kpiTotalReturnBadge">0.00%</span>
+                                    Nominal Return: <span class="badge" id="kpiTotalReturnBadge">0.00%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Real Return (Inflation-Adjusted) -->
+                        <div class="col-xl col-md-6 col-sm-12">
+                            <div class="analytics-card h-100" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(5, 150, 105, 0.06)); border-color: rgba(16, 185, 129, 0.25);">
+                                <div class="metric-label text-success"><i class="bi bi-shield-check me-1"></i>Real Return (Purchasing Power)</div>
+                                <div class="metric-value text-success" id="kpiRealReturn">৳0.00</div>
+                                <div class="metric-sub">
+                                    Real Return: <span class="badge bg-success-subtle text-success border border-success-subtle" id="kpiRealReturnBadge">0.00%</span>
+                                    <small class="text-muted d-block mt-1" id="kpiInflationDetail">Inflation: 0.0%</small>
                                 </div>
                             </div>
                         </div>
@@ -702,8 +747,13 @@
                         <!-- Header with Benchmark selection & Period pills -->
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
                             <div>
-                                <span class="text-uppercase fw-bold text-primary" style="font-size: 11px; letter-spacing: 1px;">ALPHA & PERFORMANCE ATTRIBUTION</span>
-                                <h4 class="fw-bold mb-0" style="color: var(--color-text);">Portfolio vs Benchmark</h4>
+                                <span class="text-uppercase fw-bold text-primary" style="font-size: 11px; letter-spacing: 1px;">BENCHMARK OUTPERFORMANCE & ACTIVE RETURN</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <h4 class="fw-bold mb-0" style="color: var(--color-text);">Portfolio vs Benchmark</h4>
+                                    <span id="benchmarkFallbackBadge" class="badge bg-warning-subtle text-warning border border-warning-subtle d-none" style="font-size: 11px; font-weight: 500; cursor: help;" data-bs-toggle="tooltip" title="Database historical benchmark observations were unavailable and a fallback reference model is being used.">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Reference Fallback
+                                    </span>
+                                </div>
                                 <p class="text-muted mb-0" style="font-size: 13px;">
                                     Compare cumulative returns against market benchmarks across historical timeframes.
                                 </p>
@@ -716,6 +766,7 @@
                                     <select id="benchmarkSelect" class="form-select form-select-sm" style="min-width: 170px;">
                                         <option value="DSEX">DSE Broad Index (DSEX)</option>
                                         <option value="DS30">DSE 30 Blue Chip (DS30)</option>
+                                        <option value="DSES">DSE Shariah Index (DSES)</option>
                                         <option value="DSEG">DSE Shariah Index (DSEG)</option>
                                     </select>
                                 </div>

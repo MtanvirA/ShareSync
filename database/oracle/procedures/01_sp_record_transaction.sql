@@ -9,6 +9,7 @@ CREATE OR REPLACE PROCEDURE sp_record_transaction (
     p_transaction_type  IN  VARCHAR2,
     p_quantity          IN  NUMBER,
     p_price_per_share   IN  NUMBER,
+    p_fee               IN  NUMBER DEFAULT 0,
     p_changed_by        IN  VARCHAR2 DEFAULT USER,
     p_transaction_id    OUT NUMBER,
     p_status            OUT VARCHAR2,
@@ -43,6 +44,13 @@ BEGIN
     IF p_price_per_share <= 0 THEN
         p_status := 'ERROR';
         p_message := 'Price per share must be strictly positive.';
+        p_transaction_id := NULL;
+        RETURN;
+    END IF;
+
+    IF NVL(p_fee, 0) < 0 THEN
+        p_status := 'ERROR';
+        p_message := 'Fee cannot be negative.';
         p_transaction_id := NULL;
         RETURN;
     END IF;
@@ -94,6 +102,7 @@ BEGIN
         transaction_type,
         quantity,
         price_per_share,
+        fee,
         transaction_date
     ) VALUES (
         p_portfolio_id,
@@ -101,6 +110,7 @@ BEGIN
         v_type,
         p_quantity,
         p_price_per_share,
+        NVL(p_fee, 0),
         CURRENT_TIMESTAMP
     )
     RETURNING transaction_id INTO v_new_tx_id;

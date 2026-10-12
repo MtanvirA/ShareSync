@@ -12,6 +12,10 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service exporting analytical reports into downloadable formats (CSV, Excel, PDF, JSON).
+/// FEATURE: Reports and Exports
+/// </summary>
 public class ReportExportService : IReportExportService
 {
     static ReportExportService()
@@ -562,9 +566,9 @@ public class ReportExportService : IReportExportService
         var sb = new StringBuilder();
         sb.AppendLine("ShareSync - Transaction History Report");
         sb.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC,User: {EscapeCsv(user)},Portfolio: {EscapeCsv(portfolio ?? "All Portfolios")},Type: {EscapeCsv(f.TransactionType ?? "All")}");
-        sb.AppendLine($"Total Transactions: {r.TotalTransactions},Total Buy Value: {r.TotalBuyValue:F2},Total Sell Value: {r.TotalSellValue:F2},Net Cash Flow: {r.NetCashFlow:F2}");
+        sb.AppendLine($"Total Transactions: {r.TotalTransactions},Total Buy Value: {r.TotalBuyValue:F2},Total Sell Value: {r.TotalSellValue:F2},Total Fees: {r.TotalFees:F2},Net Cash Flow: {r.NetCashFlow:F2},Realized P/L: {r.TotalRealizedProfitLoss:F2}");
         sb.AppendLine();
-        sb.AppendLine("Date,Ticker,Company Name,Type,Quantity,Price Per Share,Total Value,Portfolio");
+        sb.AppendLine("Date,Ticker,Company Name,Type,Quantity,Price Per Share,Gross Value,Fee,Net Amount,Realized P/L,Portfolio");
 
         foreach (var t in r.Transactions)
         {
@@ -576,6 +580,9 @@ public class ReportExportService : IReportExportService
                 t.Quantity.ToString("F4", CultureInfo.InvariantCulture),
                 t.PricePerShare.ToString("F2", CultureInfo.InvariantCulture),
                 t.TotalTransactionValue.ToString("F2", CultureInfo.InvariantCulture),
+                t.Fee.ToString("F2", CultureInfo.InvariantCulture),
+                t.NetAmount.ToString("F2", CultureInfo.InvariantCulture),
+                t.RealizedProfitLoss.HasValue ? t.RealizedProfitLoss.Value.ToString("F2", CultureInfo.InvariantCulture) : "-",
                 EscapeCsv(t.PortfolioName)
             ));
         }
@@ -587,7 +594,10 @@ public class ReportExportService : IReportExportService
             $"BUY: {r.BuyCount} | SELL: {r.SellCount}",
             "-",
             "-",
+            "-",
+            r.TotalFees.ToString("F2", CultureInfo.InvariantCulture),
             r.NetCashFlow.ToString("F2", CultureInfo.InvariantCulture),
+            r.TotalRealizedProfitLoss.ToString("F2", CultureInfo.InvariantCulture),
             "-"
         ));
 
@@ -609,23 +619,31 @@ public class ReportExportService : IReportExportService
         ws.Cell(4, 1).Value = "Total Trades";
         ws.Cell(4, 2).Value = r.TotalTransactions;
 
-        ws.Cell(4, 3).Value = "Total Buy Value";
-        ws.Cell(4, 4).Value = (double)r.TotalBuyValue;
+        ws.Cell(4, 3).Value = "Buy Outflow";
+        ws.Cell(4, 4).Value = (double)r.TotalBuyOutflow;
         ws.Cell(4, 4).Style.NumberFormat.Format = "৳#,##0.00";
 
-        ws.Cell(4, 5).Value = "Total Sell Value";
-        ws.Cell(4, 6).Value = (double)r.TotalSellValue;
+        ws.Cell(4, 5).Value = "Sell Inflow";
+        ws.Cell(4, 6).Value = (double)r.TotalSellInflow;
         ws.Cell(4, 6).Style.NumberFormat.Format = "৳#,##0.00";
 
-        ws.Cell(4, 7).Value = "Net Cash Flow";
-        ws.Cell(4, 8).Value = (double)r.NetCashFlow;
+        ws.Cell(4, 7).Value = "Total Fees";
+        ws.Cell(4, 8).Value = (double)r.TotalFees;
         ws.Cell(4, 8).Style.NumberFormat.Format = "৳#,##0.00";
 
-        ws.Range(4, 1, 4, 8).Style.Font.Bold = true;
-        ws.Range(4, 1, 4, 8).Style.Fill.BackgroundColor = XLColor.FromHtml("#F1F5F9");
+        ws.Cell(4, 9).Value = "Net Cash Flow";
+        ws.Cell(4, 10).Value = (double)r.NetCashFlow;
+        ws.Cell(4, 10).Style.NumberFormat.Format = "৳#,##0.00";
+
+        ws.Cell(4, 11).Value = "Realized P/L";
+        ws.Cell(4, 12).Value = (double)r.TotalRealizedProfitLoss;
+        ws.Cell(4, 12).Style.NumberFormat.Format = "৳#,##0.00";
+
+        ws.Range(4, 1, 4, 12).Style.Font.Bold = true;
+        ws.Range(4, 1, 4, 12).Style.Fill.BackgroundColor = XLColor.FromHtml("#F1F5F9");
 
         int row = 6;
-        string[] headers = { "Date", "Ticker", "Company Name", "Type", "Quantity", "Price", "Total Value", "Portfolio" };
+        string[] headers = { "Date", "Ticker", "Company Name", "Type", "Quantity", "Price", "Gross Value", "Fee", "Net Amount", "Realized P/L", "Portfolio" };
         for (int i = 0; i < headers.Length; i++)
         {
             var cell = ws.Cell(row, i + 1);
@@ -633,7 +651,7 @@ public class ReportExportService : IReportExportService
             cell.Style.Font.Bold = true;
             cell.Style.Font.FontColor = XLColor.White;
             cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#0F172A");
-            cell.Style.Alignment.Horizontal = (i == 4 || i == 5 || i == 6) ? XLAlignmentHorizontalValues.Right : XLAlignmentHorizontalValues.Left;
+            cell.Style.Alignment.Horizontal = (i >= 4 && i <= 9) ? XLAlignmentHorizontalValues.Right : XLAlignmentHorizontalValues.Left;
         }
 
         row++;
@@ -653,17 +671,37 @@ public class ReportExportService : IReportExportService
             ws.Cell(row, 7).Value = (double)t.TotalTransactionValue;
             ws.Cell(row, 7).Style.NumberFormat.Format = "৳#,##0.00";
 
-            ws.Cell(row, 8).Value = t.PortfolioName;
+            ws.Cell(row, 8).Value = (double)t.Fee;
+            ws.Cell(row, 8).Style.NumberFormat.Format = "৳#,##0.00";
+
+            ws.Cell(row, 9).Value = (double)t.NetAmount;
+            ws.Cell(row, 9).Style.NumberFormat.Format = "৳#,##0.00";
+
+            if (t.RealizedProfitLoss.HasValue)
+            {
+                ws.Cell(row, 10).Value = (double)t.RealizedProfitLoss.Value;
+                ws.Cell(row, 10).Style.NumberFormat.Format = "৳#,##0.00";
+            }
+            else
+            {
+                ws.Cell(row, 10).Value = "-";
+            }
+
+            ws.Cell(row, 11).Value = t.PortfolioName;
             row++;
         }
 
         ws.Cell(row, 1).Value = "TOTAL";
         ws.Cell(row, 3).Value = $"{r.TotalTransactions} Trades";
-        ws.Cell(row, 7).Value = (double)r.NetCashFlow;
-        ws.Cell(row, 7).Style.NumberFormat.Format = "৳#,##0.00";
-        ws.Range(row, 1, row, 8).Style.Font.Bold = true;
-        ws.Range(row, 1, row, 8).Style.Border.TopBorder = XLBorderStyleValues.Thin;
-        ws.Range(row, 1, row, 8).Style.Border.BottomBorder = XLBorderStyleValues.Double;
+        ws.Cell(row, 8).Value = (double)r.TotalFees;
+        ws.Cell(row, 8).Style.NumberFormat.Format = "৳#,##0.00";
+        ws.Cell(row, 9).Value = (double)r.NetCashFlow;
+        ws.Cell(row, 9).Style.NumberFormat.Format = "৳#,##0.00";
+        ws.Cell(row, 10).Value = (double)r.TotalRealizedProfitLoss;
+        ws.Cell(row, 10).Style.NumberFormat.Format = "৳#,##0.00";
+        ws.Range(row, 1, row, 11).Style.Font.Bold = true;
+        ws.Range(row, 1, row, 11).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+        ws.Range(row, 1, row, 11).Style.Border.BottomBorder = XLBorderStyleValues.Double;
 
         ws.Columns().AdjustToContents();
         using var ms = new MemoryStream();
@@ -679,7 +717,7 @@ public class ReportExportService : IReportExportService
             {
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(24);
-                page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Lato"));
+                page.DefaultTextStyle(x => x.FontSize(8).FontFamily("Lato"));
 
                 page.Header().Element(c => ComposeHeader(c, "TRANSACTION HISTORY REPORT", user, portfolio, $"Type: {f.TransactionType ?? "All"}"));
 
@@ -687,27 +725,32 @@ public class ReportExportService : IReportExportService
                 {
                     c.Column(col =>
                     {
-                        col.Item().PaddingBottom(12).Row(rRow =>
+                        col.Item().PaddingBottom(10).Row(rRow =>
                         {
-                            rRow.Spacing(10);
+                            rRow.Spacing(8);
                             rRow.RelativeItem().Element(e => StatBox(e, "Total Trades", r.TotalTransactions.ToString()));
-                            rRow.RelativeItem().Element(e => StatBox(e, "Total Buy Value", $"BDT {r.TotalBuyValue:N2}"));
-                            rRow.RelativeItem().Element(e => StatBox(e, "Total Sell Value", $"BDT {r.TotalSellValue:N2}"));
+                            rRow.RelativeItem().Element(e => StatBox(e, "Buy Outflow", $"BDT {r.TotalBuyOutflow:N2}"));
+                            rRow.RelativeItem().Element(e => StatBox(e, "Sell Inflow", $"BDT {r.TotalSellInflow:N2}"));
+                            rRow.RelativeItem().Element(e => StatBox(e, "Total Fees", $"BDT {r.TotalFees:N2}"));
                             rRow.RelativeItem().Element(e => StatBox(e, "Net Cash Flow", $"BDT {r.NetCashFlow:N2}"));
+                            rRow.RelativeItem().Element(e => StatBox(e, "Realized P/L", $"BDT {r.TotalRealizedProfitLoss:N2}"));
                         });
 
                         col.Item().Table(table =>
                         {
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.ConstantColumn(70);  // Date
-                                columns.ConstantColumn(65);  // Ticker
-                                columns.RelativeColumn(3);   // Company
-                                columns.ConstantColumn(50);  // Type
-                                columns.RelativeColumn(1.5f);// Qty
-                                columns.RelativeColumn(1.5f);// Price
-                                columns.RelativeColumn(2);   // Total
-                                columns.RelativeColumn(2);   // Portfolio
+                                columns.ConstantColumn(60);  // Date
+                                columns.ConstantColumn(50);  // Ticker
+                                columns.RelativeColumn(2.5f);// Company
+                                columns.ConstantColumn(40);  // Type
+                                columns.RelativeColumn(1.2f);// Qty
+                                columns.RelativeColumn(1.2f);// Price
+                                columns.RelativeColumn(1.5f);// Gross
+                                columns.RelativeColumn(1.2f);// Fee
+                                columns.RelativeColumn(1.5f);// Net
+                                columns.RelativeColumn(1.5f);// Realized P/L
+                                columns.RelativeColumn(1.8f);// Portfolio
                             });
 
                             table.Header(h =>
@@ -718,13 +761,16 @@ public class ReportExportService : IReportExportService
                                 h.Cell().Element(HeaderStyle).Text("Type");
                                 h.Cell().Element(HeaderRightStyle).Text("Quantity");
                                 h.Cell().Element(HeaderRightStyle).Text("Price");
-                                h.Cell().Element(HeaderRightStyle).Text("Total Value");
+                                h.Cell().Element(HeaderRightStyle).Text("Gross Value");
+                                h.Cell().Element(HeaderRightStyle).Text("Fee");
+                                h.Cell().Element(HeaderRightStyle).Text("Net Amount");
+                                h.Cell().Element(HeaderRightStyle).Text("Realized P/L");
                                 h.Cell().Element(HeaderStyle).Text("Portfolio");
                             });
 
                             if (r.Transactions.Count == 0)
                             {
-                                table.Cell().ColumnSpan(8).Padding(16).AlignCenter().Text("No transactions found matching criteria.").Italic().FontColor(Colors.Grey.Medium);
+                                table.Cell().ColumnSpan(11).Padding(16).AlignCenter().Text("No transactions found matching criteria.").Italic().FontColor(Colors.Grey.Medium);
                             }
                             else
                             {
@@ -732,24 +778,39 @@ public class ReportExportService : IReportExportService
                                 foreach (var t in r.Transactions)
                                 {
                                     var bg = alt ? Colors.Grey.Lighten4 : Colors.White;
-                                    table.Cell().Background(bg).Padding(5).Text(t.TransactionDate.ToString("yyyy-MM-dd"));
-                                    table.Cell().Background(bg).Padding(5).Text(t.TickerSymbol).Bold();
-                                    table.Cell().Background(bg).Padding(5).Text(t.CompanyName);
+                                    table.Cell().Background(bg).Padding(4).Text(t.TransactionDate.ToString("yyyy-MM-dd"));
+                                    table.Cell().Background(bg).Padding(4).Text(t.TickerSymbol).Bold();
+                                    table.Cell().Background(bg).Padding(4).Text(t.CompanyName);
 
                                     var typeColor = t.TransactionType == "BUY" ? Colors.Blue.Darken2 : Colors.Green.Darken2;
-                                    table.Cell().Background(bg).Padding(5).Text(t.TransactionType).Bold().FontColor(typeColor);
+                                    table.Cell().Background(bg).Padding(4).Text(t.TransactionType).Bold().FontColor(typeColor);
 
-                                    table.Cell().Background(bg).Padding(5).AlignRight().Text($"{t.Quantity:N2}");
-                                    table.Cell().Background(bg).Padding(5).AlignRight().Text($"BDT {t.PricePerShare:N2}");
-                                    table.Cell().Background(bg).Padding(5).AlignRight().Text($"BDT {t.TotalTransactionValue:N2}");
-                                    table.Cell().Background(bg).Padding(5).Text(t.PortfolioName);
+                                    table.Cell().Background(bg).Padding(4).AlignRight().Text($"{t.Quantity:N2}");
+                                    table.Cell().Background(bg).Padding(4).AlignRight().Text($"BDT {t.PricePerShare:N2}");
+                                    table.Cell().Background(bg).Padding(4).AlignRight().Text($"BDT {t.TotalTransactionValue:N2}");
+                                    table.Cell().Background(bg).Padding(4).AlignRight().Text($"BDT {t.Fee:N2}");
+                                    table.Cell().Background(bg).Padding(4).AlignRight().Text($"BDT {t.NetAmount:N2}");
+
+                                    if (t.RealizedProfitLoss.HasValue)
+                                    {
+                                        var rColor = t.RealizedProfitLoss.Value >= 0 ? Colors.Green.Darken2 : Colors.Red.Darken2;
+                                        table.Cell().Background(bg).Padding(4).AlignRight().Text($"BDT {t.RealizedProfitLoss.Value:N2}").FontColor(rColor);
+                                    }
+                                    else
+                                    {
+                                        table.Cell().Background(bg).Padding(4).AlignRight().Text("-");
+                                    }
+
+                                    table.Cell().Background(bg).Padding(4).Text(t.PortfolioName);
 
                                     alt = !alt;
                                 }
 
                                 table.Cell().ColumnSpan(4).Element(TotalStyle).Text($"TOTAL ({r.TotalTransactions} Trades)");
-                                table.Cell().ColumnSpan(2).Element(TotalStyle).Text("");
+                                table.Cell().ColumnSpan(3).Element(TotalStyle).Text("");
+                                table.Cell().Element(TotalRightStyle).Text($"BDT {r.TotalFees:N2}");
                                 table.Cell().Element(TotalRightStyle).Text($"BDT {r.NetCashFlow:N2}");
+                                table.Cell().Element(TotalRightStyle).Text($"BDT {r.TotalRealizedProfitLoss:N2}");
                                 table.Cell().Element(TotalStyle).Text("");
                             }
                         });

@@ -12,6 +12,9 @@ public class UpdateTransactionRequestDto : IValidatableObject
     [Range(0.01, 100_000_000, ErrorMessage = "Price per share must be greater than zero.")]
     public decimal PricePerShare { get; set; }
 
+    [Range(0, 100_000_000, ErrorMessage = "Fee cannot be negative.")]
+    public decimal? Fee { get; set; }
+
     public DateTime? TransactionDate { get; set; }
 
     [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
@@ -24,6 +27,13 @@ public class UpdateTransactionRequestDto : IValidatableObject
             yield return new ValidationResult(
                 "Fractional shares are not supported. Quantity must be a whole integer.",
                 new[] { nameof(Quantity) });
+        }
+
+        if (Fee.HasValue && Fee.Value < 0)
+        {
+            yield return new ValidationResult(
+                "Fee cannot be negative.",
+                new[] { nameof(Fee) });
         }
     }
 }

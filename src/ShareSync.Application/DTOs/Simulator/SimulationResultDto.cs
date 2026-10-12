@@ -11,6 +11,8 @@ public class SimulationResultDto
     public decimal Quantity { get; set; }
     public decimal HypotheticalPrice { get; set; }
     public decimal TotalHypotheticalAmount { get; set; }
+    public decimal Fee { get; set; }
+    public decimal NetHypotheticalAmount { get; set; }
     public decimal CurrentMarketPrice { get; set; }
 
     // Position Before Simulation (Current)

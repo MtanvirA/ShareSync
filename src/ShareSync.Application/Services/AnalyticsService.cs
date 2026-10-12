@@ -9,20 +9,38 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service computing portfolio analytics, sector diversification, position concentration metrics, and performance charts.
+/// FEATURE: Portfolio Analytics
+/// </summary>
 public class AnalyticsService : IAnalyticsService
 {
     private readonly IApplicationDbContext _context;
     private readonly IReportService _reportService;
     private readonly IDividendService _dividendService;
+    private readonly IInflationService _inflationService;
+    private readonly ICurrencyService _currencyService;
 
     public AnalyticsService(
         IApplicationDbContext context,
         IReportService reportService,
         IDividendService dividendService)
+        : this(context, reportService, dividendService, new InflationService(context), new CurrencyService(context))
+    {
+    }
+
+    public AnalyticsService(
+        IApplicationDbContext context,
+        IReportService reportService,
+        IDividendService dividendService,
+        IInflationService inflationService,
+        ICurrencyService currencyService)
     {
         _context = context;
         _reportService = reportService;
         _dividendService = dividendService;
+        _inflationService = inflationService;
+        _currencyService = currencyService;
     }
 
     public async Task<ApiResponse<PortfolioAnalyticsDto>> GetAnalyticsAsync(
@@ -109,10 +127,20 @@ public class AnalyticsService : IAnalyticsService
 
             foreach (var sell in sellTxs)
             {
-                totalRealizedPL += (sell.PricePerShare - weightedAvgCost) * sell.Quantity;
+                totalRealizedPL += (sell.PricePerShare - weightedAvgCost) * sell.Quantity - sell.Fee;
             }
         }
         totalRealizedPL = Math.Round(totalRealizedPL, 2);
+
+        // Cumulative fees and cash flow
+        var buyTransactions = transactions.Where(t => t.TransactionType == "BUY").ToList();
+        var sellTransactions = transactions.Where(t => t.TransactionType == "SELL").ToList();
+        var cumulativeBuyGross = buyTransactions.Sum(t => t.Quantity * t.PricePerShare);
+        var totalBuyFees = buyTransactions.Sum(t => t.Fee);
+        var totalSellProceeds = sellTransactions.Sum(t => t.Quantity * t.PricePerShare);
+        var totalSellFees = sellTransactions.Sum(t => t.Fee);
+        var totalFees = Math.Round(totalBuyFees + totalSellFees, 2);
+        var netCashFlow = Math.Round((totalSellProceeds - totalSellFees) - (cumulativeBuyGross + totalBuyFees), 2);
 
         // 5. Dividend Income & Yield Contribution
         decimal totalDividends = 0m;
@@ -278,6 +306,33 @@ public class AnalyticsService : IAnalyticsService
             })
             .ToList();
 
+        // 10b. Asset Type Allocation (LF-29 Multi-Asset)
+        var compIds = companyAllocations.Select(c => c.CompanyId).Distinct().ToList();
+        var compAssetMap = await _context.Companies
+            .AsNoTracking()
+            .Where(c => compIds.Contains(c.CompanyId))
+            .ToDictionaryAsync(c => c.CompanyId, c => c.AssetType ?? "EQUITY", cancellationToken);
+
+        var assetTypeAllocations = companyAllocations
+            .GroupBy(c => compAssetMap.TryGetValue(c.CompanyId, out var at) ? at : "EQUITY")
+            .Select(ag =>
+            {
+                var aMarketVal = Math.Round(ag.Sum(c => c.MarketValue), 2);
+                var aInvested = Math.Round(ag.Sum(c => c.InvestedValue), 2);
+                var aAlloc = totalMarketValue > 0 ? Math.Round((aMarketVal / totalMarketValue) * 100, 2) : 0m;
+                return new AnalyticsAssetTypeDto
+                {
+                    AssetType = ag.Key,
+                    HoldingsCount = ag.Count(),
+                    InvestedValue = aInvested,
+                    MarketValue = aMarketVal,
+                    UnrealizedProfitLoss = aMarketVal - aInvested,
+                    AllocationPercentage = aAlloc
+                };
+            })
+            .OrderByDescending(a => a.MarketValue)
+            .ToList();
+
         // 11. Historical Portfolio Performance Chart
         var perfChart = await BuildHistoricalPerformanceChartAsync(
             targetPortfolioIds,
@@ -285,16 +340,27 @@ public class AnalyticsService : IAnalyticsService
             totalMarketValue,
             cancellationToken);
 
-        // 12. Accounting Formulas Dictionary
+        // 12. LF-28 Inflation-Adjusted (Real) Return Calculation
+        var txYears = transactions.Select(t => t.TransactionDate.Year).ToList();
+        int startYear = txYears.Any() ? txYears.Min() : DateTime.UtcNow.Year;
+        int endYear = DateTime.UtcNow.Year;
+        var realReturnCalc = await _inflationService.CalculateRealReturnForPeriodAsync("BD", totalReturnPct, startYear, endYear, cancellationToken);
+        decimal? realReturnAmount = realReturnCalc.RealReturnPercentage.HasValue && totalInvested > 0
+            ? Math.Round(totalInvested * (realReturnCalc.RealReturnPercentage.Value / 100m), 2)
+            : null;
+
+        // 13. Accounting Formulas Dictionary
         var formulas = new Dictionary<string, string>
         {
             { "PortfolioValue", "Sum of (CurrentQuantity * CurrentPrice) for all active holdings." },
             { "InvestedCapital", "Sum of (CurrentQuantity * WeightedAverageBuyPrice) for all active holdings." },
             { "UnrealizedProfitLoss", "PortfolioValue - InvestedCapital" },
-            { "RealizedProfitLoss", "Sum of ((SellPrice - WeightedAverageBuyPrice) * QuantitySold) for all executed SELL transactions." },
+            { "RealizedProfitLoss", "Sum of ((SellPrice - WeightedAverageBuyPrice) * QuantitySold - SellFee) for all executed SELL transactions." },
+            { "NetCashFlow", "(Gross Sale Proceeds - Sell Fees) - (Gross Purchase Cost + Buy Fees)" },
             { "DividendIncome", "Sum of (SharesHeld * DividendPerShare) for corporate distributions credited to active positions." },
             { "TotalReturn", "UnrealizedProfitLoss + RealizedProfitLoss + DividendIncome" },
             { "TotalReturnPercentage", "(TotalReturn / InvestedCapital) * 100" },
+            { "RealReturnPercentage", "((1 + TotalReturnPercentage / 100) / (1 + CumulativeInflationRate / 100) - 1) * 100" },
             { "LargestHoldingPercentage", "(Largest Company Position Value / Total Portfolio Value) * 100" },
             { "LargestSectorPercentage", "(Largest Sector Position Value / Total Portfolio Value) * 100" },
             { "DiversificationScore", "Derived from Herfindahl-Hirschman Index: Max(0, Min(100, 100 - (HHI / 100))). Higher score represents broader asset risk distribution (0% = single asset concentration, 100% = perfectly dispersed)." },
@@ -305,15 +371,23 @@ public class AnalyticsService : IAnalyticsService
         {
             PortfolioId = portfolioId,
             PortfolioName = contextName,
+            BaseCurrency = "BDT",
             PortfolioValue = totalMarketValue,
             InvestedCapital = totalInvested,
             UnrealizedProfitLoss = totalUnrealizedPL,
             UnrealizedReturnPercentage = unrealizedReturnPct,
             RealizedProfitLoss = totalRealizedPL,
+            TotalFees = totalFees,
+            NetCashFlow = netCashFlow,
             DividendIncome = totalDividends,
             DividendYield = dividendYield,
             TotalReturn = totalReturn,
             TotalReturnPercentage = totalReturnPct,
+            InflationRate = realReturnCalc.InflationRatePercentage,
+            InflationPeriod = realReturnCalc.Period,
+            RealReturn = realReturnAmount,
+            RealReturnPercentage = realReturnCalc.RealReturnPercentage,
+            InflationStatus = realReturnCalc.Status,
             TopHoldingWeight = top1Weight,
             LargestSectorWeight = largestSectorWeight,
             DiversificationScore = diversificationScore,
@@ -323,6 +397,7 @@ public class AnalyticsService : IAnalyticsService
             ConcentrationStatus = concentrationStatus,
             TotalHoldingsCount = companyAllocations.Count,
             TotalSectorsCount = sectorAllocations.Count,
+            AssetTypeAllocation = assetTypeAllocations,
             SectorAllocation = sectorAllocations,
             CompanyAllocation = companyAllocations,
             TopGainers = topGainers,
@@ -455,7 +530,8 @@ public class AnalyticsService : IAnalyticsService
                 { "PortfolioValue", "Sum of (CurrentQuantity * CurrentPrice) for all active holdings." },
                 { "InvestedCapital", "Sum of (CurrentQuantity * WeightedAverageBuyPrice) for all active holdings." },
                 { "UnrealizedProfitLoss", "PortfolioValue - InvestedCapital" },
-                { "RealizedProfitLoss", "Sum of ((SellPrice - WeightedAverageBuyPrice) * QuantitySold) for all executed SELL transactions." },
+                { "RealizedProfitLoss", "Sum of ((SellPrice - WeightedAverageBuyPrice) * QuantitySold - SellFee) for all executed SELL transactions." },
+                { "NetCashFlow", "(Gross Sale Proceeds - Sell Fees) - (Gross Purchase Cost + Buy Fees)" },
                 { "DividendIncome", "Sum of (SharesHeld * DividendPerShare) for corporate distributions credited to active positions." },
                 { "TotalReturn", "UnrealizedProfitLoss + RealizedProfitLoss + DividendIncome" },
                 { "LargestHoldingPercentage", "(Largest Company Position Value / Total Portfolio Value) * 100" },

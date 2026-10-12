@@ -8,6 +8,10 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service managing corporate cash dividends, dividend income tracking, payout calendars, and portfolio yield calculations.
+/// FEATURE: Dividend Management
+/// </summary>
 public class DividendService : IDividendService
 {
     private readonly IApplicationDbContext _context;

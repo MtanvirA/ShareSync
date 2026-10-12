@@ -10,6 +10,11 @@
 *.userprefs
 *.pidb
 *.booproj
+[Tt]est[Rr]esults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
 
 ## IDEs
 .vscode/*
@@ -26,11 +31,16 @@ desktop.ini
 
 ## Scratch / Temporary test files
 scratch/
+archive/
 *.tmp
+*.bak
+*.orig
 
 ## Configuration & Environment Secrets
 appsettings.Development.json
+appsettings.Local.json
 *.local.json
+Credentials.txt
 
 ## Datasets & Large External Files
 *.csv

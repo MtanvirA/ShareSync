@@ -9,6 +9,11 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service managing listed companies, ticker catalog, current trading quotes, and historical OHLC price series.
+/// FEATURE: Company Catalog and Search
+/// FEATURE: Historical Price Data
+/// </summary>
 public class CompanyService : ICompanyService
 {
     private readonly IApplicationDbContext _context;
@@ -26,8 +31,8 @@ public class CompanyService : ICompanyService
         IDividendService dividendService)
     {
         _context = context;
-        _reportService = reportService ?? new ReportService(context);
-        _dividendService = dividendService ?? new DividendService(context);
+        _reportService = reportService;
+        _dividendService = dividendService;
     }
 
     public async Task<ApiResponse<List<CompanyDto>>> GetAllCompaniesAsync(CancellationToken cancellationToken = default)
@@ -44,7 +49,9 @@ public class CompanyService : ICompanyService
                 SectorId = c.SectorId,
                 SectorName = c.Sector != null ? c.Sector.SectorName : string.Empty,
                 CurrentPrice = c.CurrentPrice,
-                MarketCap = c.MarketCap
+                MarketCap = c.MarketCap,
+                AssetType = c.AssetType,
+                Currency = c.Currency
             })
             .ToListAsync(cancellationToken);
 
@@ -71,7 +78,9 @@ public class CompanyService : ICompanyService
             SectorId = company.SectorId,
             SectorName = company.Sector != null ? company.Sector.SectorName : string.Empty,
             CurrentPrice = company.CurrentPrice,
-            MarketCap = company.MarketCap
+            MarketCap = company.MarketCap,
+            AssetType = company.AssetType,
+            Currency = company.Currency
         };
 
         return ApiResponse<CompanyDto>.Ok(dto);

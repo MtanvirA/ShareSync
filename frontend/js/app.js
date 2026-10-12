@@ -1,7 +1,12 @@
-// =========================================
-// SHARESYNC
-// Main JavaScript file
-// =========================================
+// ============================================================
+// SHARESYNC CLIENT APPLICATION
+// File: app.js
+// 
+// FEATURE: Client-Side SPA Orchestration & API Gateway
+// SECURITY: Authentication (JWT Storage & Bearer Injection)
+// SECURITY: XSS Protection (HTML Entity Encoding)
+// SECURITY: Route Protection (Session Guards)
+// ============================================================
 
 let portfolioChart;
 
@@ -9,6 +14,11 @@ const API_BASE_URL = window.location.origin.includes(":5000")
   ? "/api"
   : "http://localhost:5000/api";
 
+// ============================================================
+// SECURITY: XSS Protection
+// Sanitizes untrusted strings prior to DOM interpolation to neutralize
+// Cross-Site Scripting (XSS) injection attacks.
+// ============================================================
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
   return String(str)
@@ -19,6 +29,12 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
+// ============================================================
+// SECURITY: Authentication & Token Management
+// Resolves RFC 7519 JWT Bearer tokens from localStorage for API request signing.
+// FEATURE: Authentication and Authorization
+// ============================================================
+// FEATURE: Authentication and Authorization - JWT Bearer token retrieval and session checks
 function getAuthToken() {
   return localStorage.getItem("sharesync_token");
 }
@@ -37,6 +53,7 @@ function isAuthPage() {
   return path.endsWith("login.html") || path.endsWith("register.html");
 }
 
+// FEATURE: Authentication and Authorization - Role verification and route protection
 function checkAuthProtection() {
   const token = getAuthToken();
   if (isAuthPage()) {
@@ -82,6 +99,8 @@ function sanitizeErrorMessage(msg, status) {
   return msg;
 }
 
+// BUGFIX: API Response Handling
+// Handles standardized error extraction, authentication redirection on 401/403, and JSON payload unpacking.
 async function apiRequest(endpoint, options = {}) {
   const token = getAuthToken();
   const isAuthReq = endpoint.startsWith("/auth/login") || endpoint.startsWith("/auth/register");
@@ -189,6 +208,8 @@ async function apiDownloadBlob(endpoint, options = {}) {
   return { blob, filename };
 }
 
+// BUGFIX: Authentication State
+// FEATURE: Authentication - User identity, session persistence, and header synchronization
 async function setupUserHeader() {
   let user = getCurrentUser();
   if (!user) return;
@@ -213,6 +234,7 @@ async function setupUserHeader() {
     if (dropdownUserRole) dropdownUserRole.textContent = (u.role || "INVESTOR").toUpperCase();
 
     if ((u.role || "").toUpperCase() === "ADMIN") {
+      document.documentElement.classList.add("is-admin-user");
       const profileDropdown = document.getElementById("profileDropdown");
       if (profileDropdown && !document.getElementById("dropdownAdminLink")) {
         const py2 = profileDropdown.querySelector(".py-2.border-bottom");
@@ -226,7 +248,7 @@ async function setupUserHeader() {
         }
       }
       const sidebarNav = document.querySelector(".sidebar-nav");
-      if (sidebarNav && !document.getElementById("sidebarAdminLink")) {
+      if (sidebarNav && !document.getElementById("sidebarAdminLink") && !document.getElementById("adminNavTabLink")) {
         const adminSideA = document.createElement("a");
         adminSideA.id = "sidebarAdminLink";
         adminSideA.href = "admin.html";
@@ -521,6 +543,9 @@ function setupLastUpdated() {
   pageHeader.appendChild(updated);
 }
 
+// FEATURE: Responsive Layout - Viewport adaptation and mobile navigation
+// RESPONSIVE: Mobile Navigation
+// Builds responsive sticky bottom navigation dock for mobile devices
 function setupMobileNavigation() {
   const links = [...document.querySelectorAll(".sidebar-section:first-child .sidebar-link")];
 
@@ -606,6 +631,8 @@ function timeAgo(dateInput) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// BUGFIX: Header Controls
+// Initializes global header dropdown menus for account profile, notification drawer, and mobile actions.
 function setupHeaderDropdowns() {
   const profileBtn = document.getElementById("headerProfileBtn") || document.getElementById("userProfileBtn");
   const profileDropdown = document.getElementById("profileDropdown");
@@ -630,6 +657,7 @@ function setupHeaderDropdowns() {
     }
   };
 
+  // BUGFIX: Profile Menu
   // Profile dropdown toggle
   if (profileBtn && profileDropdown) {
     profileBtn.addEventListener("click", (e) => {
@@ -651,7 +679,8 @@ function setupHeaderDropdowns() {
     });
   }
 
-  // Notification dropdown toggle
+  // BUGFIX: Notification Menu
+  // FEATURE: Notifications - Live alerts and notification center
   if (notificationBtn && notificationDropdown) {
     notificationBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -795,9 +824,12 @@ function formatBDT(amount) {
 }
 
 function renderDashboardError(message) {
-  const valueEl = document.getElementById("dashboardPortfolioValue");
+  // FEATURE: Portfolio - Valuation summary and asset distribution
+const valueEl = document.getElementById("dashboardPortfolioValue");
   if (valueEl) valueEl.textContent = "৳0.00";
-  const bodyEl = document.getElementById("dashboardHoldingsBody");
+  // FEATURE: Holdings - Position quantities, current prices, and valuations
+// TABLE: Portfolio Holdings - Tabular holdings data rendering
+const bodyEl = document.getElementById("dashboardHoldingsBody");
   if (bodyEl) {
     bodyEl.innerHTML = `
       <tr>
@@ -819,6 +851,10 @@ function renderDashboardError(message) {
   }
 }
 
+// BUGFIX: Dashboard Initialization
+// FEATURE: Portfolio Management
+// FEATURE: Portfolio Valuation
+// FEATURE: Portfolio Dashboard - Overview cards, asset balance, and performance trajectory
 async function setupDashboard() {
   const dashboardValueEl = document.getElementById("dashboardPortfolioValue");
   if (!dashboardValueEl) return;
@@ -864,6 +900,8 @@ async function setupDashboard() {
     });
   }
 
+  // BUGFIX: Portfolio Data Loading
+  // FEATURE: Portfolio Holdings - Quantitative assets, current prices, and gain/loss calculation
   async function loadDashboardData(period = "6m") {
     try {
       const res = await apiRequest(`/dashboard?period=${encodeURIComponent(period)}`);
@@ -894,7 +932,10 @@ async function setupDashboard() {
         holdingsMetaEl.textContent = `Across ${count} ${count === 1 ? 'holding' : 'holdings'}`;
       }
 
-      const unrealizedPLEl = document.getElementById("dashboardUnrealizedPL");
+      // FEATURE: Realized and Unrealized P/L
+      // FEATURE: Unrealized P/L - Open position mark-to-market calculations
+// FEATURE: Realized P/L - Cumulative closed trade gains and losses
+const unrealizedPLEl = document.getElementById("dashboardUnrealizedPL");
       if (unrealizedPLEl) {
         const pl = Number(summary.totalUnrealizedProfitLoss) || 0;
         const isUp = pl >= 0;
@@ -1347,9 +1388,12 @@ function updateChartsForTheme(theme) {
   }
 }
 
+// UI: Theme Toggle
+// Synchronizes theme preferences across custom CSS tokens and Bootstrap 5
 function applyTheme(themeChoice) {
   const effectiveTheme = themeChoice === "system" ? getSystemTheme() : themeChoice;
   document.documentElement.setAttribute("data-theme", effectiveTheme);
+  document.documentElement.setAttribute("data-bs-theme", effectiveTheme);
 
   const toggleBtns = document.querySelectorAll(".theme-toggle-btn, #themeToggleBtn");
   toggleBtns.forEach((btn) => {
@@ -1391,6 +1435,9 @@ function setThemePreference(newChoice) {
   applyTheme(newChoice);
 }
 
+// BUGFIX: Theme Toggle
+// FEATURE: Dark Mode - Theme toggle and persistence engine
+// THEME: Dark Mode Engine
 function initThemeSystem() {
   const currentPref = getStoredThemePreference();
   applyTheme(currentPref);
@@ -1671,6 +1718,41 @@ async function setupSettingsPage() {
     });
   }
 
+  // 6b. MFA Foundation Handlers (LF-32)
+  const generateMfaKeyBtn = document.getElementById("generateMfaKeyBtn");
+  if (generateMfaKeyBtn) {
+    generateMfaKeyBtn.addEventListener("click", async () => {
+      try {
+        generateMfaKeyBtn.disabled = true;
+        const res = await apiRequest("/auth/mfa/generate", { method: "POST" });
+        if (res && res.data) {
+          const setupDiv = document.getElementById("mfaSetupDetails");
+          const keyInput = document.getElementById("mfaSecretKeyDisplay");
+          const uriInput = document.getElementById("mfaUriDisplay");
+          if (keyInput) keyInput.value = res.data.secretKey || "";
+          if (uriInput) uriInput.value = res.data.totpUri || "";
+          if (setupDiv) setupDiv.classList.remove("d-none");
+          showToast("MFA key generated successfully.", "success");
+        }
+      } catch (err) {
+        showToast("Error generating MFA key: " + (err.message || err), "danger");
+      } finally {
+        generateMfaKeyBtn.disabled = false;
+      }
+    });
+  }
+
+  const copyMfaKeyBtn = document.getElementById("copyMfaKeyBtn");
+  if (copyMfaKeyBtn) {
+    copyMfaKeyBtn.addEventListener("click", () => {
+      const keyInput = document.getElementById("mfaSecretKeyDisplay");
+      if (keyInput && keyInput.value) {
+        navigator.clipboard.writeText(keyInput.value);
+        showToast("Secret key copied to clipboard!", "success");
+      }
+    });
+  }
+
   // 6. Data & Export Handlers
   const exportCsvBtn = document.getElementById("exportTransactionsCsvBtn");
   if (exportCsvBtn) {
@@ -1748,6 +1830,533 @@ async function setupSettingsPage() {
   }
 }
 
+// ============================================================
+// UI: Accessible Custom Select Component (ShareSync Custom Dropdown)
+// Replaces browser-native option popups with a polished, accessible,
+// theme-aware custom dropdown matching ShareSync visual design.
+// Transparently synchronizes with the underlying native <select>.
+// ============================================================
+
+function createCustomSelect(selectEl) {
+  if (!selectEl || selectEl.tagName !== "SELECT") return null;
+  if (selectEl.__ssCustomSelect) {
+    selectEl.__ssCustomSelect.sync();
+    return selectEl.__ssCustomSelect;
+  }
+
+  // Create wrapper container
+  const container = document.createElement("div");
+  container.className = "ss-select-container";
+  if (selectEl.classList.contains("form-select-sm") || selectEl.classList.contains("filter-select-sm")) {
+    container.classList.add("ss-select-sm");
+  }
+  if (selectEl.classList.contains("d-none")) {
+    container.classList.add("d-none");
+  }
+
+  // Inherit explicit inline sizing constraints if present
+  if (selectEl.style.width) container.style.width = selectEl.style.width;
+  if (selectEl.style.minWidth) container.style.minWidth = selectEl.style.minWidth;
+  if (selectEl.style.maxWidth) container.style.maxWidth = selectEl.style.maxWidth;
+  if (selectEl.style.flex) container.style.flex = selectEl.style.flex;
+
+  // Trigger button
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "ss-select-trigger";
+  trigger.setAttribute("role", "combobox");
+  trigger.setAttribute("aria-haspopup", "listbox");
+  trigger.setAttribute("aria-expanded", "false");
+  if (selectEl.style.fontWeight) trigger.style.fontWeight = selectEl.style.fontWeight;
+
+  if (selectEl.id) {
+    trigger.id = `${selectEl.id}-trigger`;
+    trigger.setAttribute("aria-controls", `${selectEl.id}-menu`);
+    const label = document.querySelector(`label[for="${selectEl.id}"]`);
+    if (label) {
+      if (!label.id) label.id = `${selectEl.id}-label`;
+      trigger.setAttribute("aria-labelledby", `${label.id} ${trigger.id}`);
+    }
+  }
+
+  const labelSpan = document.createElement("span");
+  labelSpan.className = "ss-select-label";
+
+  const arrowSpan = document.createElement("span");
+  arrowSpan.className = "ss-select-arrow";
+  arrowSpan.innerHTML = '<i class="bi bi-chevron-down"></i>';
+
+  trigger.appendChild(labelSpan);
+  trigger.appendChild(arrowSpan);
+
+  // Dropdown menu
+  const dropdown = document.createElement("div");
+  dropdown.className = "ss-select-dropdown";
+  dropdown.setAttribute("role", "listbox");
+  dropdown.setAttribute("tabindex", "-1");
+  if (selectEl.id) {
+    dropdown.id = `${selectEl.id}-menu`;
+    dropdown.setAttribute("aria-labelledby", trigger.id);
+  }
+
+  const optionsList = document.createElement("div");
+  optionsList.className = "ss-select-options";
+  dropdown.appendChild(optionsList);
+
+  // Insert container in DOM right before selectEl, then move selectEl inside container
+  selectEl.parentNode.insertBefore(container, selectEl);
+  container.appendChild(trigger);
+  container.appendChild(dropdown);
+  container.appendChild(selectEl);
+
+  // Visually hide native select while keeping it in DOM for forms/APIs
+  selectEl.classList.add("ss-native-select-hidden");
+  selectEl.setAttribute("tabindex", "-1");
+  selectEl.setAttribute("aria-hidden", "true");
+
+  let focusedIndex = -1;
+  let isOpen = false;
+
+  function syncOptions() {
+    optionsList.innerHTML = "";
+    const options = Array.from(selectEl.options);
+
+    if (options.length === 0) {
+      const emptyItem = document.createElement("div");
+      emptyItem.className = "ss-select-option is-disabled";
+      emptyItem.textContent = "No options available";
+      optionsList.appendChild(emptyItem);
+      labelSpan.textContent = "No options";
+      trigger.title = "No options";
+      return;
+    }
+
+    const selectedIndex = selectEl.selectedIndex >= 0 ? selectEl.selectedIndex : 0;
+    const selectedOpt = options[selectedIndex] || options[0];
+
+    const currentText = selectedOpt ? selectedOpt.text.trim() : "";
+    labelSpan.textContent = currentText;
+    trigger.title = currentText;
+
+    options.forEach((opt, idx) => {
+      const optEl = document.createElement("div");
+      optEl.className = "ss-select-option";
+      optEl.setAttribute("role", "option");
+      optEl.setAttribute("data-value", opt.value);
+      optEl.setAttribute("data-index", idx);
+      if (selectEl.id) optEl.id = `${selectEl.id}-opt-${idx}`;
+
+      const isSelected = idx === selectedIndex;
+      optEl.setAttribute("aria-selected", isSelected ? "true" : "false");
+      if (isSelected) {
+        optEl.classList.add("is-selected");
+      }
+      if (opt.disabled) {
+        optEl.classList.add("is-disabled");
+        optEl.setAttribute("aria-disabled", "true");
+      }
+
+      const textSpan = document.createElement("span");
+      textSpan.className = "ss-option-text";
+      textSpan.textContent = opt.text.trim();
+      textSpan.title = opt.text.trim();
+
+      const checkIcon = document.createElement("i");
+      checkIcon.className = "bi bi-check2 ss-option-check";
+
+      optEl.appendChild(textSpan);
+      optEl.appendChild(checkIcon);
+
+      optEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (opt.disabled) return;
+        selectByIndex(idx);
+      });
+
+      optionsList.appendChild(optEl);
+    });
+  }
+
+  function syncValue() {
+    const selectedIndex = selectEl.selectedIndex >= 0 ? selectEl.selectedIndex : 0;
+    const options = Array.from(selectEl.options);
+    const selectedOpt = options[selectedIndex];
+
+    const currentText = selectedOpt ? selectedOpt.text.trim() : "";
+    labelSpan.textContent = currentText;
+    trigger.title = currentText;
+
+    const optEls = optionsList.querySelectorAll(".ss-select-option[data-index]");
+    optEls.forEach((el, idx) => {
+      const isSelected = idx === selectedIndex;
+      el.classList.toggle("is-selected", isSelected);
+      el.setAttribute("aria-selected", isSelected ? "true" : "false");
+    });
+  }
+
+  function selectByIndex(idx) {
+    const options = Array.from(selectEl.options);
+    if (idx < 0 || idx >= options.length) return;
+    const opt = options[idx];
+    if (opt.disabled) return;
+
+    const prevVal = selectEl.value;
+    selectEl.selectedIndex = idx;
+
+    if (originalDesc && originalDesc.set) {
+      originalDesc.set.call(selectEl, opt.value);
+    } else {
+      selectEl.value = opt.value;
+    }
+
+    syncValue();
+    closeDropdown();
+    trigger.focus();
+
+    if (selectEl.value !== prevVal || true) {
+      selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+      selectEl.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  }
+
+  function openDropdown() {
+    if (selectEl.disabled) return;
+
+    // Close any other open dropdowns
+    document.querySelectorAll(".ss-select-container.is-open").forEach(c => {
+      if (c !== container && c.__ssClose) c.__ssClose();
+    });
+
+    // Check viewport space for dropup vs dropdown
+    const rect = trigger.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const estimatedHeight = Math.min(280, (selectEl.options.length * 36) + 16);
+
+    if (spaceBelow < estimatedHeight && spaceAbove > spaceBelow) {
+      container.classList.add("ss-dropup");
+    } else {
+      container.classList.remove("ss-dropup");
+    }
+
+    // Horizontal positioning within viewport
+    const viewportWidth = window.innerWidth;
+    if (rect.left + 260 > viewportWidth && rect.right > 260) {
+      dropdown.style.left = "auto";
+      dropdown.style.right = "0";
+    } else {
+      dropdown.style.left = "0";
+      dropdown.style.right = "auto";
+    }
+
+    container.classList.add("is-open");
+    trigger.setAttribute("aria-expanded", "true");
+    isOpen = true;
+
+    focusedIndex = selectEl.selectedIndex >= 0 ? selectEl.selectedIndex : 0;
+    highlightOption(focusedIndex);
+    scrollFocusedIntoView();
+
+    document.addEventListener("pointerdown", handleOutsideClick);
+    document.addEventListener("keydown", handleKeydown);
+  }
+
+  function closeDropdown() {
+    if (!isOpen) return;
+    container.classList.remove("is-open");
+    container.classList.remove("ss-dropup");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.removeAttribute("aria-activedescendant");
+    isOpen = false;
+    clearHighlight();
+
+    document.removeEventListener("pointerdown", handleOutsideClick);
+    document.removeEventListener("keydown", handleKeydown);
+  }
+
+  function toggleDropdown() {
+    if (isOpen) closeDropdown();
+    else openDropdown();
+  }
+
+  function handleOutsideClick(e) {
+    if (!container.contains(e.target)) {
+      closeDropdown();
+    }
+  }
+
+  function highlightOption(index) {
+    clearHighlight();
+    const items = optionsList.querySelectorAll(".ss-select-option[data-index]");
+    if (index >= 0 && index < items.length) {
+      const item = items[index];
+      item.classList.add("is-focused");
+      focusedIndex = index;
+      if (item.id) trigger.setAttribute("aria-activedescendant", item.id);
+    }
+  }
+
+  function clearHighlight() {
+    optionsList.querySelectorAll(".ss-select-option.is-focused").forEach(el => {
+      el.classList.remove("is-focused");
+    });
+  }
+
+  function scrollFocusedIntoView() {
+    const focused = optionsList.querySelector(".ss-select-option.is-focused");
+    if (focused && dropdown) {
+      const dropdownRect = dropdown.getBoundingClientRect();
+      const focusedRect = focused.getBoundingClientRect();
+      if (focusedRect.top < dropdownRect.top) {
+        focused.scrollIntoView({ block: "nearest" });
+      } else if (focusedRect.bottom > dropdownRect.bottom) {
+        focused.scrollIntoView({ block: "nearest" });
+      }
+    }
+  }
+
+  let typeaheadBuffer = "";
+  let typeaheadTimeout = null;
+
+  function handleTypeahead(char) {
+    clearTimeout(typeaheadTimeout);
+    typeaheadBuffer += char.toLowerCase();
+    typeaheadTimeout = setTimeout(() => { typeaheadBuffer = ""; }, 500);
+
+    const options = Array.from(selectEl.options);
+    const matchIndex = options.findIndex((opt) => {
+      if (opt.disabled) return false;
+      return opt.text.trim().toLowerCase().startsWith(typeaheadBuffer);
+    });
+
+    if (matchIndex >= 0) {
+      if (isOpen) {
+        highlightOption(matchIndex);
+        scrollFocusedIntoView();
+      } else {
+        selectByIndex(matchIndex);
+      }
+    }
+  }
+
+  function handleKeydown(e) {
+    if (!isOpen) {
+      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) {
+        e.preventDefault();
+        openDropdown();
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        handleTypeahead(e.key);
+      }
+      return;
+    }
+
+    const options = Array.from(selectEl.options);
+    if (options.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      let next = focusedIndex + 1;
+      while (next < options.length && options[next].disabled) next++;
+      if (next < options.length) {
+        highlightOption(next);
+        scrollFocusedIntoView();
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      let prev = focusedIndex - 1;
+      while (prev >= 0 && options[prev].disabled) prev--;
+      if (prev >= 0) {
+        highlightOption(prev);
+        scrollFocusedIntoView();
+      }
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      let first = 0;
+      while (first < options.length && options[first].disabled) first++;
+      if (first < options.length) {
+        highlightOption(first);
+        scrollFocusedIntoView();
+      }
+    } else if (e.key === "End") {
+      e.preventDefault();
+      let last = options.length - 1;
+      while (last >= 0 && options[last].disabled) last--;
+      if (last >= 0) {
+        highlightOption(last);
+        scrollFocusedIntoView();
+      }
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (focusedIndex >= 0 && focusedIndex < options.length) {
+        selectByIndex(focusedIndex);
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      closeDropdown();
+      trigger.focus();
+    } else if (e.key === "Tab") {
+      closeDropdown();
+    } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      handleTypeahead(e.key);
+    }
+  }
+
+  trigger.addEventListener("click", (e) => {
+    e.preventDefault();
+    toggleDropdown();
+  });
+
+  trigger.addEventListener("keydown", (e) => {
+    if (!isOpen) {
+      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) {
+        e.preventDefault();
+        openDropdown();
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        handleTypeahead(e.key);
+      }
+    }
+  });
+
+  // Intercept native value property descriptor to sync trigger when script sets selectEl.value = ...
+  const originalDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+  Object.defineProperty(selectEl, "value", {
+    get() {
+      return originalDesc.get.call(this);
+    },
+    set(val) {
+      originalDesc.set.call(this, val);
+      syncValue();
+    },
+    configurable: true
+  });
+
+  // Also listen to native change/input events
+  selectEl.addEventListener("change", syncValue);
+  selectEl.addEventListener("input", syncValue);
+
+  // MutationObserver for dynamic options and visibility
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.type === "childList") {
+        syncOptions();
+      } else if (m.type === "attributes") {
+        if (m.attributeName === "class") {
+          container.classList.toggle("d-none", selectEl.classList.contains("d-none"));
+        } else if (m.attributeName === "disabled") {
+          trigger.disabled = selectEl.disabled;
+          container.classList.toggle("is-disabled", selectEl.disabled);
+        }
+      }
+    }
+  });
+
+  observer.observe(selectEl, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["class", "disabled"]
+  });
+
+  if (selectEl.disabled) {
+    trigger.disabled = true;
+    container.classList.add("is-disabled");
+  }
+
+  // Initial sync
+  syncOptions();
+
+  // Handle form reset
+  if (selectEl.form) {
+    selectEl.form.addEventListener("reset", () => {
+      setTimeout(() => {
+        syncValue();
+      }, 0);
+    });
+  }
+
+  container.__ssClose = closeDropdown;
+
+  const instance = {
+    container,
+    trigger,
+    dropdown,
+    sync: () => {
+      syncOptions();
+      container.classList.toggle("d-none", selectEl.classList.contains("d-none"));
+      if (selectEl.style.minWidth) container.style.minWidth = selectEl.style.minWidth;
+      if (selectEl.style.maxWidth) container.style.maxWidth = selectEl.style.maxWidth;
+      if (selectEl.style.width) container.style.width = selectEl.style.width;
+      if (selectEl.style.fontWeight) trigger.style.fontWeight = selectEl.style.fontWeight;
+    },
+    destroy: () => {
+      observer.disconnect();
+      closeDropdown();
+      selectEl.classList.remove("ss-native-select-hidden");
+      selectEl.removeAttribute("tabindex");
+      selectEl.removeAttribute("aria-hidden");
+      container.parentNode.insertBefore(selectEl, container);
+      container.remove();
+      delete selectEl.__ssCustomSelect;
+    }
+  };
+
+  selectEl.__ssCustomSelect = instance;
+  return instance;
+}
+
+function initShareSyncCustomSelects(root = document) {
+  const targetSelectors = [
+    "#filterPortfolioSelect",
+    "#filterStatusSelect",
+    "#analyticsPortfolioSelect",
+    "#benchmarkSelect",
+    "#dividendPortfolioFilter",
+    "#dividendCompanyAnalyticsFilter",
+    "#dividendYearFilter",
+    "#dividendCompanyFilter",
+    "#dividendFilter",
+    "#watchlistSelect",
+    "#watchlistFilter",
+    "#portfolioSelect",
+    "#portfolioFilter",
+    "#typeFilter",
+    "#sectorFilter",
+    "#reportPortfolioSelect",
+    "#reportPeriodSelect",
+    "#reportFormatSelect",
+    "#alertPortfolioSelect",
+    "#alertConditionSelect",
+    "[data-custom-select]",
+    ".custom-select-enhanced"
+  ];
+
+  targetSelectors.forEach(selector => {
+    try {
+      const elements = root.querySelectorAll(selector);
+      elements.forEach(el => {
+        if (el.tagName === "SELECT") {
+          createCustomSelect(el);
+        }
+      });
+    } catch {
+      // Ignore invalid selector on legacy browsers
+    }
+  });
+}
+
+window.ShareSyncCustomSelect = {
+  create: createCustomSelect,
+  init: initShareSyncCustomSelects,
+  sync: function(selectEl) {
+    if (selectEl && selectEl.__ssCustomSelect) {
+      selectEl.__ssCustomSelect.sync();
+    }
+  }
+};
+
+// BUGFIX: Dashboard Initialization
+// Keep dashboard event binding after shared UI initialization so a startup
+// exception in an optional component cannot prevent core controls from loading.
 document.addEventListener("DOMContentLoaded", () => {
   initThemeSystem();
   checkAuthProtection();
@@ -1759,6 +2368,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupTableHints();
   setupUserHeader();
   setupHeaderDropdowns();
+  initShareSyncCustomSelects();
 
   if (typeof setupLoginForm === "function") setupLoginForm();
   if (typeof setupRegisterForm === "function") setupRegisterForm();
@@ -2046,6 +2656,10 @@ async function setupDividendForm() {
   await loadDividendHistory();
 }
 
+// BUGFIX: Dashboard Initialization & Syntax Error Recovery
+// FEATURE: Dividend Management
+// FEATURE: Dividends - Calendar distributions and yield on cost
+// FEATURE: Dividend Income - Dividend totals and yield aggregation
 async function loadDividendSummary() {
   await loadDividendAnalytics();
 }
@@ -2530,13 +3144,79 @@ async function setupWatchlistForm() {
   if (watchlistForm) setupInlineValidation(watchlistForm);
   if (watchlistManageForm) setupInlineValidation(watchlistManageForm);
 
+  const watchlistCurrentPriceDisplay = document.getElementById("watchlistCurrentPriceDisplay");
+  let watchlistCompanies = [];
+
+  async function updateWatchlistCurrentPrice() {
+    if (!watchlistCurrentPriceDisplay) return;
+
+    const compId = parseInt(companySelect?.value, 10);
+    if (!compId) {
+      watchlistCurrentPriceDisplay.textContent = "--";
+      watchlistCurrentPriceDisplay.removeAttribute("data-price");
+      watchlistCurrentPriceDisplay.removeAttribute("title");
+      watchlistCurrentPriceDisplay.style.cursor = "default";
+      return;
+    }
+
+    const selectedOpt = companySelect?.options[companySelect.selectedIndex];
+    const cachedPrice = selectedOpt?.dataset?.price || watchlistCompanies.find(c => c.companyId === compId)?.currentPrice;
+
+    if (cachedPrice !== undefined && cachedPrice !== null && cachedPrice !== "") {
+      const num = parseFloat(cachedPrice);
+      watchlistCurrentPriceDisplay.textContent = formatBDT(num);
+      watchlistCurrentPriceDisplay.setAttribute("data-price", num);
+      watchlistCurrentPriceDisplay.title = "Click to apply current price as target";
+      watchlistCurrentPriceDisplay.style.cursor = "pointer";
+    } else {
+      watchlistCurrentPriceDisplay.innerHTML = '<span class="spinner-border spinner-border-sm" style="width: 11px; height: 11px; border-width: 2px;" role="status"></span>';
+      watchlistCurrentPriceDisplay.style.cursor = "default";
+    }
+
+    // Always fetch latest live price from API /companies/{id}
+    try {
+      const res = await apiRequest(`/companies/${compId}`);
+      if (res && res.data && res.data.currentPrice !== undefined && res.data.currentPrice !== null) {
+        const livePrice = res.data.currentPrice;
+        watchlistCurrentPriceDisplay.textContent = formatBDT(livePrice);
+        watchlistCurrentPriceDisplay.setAttribute("data-price", livePrice);
+        watchlistCurrentPriceDisplay.title = "Click to apply current price as target";
+        watchlistCurrentPriceDisplay.style.cursor = "pointer";
+        if (selectedOpt) selectedOpt.dataset.price = livePrice;
+        const compInList = watchlistCompanies.find(c => c.companyId === compId);
+        if (compInList) compInList.currentPrice = livePrice;
+      }
+    } catch (err) {
+      console.warn("Could not fetch company price from API:", err);
+      if (!watchlistCurrentPriceDisplay.getAttribute("data-price")) {
+        watchlistCurrentPriceDisplay.textContent = "Unavailable";
+      }
+    }
+  }
+
+  if (companySelect) {
+    companySelect.addEventListener("change", () => updateWatchlistCurrentPrice());
+  }
+
+  if (watchlistCurrentPriceDisplay && targetPriceInput) {
+    watchlistCurrentPriceDisplay.addEventListener("click", () => {
+      const price = watchlistCurrentPriceDisplay.getAttribute("data-price");
+      if (price && !isNaN(price)) {
+        targetPriceInput.value = parseFloat(price).toFixed(2);
+        targetPriceInput.focus();
+        targetPriceInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
+  }
+
   // Load companies for the Add Company dropdown
   try {
     const res = await apiRequest("/companies");
-    const companies = res.data || [];
+    watchlistCompanies = res.data || [];
     if (companySelect) {
       companySelect.innerHTML = '<option value="">Select company</option>' +
-        companies.map(c => `<option value="${c.companyId}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
+        watchlistCompanies.map(c => `<option value="${c.companyId}" data-price="${c.currentPrice ?? ''}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
+      updateWatchlistCurrentPrice();
     }
   } catch (err) {
     console.error("Failed to load companies for watchlist:", err);
@@ -2561,6 +3241,7 @@ async function setupWatchlistForm() {
   if (openAddCompBtn) {
     openAddCompBtn.addEventListener("click", () => {
       if (watchlistForm) watchlistForm.reset();
+      updateWatchlistCurrentPrice();
       if (targetWatchlistSelect && currentWatchlistId) {
         targetWatchlistSelect.value = currentWatchlistId;
       }
@@ -2574,6 +3255,7 @@ async function setupWatchlistForm() {
   function closeAddCompForm() {
     if (addCompCard) addCompCard.classList.add("form-hidden");
     if (watchlistForm) watchlistForm.reset();
+    updateWatchlistCurrentPrice();
   }
 
   if (closeAddCompBtn) closeAddCompBtn.addEventListener("click", closeAddCompForm);
@@ -2773,6 +3455,9 @@ async function loadUserWatchlists() {
   }
 }
 
+// BUGFIX: Dashboard Initialization & Syntax Error Recovery
+// FEATURE: Watchlists
+// FEATURE: Watchlist - Monitoring target securities and alert thresholds
 async function loadWatchlistDetail(watchlistId) {
   const titleEl = document.getElementById("watchlistTitle");
   const descEl = document.getElementById("watchlistDescription");
@@ -2985,6 +3670,11 @@ async function updateAvailableShares() {
   }
 }
 
+// BUGFIX: Dashboard Initialization & Syntax Error Recovery
+// FEATURE: DSE Market Data
+// FEATURE: Transactions
+// FEATURE: DSE Market - Live Dhaka Stock Exchange ticker feeds
+// FEATURE: Transactions - Trade entry, execution, and ledger management
 async function setupTransactionForm() {
   const form = document.getElementById("transactionForm");
   if (!form) return;
@@ -3002,8 +3692,134 @@ async function setupTransactionForm() {
   const companySelect = document.getElementById("company");
   const quantityInput = document.getElementById("quantity");
   const priceInput = document.getElementById("price");
+  // FEATURE: Transaction Fees - Brokerage commission & fee accounting
+  // FORM: Transaction Entry - Trade form submission and validation
+  const feeInput = document.getElementById("transactionFee");
   const dateInput = document.getElementById("transactionDate");
   const notesInput = document.getElementById("notes");
+  // FEATURE: Net Cash Flow - Inflows, outflows, and net cash metrics
+  const netImpactVal = document.getElementById("netCashImpactVal");
+
+  const secCard = document.getElementById("txSecurityInfoCard");
+  const assetBadge = document.getElementById("txAssetTypeBadge");
+  const currBadge = document.getElementById("txCurrencyBadge");
+  const fxInfo = document.getElementById("txFxRateInfo");
+  const fxRateVal = document.getElementById("txFxRateVal");
+  const baseCurrVal = document.getElementById("txBaseCurrencyVal");
+  const pricePrefix = document.getElementById("txPricePrefix");
+
+  let exchangeRatesCache = [];
+
+  function getExchangeRate(fromCurr, toCurr = "BDT") {
+    if (!fromCurr || fromCurr.toUpperCase() === toCurr.toUpperCase()) return 1.0;
+    const direct = exchangeRatesCache.find(r => 
+      r.fromCurrency && r.toCurrency &&
+      r.fromCurrency.toUpperCase() === fromCurr.toUpperCase() && 
+      r.toCurrency.toUpperCase() === toCurr.toUpperCase()
+    );
+    if (direct) return Number(direct.exchangeRate || direct.rate);
+    const inverse = exchangeRatesCache.find(r => 
+      r.fromCurrency && r.toCurrency &&
+      r.fromCurrency.toUpperCase() === toCurr.toUpperCase() && 
+      r.toCurrency.toUpperCase() === fromCurr.toUpperCase()
+    );
+    if (inverse && Number(inverse.exchangeRate || inverse.rate) > 0) {
+      return 1.0 / Number(inverse.exchangeRate || inverse.rate);
+    }
+    if (fromCurr.toUpperCase() === "USD" && toCurr.toUpperCase() === "BDT") return 121.50;
+    return 1.0;
+  }
+
+  function getSelectedCompany() {
+    if (!companySelect || !companySelect.value) return null;
+    const compId = parseInt(companySelect.value, 10);
+    return allCompaniesCache.find(c => c.companyId === compId) || null;
+  }
+
+  function updateSecurityInfo() {
+    const company = getSelectedCompany();
+    if (!company) {
+      if (secCard) secCard.classList.add("d-none");
+      if (pricePrefix) pricePrefix.textContent = " ৳ ";
+      updateNetImpact();
+      return;
+    }
+
+    const aType = (company.assetType || "EQUITY").toUpperCase();
+    const curr = (company.currency || "BDT").toUpperCase();
+
+    if (secCard) secCard.classList.remove("d-none");
+
+    if (assetBadge) {
+      assetBadge.textContent = aType;
+      const badgeClass = aType === "EQUITY" ? "bg-primary" :
+                         aType === "ETF" ? "bg-success" :
+                         aType === "MUTUAL_FUND" ? "bg-info" : "bg-secondary";
+      assetBadge.className = `badge ${badgeClass} text-white px-2 py-1`;
+    }
+
+    if (currBadge) {
+      currBadge.textContent = curr;
+    }
+
+    if (pricePrefix) {
+      pricePrefix.textContent = curr === "USD" ? " $ " : " ৳ ";
+    }
+
+    if (curr !== "BDT") {
+      const rate = getExchangeRate(curr, "BDT");
+      if (fxInfo) {
+        fxInfo.classList.remove("d-none");
+        fxInfo.classList.add("d-flex");
+      }
+      if (fxRateVal) {
+        fxRateVal.textContent = `1 ${curr} = ${rate.toFixed(2)} BDT`;
+      }
+    } else {
+      if (fxInfo) {
+        fxInfo.classList.add("d-none");
+        fxInfo.classList.remove("d-flex");
+      }
+    }
+
+    updateNetImpact();
+  }
+
+  function updateNetImpact() {
+    if (!netImpactVal) return;
+    const qty = parseFloat(quantityInput?.value) || 0;
+    const price = parseFloat(priceInput?.value) || 0;
+    const fee = parseFloat(feeInput?.value) || 0;
+    const gross = qty * price;
+    const isBuy = (typeInput?.value || "BUY") === "BUY";
+    const net = isBuy ? gross + fee : Math.max(0, gross - fee);
+
+    const company = getSelectedCompany();
+    const curr = (company?.currency || "BDT").toUpperCase();
+    const isForeign = curr !== "BDT";
+    const sym = curr === "USD" ? "$" : "৳";
+
+    if (isForeign) {
+      const rate = getExchangeRate(curr, "BDT");
+      const baseGross = gross * rate;
+      const baseNet = net * rate;
+      if (baseCurrVal) {
+        baseCurrVal.textContent = `৳${baseGross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      const prefix = isBuy ? "Net outflow:" : "Net inflow:";
+      netImpactVal.textContent = `${prefix} ${sym}${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (≈ ৳${baseNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+    } else {
+      if (baseCurrVal) {
+        baseCurrVal.textContent = `৳${gross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      const prefix = isBuy ? "Net outflow: ৳" : "Net inflow: ৳";
+      netImpactVal.textContent = `${prefix}${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+  }
+
+  [quantityInput, priceInput, feeInput].forEach(inp => {
+    if (inp) inp.addEventListener("input", updateNetImpact);
+  });
 
   setupInlineValidation(form);
 
@@ -3030,13 +3846,22 @@ async function setupTransactionForm() {
     console.error("Failed to load portfolios for transactions:", err);
   }
 
+  // FEATURE: Currency Conversion
+  // Load currencies exchange rates (LF-29)
+  try {
+    const fxRes = await apiRequest("/currencies/rates");
+    exchangeRatesCache = fxRes.data || [];
+  } catch (err) {
+    console.warn("Failed to load exchange rates for transactions:", err);
+  }
+
   // Load companies for dropdowns
   try {
     const res = await apiRequest("/companies");
     allCompaniesCache = res.data || [];
     if (companySelect) {
       companySelect.innerHTML = '<option value="">Select company</option>' +
-        allCompaniesCache.map(c => `<option value="${c.companyId}" data-price="${c.currentPrice}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
+        allCompaniesCache.map(c => `<option value="${c.companyId}" data-price="${c.currentPrice}" data-asset-type="${escapeHtml(c.assetType || 'EQUITY')}" data-currency="${escapeHtml(c.currency || 'BDT')}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
     }
 
     const companyFilter = document.getElementById("transactionCompanyFilter");
@@ -3048,13 +3873,14 @@ async function setupTransactionForm() {
     console.error("Failed to load companies for transactions:", err);
   }
 
-  // Auto-fill price & check available shares on company change
+  // Auto-fill price & check available shares on company change + update security info (LF-29)
   if (companySelect) {
     companySelect.addEventListener("change", () => {
       const selected = companySelect.options[companySelect.selectedIndex];
       if (selected && selected.dataset.price && (!idInput.value || !priceInput.value)) {
         priceInput.value = selected.dataset.price;
       }
+      updateSecurityInfo();
       updateAvailableShares();
     });
   }
@@ -3078,6 +3904,7 @@ async function setupTransactionForm() {
       typeInput.value = button.dataset.type;
 
       updateAvailableShares();
+      updateNetImpact();
     });
   });
 
@@ -3087,6 +3914,7 @@ async function setupTransactionForm() {
     if (titleEl) titleEl.textContent = "Add transaction";
     if (subtitleEl) subtitleEl.textContent = "Record a BUY or SELL transaction.";
     if (typeInput) typeInput.value = "BUY";
+    if (feeInput) feeInput.value = "0.00";
 
     typeButtons.forEach((button) => {
       const isBuy = button.dataset.type === "BUY";
@@ -3097,6 +3925,8 @@ async function setupTransactionForm() {
     if (dateInput) {
       dateInput.value = new Date().toISOString().split("T")[0];
     }
+
+    updateSecurityInfo();
 
     const hint = document.getElementById("availableSharesHint");
     if (hint) hint.classList.add("d-none");
@@ -3176,6 +4006,12 @@ async function setupTransactionForm() {
       return;
     }
 
+    const fee = feeInput ? (parseFloat(feeInput.value) || 0) : 0;
+    if (isNaN(fee) || fee < 0) {
+      setFieldError(feeInput, "Fee cannot be negative.");
+      return;
+    }
+
     const submitBtn = form.querySelector("button[type='submit']");
     const originalBtnText = submitBtn ? submitBtn.innerHTML : "Save transaction";
     if (submitBtn) {
@@ -3191,6 +4027,7 @@ async function setupTransactionForm() {
         quantity,
         pricePerShare: price,
         price: price,
+        fee: fee,
         transactionDate,
         notes
       };
@@ -3230,6 +4067,7 @@ async function setupTransactionForm() {
 // =========================================
 
 // =========================================
+// FEATURE: CSV Import
 // CSV TRANSACTION IMPORT WORKFLOW
 // =========================================
 
@@ -3814,7 +4652,7 @@ async function loadTransactionHistory(page = 1) {
 
   tbody.innerHTML = `
     <tr>
-      <td colspan="8" class="text-center py-4 text-muted">
+      <td colspan="11" class="text-center py-4 text-muted">
         <div class="spinner-border spinner-border-sm me-2" role="status"></div>
         Loading transaction records...
       </td>
@@ -3842,7 +4680,7 @@ async function loadTransactionHistory(page = 1) {
     if (!transactions.length) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" class="text-center py-4 text-muted">
+          <td colspan="11" class="text-center py-4 text-muted">
             <i class="bi bi-inbox fs-4 d-block mb-1"></i>
             No transactions found matching your criteria.
           </td>
@@ -3865,8 +4703,22 @@ async function loadTransactionHistory(page = 1) {
       const priceNum = Number(t.pricePerShare ?? t.price ?? 0);
       const qtyNum = Number(t.quantity ?? 0);
       const totalNum = Number(t.totalAmount ?? (qtyNum * priceNum));
+      const feeNum = Number(t.fee ?? 0);
+      const netNum = Number(t.netAmount ?? (isBuy ? totalNum + feeNum : Math.max(0, totalNum - feeNum)));
+
       const priceFormatted = "৳" + priceNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const totalFormatted = "৳" + totalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const feeFormatted = "৳" + feeNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const netFormatted = "৳" + netNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      let realizedBadge = `<span class="text-muted">-</span>`;
+      if (!isBuy && t.realizedProfitLoss !== null && t.realizedProfitLoss !== undefined) {
+        const rVal = Number(t.realizedProfitLoss);
+        const rPos = rVal >= 0;
+        const rSign = rPos ? "+" : "-";
+        const rColor = rPos ? "#10B981" : "#EF4444";
+        realizedBadge = `<strong style="color: ${rColor};">${rSign}৳${Math.abs(rVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>`;
+      }
 
       return `
         <tr>
@@ -3886,6 +4738,9 @@ async function loadTransactionHistory(page = 1) {
           <td>${qtyNum.toLocaleString()}</td>
           <td>${priceFormatted}</td>
           <td>${totalFormatted}</td>
+          <td>${feeFormatted}</td>
+          <td>${netFormatted}</td>
+          <td>${realizedBadge}</td>
           <td>${escapeHtml(t.portfolioName || "-")}</td>
           <td>
             <button type="button" class="btn btn-sm btn-link p-0 text-primary text-decoration-none me-2" onclick="editTransaction(${t.transactionId})" title="Edit transaction">
@@ -3916,7 +4771,7 @@ async function loadTransactionHistory(page = 1) {
     console.error("Failed to load transactions:", err);
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" class="text-center py-4 text-danger">
+        <td colspan="11" class="text-center py-4 text-danger">
           <i class="bi bi-exclamation-triangle fs-4 d-block mb-1"></i>
           Error loading transactions: ${escapeHtml(err.message)}
         </td>
@@ -3996,6 +4851,7 @@ window.editTransaction = async function(transactionId) {
     const companySelect = document.getElementById("company");
     const quantityInput = document.getElementById("quantity");
     const priceInput = document.getElementById("price");
+    const feeInput = document.getElementById("transactionFee");
     const dateInput = document.getElementById("transactionDate");
     const notesInput = document.getElementById("notes");
 
@@ -4003,9 +4859,13 @@ window.editTransaction = async function(transactionId) {
     if (titleEl) titleEl.textContent = "Edit transaction";
     if (subtitleEl) subtitleEl.textContent = `Update transaction #${t.transactionId}`;
     if (portfolioSelect) portfolioSelect.value = t.portfolioId;
-    if (companySelect) companySelect.value = t.companyId;
+    if (companySelect) {
+      companySelect.value = t.companyId;
+      companySelect.dispatchEvent(new Event("change"));
+    }
     if (quantityInput) quantityInput.value = t.quantity;
     if (priceInput) priceInput.value = t.pricePerShare ?? t.price ?? "";
+    if (feeInput) feeInput.value = (t.fee !== undefined && t.fee !== null) ? Number(t.fee).toFixed(2) : "0.00";
     if (dateInput && t.transactionDate) dateInput.value = t.transactionDate.split("T")[0];
     if (notesInput) notesInput.value = t.notes || "";
 
@@ -4015,6 +4875,18 @@ window.editTransaction = async function(transactionId) {
       button.classList.toggle("active", isType);
       button.setAttribute("aria-pressed", isType ? "true" : "false");
     });
+
+    const netImpactVal = document.getElementById("netCashImpactVal");
+    if (netImpactVal) {
+      const qty = parseFloat(quantityInput?.value) || 0;
+      const price = parseFloat(priceInput?.value) || 0;
+      const fee = parseFloat(feeInput?.value) || 0;
+      const gross = qty * price;
+      const isBuy = t.transactionType === "BUY";
+      const net = isBuy ? gross + fee : Math.max(0, gross - fee);
+      const prefix = isBuy ? "Net outflow: ৳" : "Net inflow: ৳";
+      netImpactVal.textContent = `${prefix}${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
 
     if (typeof updateAvailableShares === "function") {
       updateAvailableShares();
@@ -4110,6 +4982,8 @@ function setupTransactionFilters() {
   loadTransactionHistory(1);
 }
 
+// UI: Watchlist Filter
+// Filters watchlist items based on distance to target price
 function setupWatchlistFilter() {
   const filter = document.getElementById("watchlistFilter");
   const table = document.querySelector(".watchlist-table");
@@ -4403,6 +5277,7 @@ async function setupReports() {
     });
   }
 
+  // FEATURE: Reports and Exports
   async function triggerReportExport(format, buttonEl) {
     const reportType = reportTypeSelect ? reportTypeSelect.value : "holdings";
     const portfolioId = portfolioSelect ? portfolioSelect.value : "";
@@ -4484,6 +5359,10 @@ async function loadReportSummary(portfolioId) {
   const plEl = document.getElementById("reportSummaryUnrealizedPL");
   const divEl = document.getElementById("reportSummaryDividendIncome");
   const txEl = document.getElementById("reportSummaryTransactions");
+  const realizedPlEl = document.getElementById("reportSummaryRealizedPL");
+  const totalPlEl = document.getElementById("reportSummaryTotalPL");
+  const totalFeesEl = document.getElementById("reportSummaryTotalFees");
+  const netCashFlowEl = document.getElementById("reportSummaryNetCashFlow");
 
   try {
     const url = portfolioId ? `/reports/summary?portfolioId=${portfolioId}` : "/reports/summary";
@@ -4504,6 +5383,26 @@ async function loadReportSummary(portfolioId) {
     }
     if (txEl) {
       txEl.textContent = Number(d.totalTransactionsCount).toLocaleString();
+    }
+    if (realizedPlEl) {
+      const isRPos = (d.totalRealizedProfitLoss || 0) >= 0;
+      const rSign = isRPos ? "+" : "-";
+      realizedPlEl.textContent = `${rSign}৳${Math.abs(d.totalRealizedProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      realizedPlEl.className = isRPos ? "summary-value positive-text" : "summary-value negative-text";
+    }
+    if (totalPlEl) {
+      const isTPos = (d.totalProfitLoss || 0) >= 0;
+      const tSign = isTPos ? "+" : "-";
+      totalPlEl.textContent = `${tSign}৳${Math.abs(d.totalProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      totalPlEl.className = isTPos ? "summary-value positive-text" : "summary-value negative-text";
+    }
+    if (totalFeesEl) {
+      totalFeesEl.textContent = "৳" + Number(d.totalFees || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    if (netCashFlowEl) {
+      const isNPos = (d.netCashFlow || 0) >= 0;
+      const nSign = isNPos ? "+" : "-";
+      netCashFlowEl.textContent = `${nSign}৳${Math.abs(d.netCashFlow || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
   } catch (err) {
     console.error("Failed to load report summary:", err);
@@ -4830,11 +5729,14 @@ async function loadActiveReportTable(reportType, portfolioId, period) {
   }
 }
 
+// BUGFIX: Reports & Syntax Error Recovery
+// FEATURE: Weighted Average Cost - Cost basis calculation for holdings
 async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
   headEl.innerHTML = `
     <tr>
-      <th>Company</th>
-      <th>Ticker</th>
+      <th>Asset</th>
+      <th>Type</th>
+      <th>Currency</th>
       <th>Quantity</th>
       <th>Avg. Cost</th>
       <th>Market Price</th>
@@ -4850,7 +5752,7 @@ async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
   const rows = res.data?.holdings || [];
 
   if (!rows.length) {
-    bodyEl.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">No holdings found for the selected portfolio.</td></tr>`;
+    bodyEl.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">No holdings found for the selected portfolio.</td></tr>`;
     return;
   }
 
@@ -4860,6 +5762,9 @@ async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
     const plClass = isPos ? "positive-text" : "negative-text";
     const logo = escapeHtml(r.tickerSymbol.slice(0, 2).toUpperCase());
     const avgCost = r.weightedAverageBuyPrice ?? r.weightedAveragePurchasePrice ?? 0;
+    const aType = r.assetType || "EQUITY";
+    const aCurr = r.currency || "BDT";
+    const currSym = aCurr === "USD" ? "$" : "৳";
 
     return `
       <tr>
@@ -4868,14 +5773,15 @@ async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
             <span class="company-logo">${logo}</span>
             <div class="company-details">
               <strong>${escapeHtml(r.companyName)}</strong>
-              <small>${escapeHtml(r.sectorName || "Equity")}</small>
+              <small>${escapeHtml(r.tickerSymbol)}</small>
             </div>
           </div>
         </td>
-        <td><strong>${escapeHtml(r.tickerSymbol)}</strong></td>
+        <td><span class="badge bg-secondary-subtle text-body border px-2 py-1" style="font-size: 11px;">${escapeHtml(aType)}</span></td>
+        <td><span class="badge bg-body-secondary text-body px-2 py-1" style="font-size: 11px;">${escapeHtml(aCurr)}</span></td>
         <td>${Number(r.currentQuantity || 0).toLocaleString()}</td>
-        <td>৳${Number(avgCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td>৳${Number(r.currentMarketPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>${currSym}${Number(avgCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>${currSym}${Number(r.currentMarketPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td>৳${Number(r.investedValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td>৳${Number(r.currentMarketValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td class="${plClass}"><strong>${sign}৳${Number(Math.abs(r.unrealizedProfitLoss || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
@@ -4885,6 +5791,10 @@ async function renderHoldingsReport(portfolioId, headEl, bodyEl) {
   }).join("");
 }
 
+// BUGFIX: Reports & Syntax Error Recovery
+// FEATURE: Inflation and Real Return
+// FEATURE: Inflation - Purchasing power erosion and real return metrics
+// FEATURE: Inflation-Adjusted Return - Real purchasing power yield
 async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
   headEl.innerHTML = `
     <tr>
@@ -4892,7 +5802,7 @@ async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
       <th>Portfolio</th>
       <th>Portfolio Value</th>
       <th>Change from Prev</th>
-      <th>% Change</th>
+      <th>Nominal % Change</th>
     </tr>
   `;
 
@@ -4900,16 +5810,35 @@ async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
   if (portfolioId) params.append("portfolioId", portfolioId);
   if (period) params.append("period", period);
   const res = await apiRequest(`/reports/performance?${params.toString()}`);
-  const rows = res.data?.snapshots || [];
+  const data = res.data;
+  const rows = data?.snapshots || [];
 
   if (!rows.length) {
     bodyEl.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No snapshot records found for the selected criteria.</td></tr>`;
     return;
   }
 
-  const pName = res.data?.portfolioName || "Portfolio";
+  const pName = data?.portfolioName || "Portfolio";
+  const baseCurr = data?.baseCurrency || "BDT";
+  const currSym = baseCurr === "USD" ? "$" : "৳";
 
-  bodyEl.innerHTML = rows.map(r => {
+  let headerBanner = "";
+  if (data?.realReturnPercentage !== null && data?.realReturnPercentage !== undefined) {
+    const isRealPos = data.realReturnPercentage >= 0;
+    headerBanner = `
+      <tr style="background: var(--color-surface-hover);">
+        <td colspan="5" class="py-2 px-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 small">
+            <span><strong>Nominal Return:</strong> ${(data.nominalReturnPercentage || 0).toFixed(2)}%</span>
+            <span><strong>Inflation Rate:</strong> ${(data.inflationRate || 0).toFixed(2)}%</span>
+            <span class="${isRealPos ? 'positive-text fw-bold' : 'negative-text fw-bold'}"><i class="bi bi-shield-check text-success me-1"></i><strong>Inflation-Adjusted Real Return:</strong> ${isRealPos ? '+' : ''}${data.realReturnPercentage.toFixed(2)}%</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  bodyEl.innerHTML = headerBanner + rows.map(r => {
     let changeText = "-";
     let changePctText = "-";
     let changeClass = "text-muted";
@@ -4918,7 +5847,7 @@ async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
       const isChgPos = r.changeFromPrevious >= 0;
       const chgSign = isChgPos ? "+" : "-";
       changeClass = isChgPos ? "positive-text" : "negative-text";
-      changeText = `${chgSign}৳${Math.abs(r.changeFromPrevious).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      changeText = `${chgSign}${currSym}${Math.abs(r.changeFromPrevious).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       changePctText = `${chgSign}${Math.abs(r.percentageChange || 0).toFixed(2)}%`;
     }
 
@@ -4928,7 +5857,7 @@ async function renderPerformanceReport(portfolioId, period, headEl, bodyEl) {
       <tr>
         <td><strong>${escapeHtml(dateStr)}</strong></td>
         <td>${escapeHtml(pName)}</td>
-        <td><strong>৳${r.portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+        <td><strong>${currSym}${r.portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
         <td class="${changeClass}">${changeText}</td>
         <td class="${changeClass}">${changePctText}</td>
       </tr>
@@ -4942,10 +5871,10 @@ async function renderTransactionsReport(portfolioId, period, headEl, bodyEl) {
       <th>Tx ID</th>
       <th>Date</th>
       <th>Portfolio</th>
-      <th>Company</th>
-      <th>Ticker</th>
+      <th>Asset</th>
       <th>Type</th>
-      <th>Quantity</th>
+      <th>Curr</th>
+      <th>Qty</th>
       <th>Price / Share</th>
       <th>Total Value</th>
     </tr>
@@ -4966,18 +5895,20 @@ async function renderTransactionsReport(portfolioId, period, headEl, bodyEl) {
     const isBuy = r.transactionType === "BUY";
     const badgeClass = isBuy ? "buy-badge" : "sell-badge";
     const dateStr = new Date(r.transactionDate).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    const aCurr = r.currency || "BDT";
+    const currSym = aCurr === "USD" ? "$" : "৳";
 
     return `
       <tr>
         <td>#${r.transactionId}</td>
         <td>${escapeHtml(dateStr)}</td>
         <td>${escapeHtml(r.portfolioName)}</td>
-        <td>${escapeHtml(r.companyName)}</td>
-        <td><strong>${escapeHtml(r.tickerSymbol)}</strong></td>
+        <td><strong>${escapeHtml(r.tickerSymbol)}</strong> <small class="text-muted">(${escapeHtml(r.assetType || 'EQUITY')})</small></td>
         <td><span class="transaction-badge ${badgeClass}">${escapeHtml(r.transactionType)}</span></td>
+        <td><span class="badge bg-body-secondary text-body px-2 py-1" style="font-size: 11px;">${escapeHtml(aCurr)}</span></td>
         <td>${Number(r.quantity || 0).toLocaleString()}</td>
-        <td>৳${Number(r.pricePerShare || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td><strong>৳${Number(r.totalTransactionValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+        <td>${currSym}${Number(r.pricePerShare || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td><strong>${currSym}${Number(r.totalTransactionValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
       </tr>
     `;
   }).join("");
@@ -5290,6 +6221,8 @@ async function loadUserPortfolios(selectId = null) {
   }
 }
 
+// COMPONENT: Portfolio Card
+// Renders dynamic portfolio summary cards, valuation KPI metrics, and holdings balance
 async function loadPortfolioDetail(portfolioId) {
   const titleEl = document.getElementById("portfolioTitle");
   const descEl = document.getElementById("portfolioDescription");
@@ -5320,6 +6253,9 @@ async function loadPortfolioDetail(portfolioId) {
     const formattedPL = `${sign}৳${absPL}`;
     const formattedPLPct = `${sign}${Math.abs(d.unrealizedProfitLossPercentage).toFixed(1)}%`;
 
+    const portfolioRealizedPL = document.getElementById("portfolioRealizedProfitLoss");
+    const portfolioNetCashFlow = document.getElementById("portfolioNetCashFlow");
+
     if (totalValEl) totalValEl.textContent = formattedValue;
     if (profitLossEl) {
       profitLossEl.textContent = formattedPL;
@@ -5332,16 +6268,102 @@ async function loadPortfolioDetail(portfolioId) {
     if (totalInvestedEl) totalInvestedEl.textContent = formattedInvested;
     if (holdingsCountEl) holdingsCountEl.textContent = d.holdingsCount;
 
+    if (portfolioRealizedPL) {
+      const isRPos = (d.realizedProfitLoss || 0) >= 0;
+      const rSign = isRPos ? "+" : "-";
+      portfolioRealizedPL.textContent = `${rSign}৳${Math.abs(d.realizedProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      portfolioRealizedPL.className = isRPos ? "positive-text" : "negative-text";
+    }
+    if (portfolioNetCashFlow) {
+      const isNPos = (d.netCashFlow || 0) >= 0;
+      const nSign = isNPos ? "+" : "-";
+      portfolioNetCashFlow.textContent = `${nSign}৳${Math.abs(d.netCashFlow || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
     // Bottom metrics
-    if (metricTotalBuyCost) metricTotalBuyCost.textContent = formattedInvested;
-    if (metricMarketValue) metricMarketValue.textContent = formattedValue;
+    const metricRealizedProfit = document.getElementById("metricRealizedProfit");
+    const metricTotalProfit = document.getElementById("metricTotalProfit");
+    const metricTotalFees = document.getElementById("metricTotalFees");
+    const metricNetCashFlow = document.getElementById("metricNetCashFlow");
+
+    const currSymbol = d.currency === "USD" ? "$" : "৳";
+
+    if (metricTotalBuyCost) metricTotalBuyCost.textContent = `${currSymbol}${Number(d.totalInvested || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (metricMarketValue) metricMarketValue.textContent = `${currSymbol}${Number(d.totalValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     if (metricUnrealizedProfit) {
       metricUnrealizedProfit.textContent = formattedPL;
       metricUnrealizedProfit.className = isProfitable ? "positive-text" : "negative-text";
     }
+    if (metricRealizedProfit) {
+      const isRPos = (d.realizedProfitLoss || 0) >= 0;
+      const rSign = isRPos ? "+" : "-";
+      metricRealizedProfit.textContent = `${rSign}${currSymbol}${Math.abs(d.realizedProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      metricRealizedProfit.className = isRPos ? "positive-text" : "negative-text";
+    }
+    if (metricTotalProfit) {
+      const isTPos = (d.totalProfitLoss || 0) >= 0;
+      const tSign = isTPos ? "+" : "-";
+      metricTotalProfit.textContent = `${tSign}${currSymbol}${Math.abs(d.totalProfitLoss || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      metricTotalProfit.className = isTPos ? "positive-text" : "negative-text";
+    }
+    if (metricTotalFees) {
+      metricTotalFees.textContent = `${currSymbol}${Number(d.totalFees || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    if (metricNetCashFlow) {
+      const isNPos = (d.netCashFlow || 0) >= 0;
+      const nSign = isNPos ? "+" : "-";
+      metricNetCashFlow.textContent = `${nSign}${currSymbol}${Math.abs(d.netCashFlow || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
     if (metricReturnPercentage) {
       metricReturnPercentage.textContent = formattedPLPct;
       metricReturnPercentage.className = isProfitable ? "positive-text" : "negative-text";
+    }
+
+    const metricInflationRate = document.getElementById("metricInflationRate");
+    const metricRealReturnPercentage = document.getElementById("metricRealReturnPercentage");
+    const metricInflationPeriod = document.getElementById("metricInflationPeriod");
+    const metricRealReturnStatus = document.getElementById("metricRealReturnStatus");
+
+    if (metricInflationRate) {
+      if (d.inflationRate !== null && d.inflationRate !== undefined) {
+        metricInflationRate.textContent = `${d.inflationRate.toFixed(2)}%`;
+        metricInflationRate.className = "";
+        const periodText = d.inflationPeriod || (d.latestCpiMonth ? `Through ${d.latestCpiMonth}` : "");
+        if (metricInflationPeriod) {
+          metricInflationPeriod.textContent = periodText ? `(${periodText})` : "";
+          metricInflationPeriod.title = d.inflationStatus || "";
+        }
+        metricInflationRate.title = d.inflationStatus || "";
+      } else {
+        metricInflationRate.textContent = "Data unavailable";
+        metricInflationRate.className = "text-muted small";
+        metricInflationRate.title = d.inflationStatus || "Data unavailable";
+        if (metricInflationPeriod) {
+          metricInflationPeriod.textContent = d.inflationStatus ? `(${d.inflationStatus})` : "(Coverage incomplete)";
+          metricInflationPeriod.title = d.inflationStatus || "";
+        }
+      }
+    }
+
+    if (metricRealReturnPercentage) {
+      if (d.realReturnPercentage !== null && d.realReturnPercentage !== undefined) {
+        const isRealPos = d.realReturnPercentage >= 0;
+        metricRealReturnPercentage.textContent = `${isRealPos ? '+' : ''}${d.realReturnPercentage.toFixed(2)}%`;
+        metricRealReturnPercentage.className = isRealPos ? "positive-text fw-bold" : "negative-text fw-bold";
+        metricRealReturnPercentage.title = d.inflationStatus || "";
+        if (metricRealReturnStatus) {
+          metricRealReturnStatus.textContent = d.inflationPeriod ? `Purchasing power adjusted (${d.inflationPeriod})` : "Fisher-adjusted";
+          metricRealReturnStatus.title = d.inflationStatus || "";
+        }
+      } else {
+        metricRealReturnPercentage.textContent = "Data unavailable";
+        metricRealReturnPercentage.className = "text-muted small";
+        metricRealReturnPercentage.title = d.inflationStatus || "Data unavailable";
+        if (metricRealReturnStatus) {
+          metricRealReturnStatus.textContent = d.inflationStatus ? `(${d.inflationStatus})` : "";
+          metricRealReturnStatus.title = d.inflationStatus || "";
+        }
+      }
     }
 
     // Holdings Table
@@ -5349,9 +6371,9 @@ async function loadPortfolioDetail(portfolioId) {
       if (!d.holdings || d.holdings.length === 0) {
         holdingsBody.innerHTML = `
           <tr>
-            <td colspan="6" class="text-center py-4 text-muted">
+            <td colspan="9" class="text-center py-4 text-muted">
               <i class="bi bi-inbox fs-4 d-block mb-1"></i>
-              No stock holdings in this portfolio yet.
+              No asset holdings in this portfolio yet.
             </td>
           </tr>
         `;
@@ -5361,6 +6383,17 @@ async function loadPortfolioDetail(portfolioId) {
           const hSign = hProfitable ? "+" : "-";
           const hReturnStr = `${hSign}${Math.abs(h.returnPercentage).toFixed(1)}%`;
           const logoText = escapeHtml(h.tickerSymbol.slice(0, 2).toUpperCase());
+
+          const rPos = (h.realizedProfitLoss || 0) >= 0;
+          const rSign = rPos ? "+" : "-";
+          const rStr = h.realizedProfitLoss ? `${rSign}${currSymbol}${Math.abs(h.realizedProfitLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-";
+          const rClass = h.realizedProfitLoss ? (rPos ? 'positive-text' : 'negative-text') : 'text-muted';
+
+          const assetBadgeColor = h.assetType === "EQUITY" ? "bg-primary" :
+                                 h.assetType === "ETF" ? "bg-success" :
+                                 h.assetType === "MUTUAL_FUND" ? "bg-info" : "bg-secondary";
+          const itemCurr = h.currency || "BDT";
+          const itemSymbol = itemCurr === "USD" ? "$" : "৳";
 
           return `
             <tr>
@@ -5373,16 +6406,19 @@ async function loadPortfolioDetail(portfolioId) {
                   </div>
                 </div>
               </td>
+              <td><span class="badge ${assetBadgeColor} text-white px-2 py-1" style="font-size: 11px;">${escapeHtml(h.assetType || 'EQUITY')}</span></td>
+              <td><span class="badge bg-body-secondary text-body px-2 py-1" style="font-size: 11px;">${escapeHtml(itemCurr)}</span></td>
               <td>${Number(h.shares || 0).toLocaleString()}</td>
-              <td>৳${Number(h.averageBuyPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td>${itemSymbol}${Number(h.averageBuyPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               <td>
-                ৳${Number(h.currentPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${itemSymbol}${Number(h.currentPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 <button type="button" class="price-history-btn ms-1" onclick="openPriceHistoryModal(${h.companyId}, '${escapeHtml(h.tickerSymbol)}', '${escapeHtml(h.companyName)}', ${h.currentPrice})" title="View Price Trend &amp; History">
                   <i class="bi bi-graph-up"></i>
                 </button>
               </td>
-              <td>৳${Number(h.marketValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td>${currSymbol}${Number(h.marketValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               <td class="${hProfitable ? 'positive-text' : 'negative-text'}">${hReturnStr}</td>
+              <td class="${rClass}">${rStr}</td>
             </tr>
           `;
         }).join("");
@@ -5545,6 +6581,7 @@ function setupPriceHistoryTimeframeButtons() {
   }
 }
 
+// FEATURE: Historical Price Data
 async function loadPriceHistoryData(companyId, period) {
   if (!companyId) return;
 
@@ -6421,6 +7458,17 @@ async function openCompanyWatchlistModal() {
     targetInput.value = currentCompanyDetailData.targetPrice || currentCompanyDetailData.currentPrice || "";
   }
 
+  const pricePreview = document.getElementById("companyWatchlistCurrentPricePreview");
+  if (pricePreview && currentCompanyDetailData) {
+    pricePreview.textContent = currentCompanyDetailData.currentPrice ? formatBDT(currentCompanyDetailData.currentPrice) : "৳0.00";
+    pricePreview.onclick = () => {
+      if (targetInput && currentCompanyDetailData.currentPrice) {
+        targetInput.value = Number(currentCompanyDetailData.currentPrice).toFixed(2);
+        targetInput.focus();
+      }
+    };
+  }
+
   if (select) {
     select.innerHTML = '<option value="">Loading watchlists...</option>';
     try {
@@ -6569,6 +7617,9 @@ async function setupAnalyticsPage() {
   await loadAnalyticsData(currentAnalyticsPortfolioId, currentAnalyticsPeriod);
 }
 
+// BUGFIX: Analytics & Syntax Error Recovery
+// FEATURE: Portfolio Analytics
+// FEATURE: Analytics - Portfolio performance metrics and equity curve
 async function loadAnalyticsData(portfolioId, period) {
   const loadingEl = document.getElementById("analyticsLoadingState");
   const errorEl = document.getElementById("analyticsErrorState");
@@ -6628,13 +7679,17 @@ async function loadAnalyticsData(portfolioId, period) {
 
 
 // =========================================
+// FEATURE: Benchmark Analysis
 // WEB FEATURE 5: BENCHMARK COMPARISON
+// CHART: Benchmark Comparison
 // =========================================
 
 let currentBenchmarkCode = "DSEX";
 let currentBenchmarkPeriod = "ALL";
 let benchmarkComparisonChartInstance = null;
 
+// BUGFIX: Benchmark & Syntax Error Recovery
+// FEATURE: Benchmark - Comparative index tracking against DSEX
 async function setupBenchmarkControls() {
   const select = document.getElementById("benchmarkSelect");
   if (select && select.dataset.initialized !== "true") {
@@ -6672,6 +7727,8 @@ async function setupBenchmarkControls() {
   }
 }
 
+// BUGFIX: Benchmark Comparison & Syntax Error Recovery
+// FEATURE: Benchmark Outperformance - Alpha and relative return calculation
 async function loadBenchmarkComparison(portfolioId, benchmarkCode, period) {
   const alertEl = document.getElementById("benchmarkInsufficientDataAlert");
   const alertText = document.getElementById("benchmarkInsufficientDataText");
@@ -6699,6 +7756,20 @@ async function loadBenchmarkComparison(portfolioId, benchmarkCode, period) {
     const res = await apiRequest(url);
     const data = res.data;
     if (!data) return;
+
+    // LF-30: Conditional Benchmark Fallback Badge Visibility
+    const fallbackBadge = document.getElementById("benchmarkFallbackBadge");
+    if (fallbackBadge) {
+      if (data.isFallback) {
+        fallbackBadge.classList.remove("d-none");
+        const tipText = data.benchmarkSource
+          ? `Database historical benchmark observations were unavailable. Using ${data.benchmarkSource}.`
+          : "Database historical benchmark observations were unavailable and a fallback reference model is being used.";
+        fallbackBadge.setAttribute("title", tipText);
+      } else {
+        fallbackBadge.classList.add("d-none");
+      }
+    }
 
     if (noticeEl && data.dataLimitationNotice) {
       noticeEl.textContent = data.dataLimitationNotice;
@@ -7149,6 +8220,45 @@ function renderAnalyticsKPIs(d) {
   if (totBadgeEl) {
     totBadgeEl.className = `badge ${isTotUp ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle"}`;
     totBadgeEl.textContent = `${totSign}${Math.abs(totPct).toFixed(2)}%`;
+  }
+
+  // 6. Real Return (Purchasing Power)
+  const realRet = d.realReturn !== null && d.realReturn !== undefined ? d.realReturn : null;
+  const realPct = d.realReturnPercentage !== null && d.realReturnPercentage !== undefined ? d.realReturnPercentage : null;
+  const realRetEl = document.getElementById("kpiRealReturn");
+  const realBadgeEl = document.getElementById("kpiRealReturnBadge");
+  const infDetailEl = document.getElementById("kpiInflationDetail");
+
+  if (realRetEl) {
+    if (realRet !== null) {
+      const isRealUp = realRet >= 0;
+      const rSign = isRealUp ? "+" : "-";
+      realRetEl.className = `metric-value ${isRealUp ? "text-success" : "text-danger"}`;
+      realRetEl.textContent = `${rSign}${formatBDT(Math.abs(realRet))}`;
+    } else {
+      realRetEl.className = "metric-value text-muted fs-6";
+      realRetEl.textContent = "Unavailable";
+    }
+  }
+
+  if (realBadgeEl) {
+    if (realPct !== null) {
+      const isRealUp = realPct >= 0;
+      const rSign = isRealUp ? "+" : "-";
+      realBadgeEl.className = `badge ${isRealUp ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle"}`;
+      realBadgeEl.textContent = `${rSign}${Math.abs(realPct).toFixed(2)}%`;
+    } else {
+      realBadgeEl.className = "badge bg-secondary-subtle text-muted border";
+      realBadgeEl.textContent = "N/A";
+    }
+  }
+
+  if (infDetailEl) {
+    if (d.inflationRate !== null && d.inflationRate !== undefined) {
+      infDetailEl.textContent = `Inflation: ${d.inflationRate.toFixed(2)}% (${d.inflationPeriod || 'Cumulative'})`;
+    } else {
+      infDetailEl.textContent = d.inflationStatus || "Inflation data unavailable";
+    }
   }
 }
 
@@ -8956,6 +10066,10 @@ async function triggerAdminDseSync() {
 // -----------------------------------------
 // AUDIT LOGS TAB
 // -----------------------------------------
+// BUGFIX: Admin Audit Logs & Syntax Error Recovery
+// FEATURE: Historical Reconciliation
+// FEATURE: MySQL Database and Data Integrity
+// FEATURE: Audit - Trail logging and verification records
 async function fetchAdminAuditLogs() {
   const tbody = document.getElementById("auditLogsTableBody");
   if (tbody) {
@@ -9011,6 +10125,7 @@ function renderAuditLogsTable(logs) {
 
 
 // =========================================
+// FEATURE: Simulator
 // INVESTMENT SIMULATOR PAGE
 // =========================================
 let simCompaniesCache = [];
@@ -9618,6 +10733,9 @@ function renderSimulationCharts(data) {
 let goalsCache = [];
 let goalsPortfoliosCache = [];
 
+// BUGFIX: Goals & Syntax Error Recovery
+// FEATURE: Portfolio Goals
+// FEATURE: Goals - Financial milestone target and progress tracking
 async function setupGoalsPage() {
   const gridContainer = document.getElementById("goalsGridContainer");
   if (!gridContainer) return;
@@ -9716,7 +10834,10 @@ async function setupGoalsPage() {
     if (portfoliosLinkedEl) portfoliosLinkedEl.textContent = `Linked to ${uniquePortfolios} portfolio${uniquePortfolios === 1 ? "" : "s"}`;
   }
 
-  function renderGoals() {
+  // UI: Goal Progress
+  // Renders portfolio goal progress cards with dynamic progress bars
+  // FEATURE: Goal Progress - Completion percentage and projected dates
+function renderGoals() {
     updateKpis(goalsCache);
 
     const statusFilter = filterStatus?.value || "ALL";
@@ -10329,6 +11450,7 @@ window.quickAddDseCompany = async function(symbol, preferredName, preferredSecto
             opt.textContent = `${comp.tickerSymbol} - ${comp.companyName}`;
             sel.appendChild(opt);
           }
+          opt.dataset.price = comp.currentPrice ?? '';
           sel.value = comp.companyId;
           sel.dispatchEvent(new Event('change'));
         }
@@ -10504,6 +11626,8 @@ window.openDseMarketModal = async function(options = {}) {
 // GLOBAL SEARCH COMPONENT (FEATURE 8)
 // =========================================
 
+// FEATURE: Company Catalog and Search
+// FEATURE: Search - Company ticker and name autocompletion
 function setupGlobalSearch() {
   const searchInput = document.getElementById("globalSearchInput");
   const searchDropdown = document.getElementById("globalSearchDropdown");
@@ -10560,6 +11684,8 @@ function setupGlobalSearch() {
     }
   });
 
+  // UI: Search Input Interaction
+  // Debounced query dispatcher with real-time dropdown rendering
   searchInput.addEventListener("input", () => {
     const q = searchInput.value.trim();
 
@@ -10578,6 +11704,8 @@ function setupGlobalSearch() {
     }, 280);
   });
 
+  // ACCESSIBILITY: Keyboard Interaction
+  // Full keyboard navigation support (Arrow Up/Down, Enter to select, Escape to close)
   searchInput.addEventListener("keydown", (e) => {
     const items = searchResults.querySelectorAll(".search-result-item");
     if (!items.length) return;
@@ -10611,6 +11739,8 @@ function setupGlobalSearch() {
     });
   }
 
+  // BUGFIX: Global Search & Syntax Error Recovery
+  // SEARCH: Company Search - Ticker autocompletion search handler
   async function executeSearch(query) {
     openDropdown();
     searchResults.innerHTML = `

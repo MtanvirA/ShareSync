@@ -1,3 +1,12 @@
+// ============================================================
+// FEATURE: Investment Intelligence
+// COMPONENT: Company Search
+// UI: Investment Intelligence Interactive View Controller
+// 
+// Connects UI search autocomplete, 5-year quantitative analytics API,
+// Chart.js historical candlestick/moving-average visualizers, and scoring badges.
+// ============================================================
+
 document.addEventListener('DOMContentLoaded', () => {
   const companySelect = document.getElementById('companySelect');
   const analyzeBtn = document.getElementById('analyzeBtn');
@@ -17,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let searchTimeout = null;
 
+  // UI: Search Input Interaction
+  // Debounced Ticker Search Input Listener with autocomplete dropdown
   companySearchInput.addEventListener('input', (e) => {
     const query = e.target.value.trim();
     selectedCompanyId.value = '';
@@ -29,6 +40,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => performSearch(query), 300);
+  });
+
+  companySearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const firstItem = companySearchDropdown.querySelector('.dropdown-item');
+      if (companySearchDropdown.style.display !== 'none' && firstItem) {
+        firstItem.click();
+      } else if (!analyzeBtn.disabled) {
+        analyzeBtn.click();
+      }
+    }
   });
 
   const localCompanyMap = new Map();
@@ -77,6 +100,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // ============================================================
+  // API: Company Autocomplete Search
+  // Sends debounced query to /api/companies/search and populates dropdown
+  // with canonical ticker, name, and sector information.
+  // ============================================================
   async function performSearch(query) {
     try {
       const res = await fetch(`/api/companies/search?q=${encodeURIComponent(query)}&limit=10`, {
@@ -178,6 +206,11 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchProfile(cid);
   });
 
+  // ============================================================
+  // API: GET /api/investment-analysis/company/{cid}
+  // FEATURE: Investment Intelligence Engine
+  // Fetches 5-year quantitative metrics and orchestrates Chart.js visualizations.
+  // ============================================================
   async function fetchProfile(cid) {
     if (currentController) currentController.abort();
     currentController = new AbortController();
@@ -286,8 +319,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const fmtCur = v => v != null && !isNaN(v) ? `৳${Number(v).toFixed(2)}` : 'N/A';
 
     setText('mReturn', fmtPct(d.summary?.historicalReturnPercentage));
+    // FEATURE: CAGR - Compound Annual Growth Rate computation and display
+    const cagrLabelEl = document.getElementById('mCAGRLabel');
+    if (cagrLabelEl) {
+      cagrLabelEl.textContent = d.summary?.annualizedMetricLabel || 'CAGR';
+    }
     setText('mCAGR', fmtPct(d.summary?.cagrPercentage));
+    // FEATURE: Volatility - Annualized return standard deviation
     setText('mVol', fmtPct(d.risk?.annualizedVolatilityPercentage));
+    // FEATURE: Maximum Drawdown - Peak-to-trough risk and loss depth
     setText('mDraw', fmtPct(d.risk?.maximumDrawdownPercentage));
     setText('mPos', d.consistency?.positiveDayPercentage != null ? `${Number(d.consistency.positiveDayPercentage).toFixed(1)}%` : 'N/A');
     setText('mPrice', fmtCur(d.trend?.latestClose));
@@ -482,13 +522,14 @@ document.addEventListener('DOMContentLoaded', () => {
           scales: {
             x: {
               grid: { display: false },
-              ticks: { maxTicksLimit: 8, font: { size: 11 } }
+              ticks: { maxTicksLimit: 8, font: { size: 11 }, color: (document.documentElement.getAttribute('data-theme') === 'dark') ? '#94A3B8' : '#64748B' }
             },
             y: {
-              grid: { color: 'rgba(150,150,150,0.08)' },
+              grid: { color: (document.documentElement.getAttribute('data-theme') === 'dark') ? 'rgba(255,255,255,0.08)' : 'rgba(150,150,150,0.08)' },
               ticks: {
                 callback: v => `৳${v}`,
-                font: { size: 11 }
+                font: { size: 11 },
+                color: (document.documentElement.getAttribute('data-theme') === 'dark') ? '#94A3B8' : '#64748B'
               }
             }
           }
@@ -499,6 +540,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const maCanvas = document.getElementById('maChart');
     if (maCanvas && window.Chart) {
       const mCtx = maCanvas.getContext('2d');
+      // FEATURE: SMA50 - 50-period Simple Moving Average technical indicator
+      // FEATURE: SMA200 - 200-period Simple Moving Average long-term trend indicator
       const hasMa = ma50.some(v => v != null) || ma200.some(v => v != null);
       const maWarning = document.getElementById('maWarning');
       if (hasMa) {
@@ -524,8 +567,8 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             },
             scales: {
-              x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 } } },
-              y: { grid: { color: 'rgba(150,150,150,0.08)' }, ticks: { callback: v => `৳${v}`, font: { size: 11 } } }
+              x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 }, color: (document.documentElement.getAttribute('data-theme') === 'dark') ? '#94A3B8' : '#64748B' } },
+              y: { grid: { color: (document.documentElement.getAttribute('data-theme') === 'dark') ? 'rgba(255,255,255,0.08)' : 'rgba(150,150,150,0.08)' }, ticks: { callback: v => `৳${v}`, font: { size: 11 }, color: (document.documentElement.getAttribute('data-theme') === 'dark') ? '#94A3B8' : '#64748B' } }
             }
           }
         });
@@ -534,6 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // CHART: Maximum Drawdown Risk Curve - Historical loss depth visualizer
     const drawCanvas = document.getElementById('drawdownChart');
     if (drawCanvas && window.Chart) {
       const dCtx = drawCanvas.getContext('2d');

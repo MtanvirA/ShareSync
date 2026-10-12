@@ -1,4 +1,5 @@
 using ShareSync.Application.Common.Models;
+using ShareSync.Application.DTOs.MarketData;
 
 namespace ShareSync.Application.Interfaces;
 
@@ -9,6 +10,10 @@ public class DseQuoteData
     public decimal? HighPrice { get; set; }
     public decimal? LowPrice { get; set; }
     public long? Volume { get; set; }
+    public DateTime? QuoteTimestamp { get; set; }
+    public string Source { get; set; } = "StockChartBD Live API";
+    public string Status { get; set; } = "LIVE"; // LIVE, STALE, FALLBACK
+    public string ValidationState { get; set; } = "VALID";
 }
 
 public class DsePriceUpdateResultDto
@@ -17,6 +22,7 @@ public class DsePriceUpdateResultDto
     public int HistoryCount { get; set; }
     public DateTime SyncedAt { get; set; }
     public Dictionary<string, decimal> UpdatedPrices { get; set; } = new();
+    public Dictionary<string, string> PriceProvenance { get; set; } = new();
 }
 
 public class DseListedCompanyDto
@@ -45,5 +51,12 @@ public interface IDsePriceService
     Task<ApiResponse<DsePriceUpdateResultDto>> SyncAllCompanyPricesAsync(CancellationToken cancellationToken = default);
     Task<List<DseListedCompanyDto>> GetDseListedCompaniesAsync(CancellationToken cancellationToken = default);
     Task<DTOs.Companies.CompanyDto> ImportCompanyFromDseAsync(string symbol, string? preferredName = null, string? preferredSector = null, CancellationToken cancellationToken = default);
+
+    // StockChartBD Expanded API Endpoints
+    Task<StockChartBdMarketSummaryDto?> GetMarketSummaryAsync(CancellationToken cancellationToken = default);
+    Task<ApiResponse<int>> SyncHistoricalPricesAsync(string tickerSymbol, int limit = 100, CancellationToken cancellationToken = default);
+    Task<StockChartBdFinancialsDto?> GetCompanyFinancialsAsync(string tickerSymbol, CancellationToken cancellationToken = default);
+    Task<StockChartBdHealthDto?> GetCompanyHealthAsync(string tickerSymbol, CancellationToken cancellationToken = default);
+    Task<StockChartBdDiagnosticsDto> GetApiDiagnosticsAsync(CancellationToken cancellationToken = default);
 }
 

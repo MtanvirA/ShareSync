@@ -18,15 +18,15 @@ BEGIN
     IF INSERTING THEN
         v_action  := 'INSERT';
         v_tx_id   := :NEW.transaction_id;
-        v_details := 'Trigger: ' || :NEW.transaction_type || ' ' || :NEW.quantity || ' shares at price ' || :NEW.price_per_share;
+        v_details := 'Trigger: ' || :NEW.transaction_type || ' ' || :NEW.quantity || ' shares at price ' || :NEW.price_per_share || ' (Fee: ' || NVL(:NEW.fee, 0) || ')';
     ELSIF UPDATING THEN
         v_action  := 'UPDATE';
         v_tx_id   := :NEW.transaction_id;
-        v_details := 'Trigger: Updated tx #' || :OLD.transaction_id || '. Qty ' || :OLD.quantity || '->' || :NEW.quantity || ', Price ' || :OLD.price_per_share || '->' || :NEW.price_per_share;
+        v_details := 'Trigger: Updated tx #' || :OLD.transaction_id || '. Qty ' || :OLD.quantity || '->' || :NEW.quantity || ', Price ' || :OLD.price_per_share || '->' || :NEW.price_per_share || ', Fee ' || NVL(:OLD.fee, 0) || '->' || NVL(:NEW.fee, 0);
     ELSIF DELETING THEN
         v_action  := 'DELETE';
         v_tx_id   := NULL;
-        v_details := 'Trigger: Deleted tx #' || :OLD.transaction_id || ': ' || :OLD.transaction_type || ' ' || :OLD.quantity || ' shares at price ' || :OLD.price_per_share || ' (Portfolio ID ' || :OLD.portfolio_id || ', Company ID ' || :OLD.company_id || ')';
+        v_details := 'Trigger: Deleted tx #' || :OLD.transaction_id || ': ' || :OLD.transaction_type || ' ' || :OLD.quantity || ' shares at price ' || :OLD.price_per_share || ' (Fee: ' || NVL(:OLD.fee, 0) || ', Portfolio ID ' || :OLD.portfolio_id || ', Company ID ' || :OLD.company_id || ')';
     END IF;
 
     INSERT INTO transaction_audit (

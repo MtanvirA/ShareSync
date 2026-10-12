@@ -356,6 +356,7 @@ public class AlertTests
 
         Assert.NotNull(response);
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         Assert.True(response.Data.IsActive);
         Assert.Null(response.Data.TriggeredAt);
         Assert.Null(response.Data.Message);
@@ -462,17 +463,21 @@ public class AlertTests
         var service = CreateAlertService(context);
 
         var allRes = await service.GetUserAlertsAsync(userId, "ALL");
+        Assert.NotNull(allRes.Data);
         Assert.Equal(3, allRes.Data.Count);
 
         var activeRes = await service.GetUserAlertsAsync(userId, "ACTIVE");
+        Assert.NotNull(activeRes.Data);
         Assert.Single(activeRes.Data);
         Assert.Equal(1, activeRes.Data[0].AlertId);
 
         var trigRes = await service.GetUserAlertsAsync(userId, "TRIGGERED");
+        Assert.NotNull(trigRes.Data);
         Assert.Single(trigRes.Data);
         Assert.Equal(2, trigRes.Data[0].AlertId);
 
         var disRes = await service.GetUserAlertsAsync(userId, "DISABLED");
+        Assert.NotNull(disRes.Data);
         Assert.Single(disRes.Data);
         Assert.Equal(3, disRes.Data[0].AlertId);
     }

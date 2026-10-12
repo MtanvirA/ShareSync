@@ -8,6 +8,12 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Admin Controller
+/// Administrative console for system health metrics, market data sync trigger, and historical ledger audit reconciliation.
+/// FEATURE: Historical Reconciliation
+/// FEATURE: MySQL Database and Data Integrity
+/// </summary>
 [Authorize(Roles = "ADMIN")]
 [ApiController]
 [Route("api/admin")]

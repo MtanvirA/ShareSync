@@ -16,6 +16,7 @@
         var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
         var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
         document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-bs-theme", theme);
       })();
     </script>
 
@@ -52,18 +53,18 @@
           </a>
           <!-- Global Search (Feature 8) -->
           <div class="global-search-container position-relative mx-3 flex-grow-1 d-none d-md-block" style="max-width: 420px;">
-            <div class="input-group input-group-sm">
-              <span class="input-group-text bg-body-tertiary border-end-0 text-muted" style="border-radius: 8px 0 0 8px; border-color: var(--color-border);">
+            <div class="input-group input-group-sm search-input-group">
+              <span class="input-group-text text-muted">
                 <i class="bi bi-search"></i>
               </span>
               <input
                 type="text"
-                class="form-control bg-body-tertiary border-start-0 ps-0 text-body"
+                class="form-control text-body"
                 id="globalSearchInput"
                 placeholder="Search companies, tickers, sectors, portfolios..."
                 aria-label="Search ShareSync"
                 autocomplete="off"
-                style="border-radius: 0 8px 8px 0; border-color: var(--color-border); font-size: 13px;"
+                style="font-size: 13px;"
               />
               <button
                 class="btn btn-sm btn-link text-muted position-absolute end-0 top-50 translate-middle-y d-none pe-2 text-decoration-none"
@@ -312,10 +313,41 @@
               <span> Reports </span>
             </a>
 
-            <a href="activity.html" class="sidebar-link">
-              <i class="bi bi-clock-history"></i>
-              <span>Activity</span>
-            </a>
+            <!-- Compact More Dropdown -->
+            <div class="dropdown d-inline-block position-relative" id="navMoreDropdown">
+              <button
+                class="sidebar-link dropdown-toggle bg-transparent border-0"
+                type="button"
+                id="moreNavDropdownBtn"
+                data-bs-toggle="dropdown"
+                data-bs-popper-config='{"strategy":"fixed"}'
+                aria-expanded="false"
+              >
+                <i class="bi bi-three-dots"></i>
+                <span>More</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow border" aria-labelledby="moreNavDropdownBtn" style="min-width: 210px; font-size: 13px; z-index: 1060;">
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="learning-center.html" id="navLearningCenterLink">
+                    <i class="bi bi-mortarboard-fill text-primary"></i>
+                    <span>Learn &amp; Formulas</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="activity.html" id="navActivityLink">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Activity Log</span>
+                  </a>
+                </li>
+                <li class="admin-only-nav"><hr class="dropdown-divider my-1"></li>
+                <li class="admin-only-nav">
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger fw-semibold admin-only-nav" href="admin.html" id="adminNavTabLink">
+                    <i class="bi bi-shield-lock-fill text-danger"></i>
+                    <span>Admin Control</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
           </nav>
         </div>
 
@@ -441,6 +473,14 @@
                     placeholder="e.g. High growth and dividend investments"
                   />
                 </div>
+
+                <div class="form-field">
+                  <label for="portfolioFormCurrency"> Base Currency </label>
+                  <select id="portfolioFormCurrency" class="form-select form-select-sm" style="height: 38px;">
+                    <option value="BDT" selected>BDT (৳ - Bangladeshi Taka)</option>
+                    <option value="USD">USD ($ - United States Dollar)</option>
+                  </select>
+                </div>
               </div>
 
               <div class="form-actions mt-3">
@@ -486,6 +526,18 @@
             </div>
 
             <div class="portfolio-stat">
+              <span> Realized P/L </span>
+
+              <strong id="portfolioRealizedProfitLoss"> ৳0.00 </strong>
+            </div>
+
+            <div class="portfolio-stat">
+              <span> Net cash flow </span>
+
+              <strong id="portfolioNetCashFlow"> ৳0.00 </strong>
+            </div>
+
+            <div class="portfolio-stat">
               <span> Holdings </span>
 
               <strong id="portfolioHoldingsCount"> 0 </strong>
@@ -523,7 +575,11 @@
               <table class="holdings-table portfolio-table">
                 <thead>
                   <tr>
-                    <th>Company</th>
+                    <th>Asset</th>
+
+                    <th>Type</th>
+
+                    <th>Currency</th>
 
                     <th>Shares</th>
 
@@ -533,13 +589,15 @@
 
                     <th>Market value</th>
 
-                    <th>Return</th>
+                    <th>Unrealized return</th>
+
+                    <th>Realized P/L</th>
                   </tr>
                 </thead>
 
                 <tbody id="portfolioHoldingsBody">
                   <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">
+                    <td colspan="9" class="text-center py-4 text-muted">
                       <div class="spinner-border spinner-border-sm me-2" role="status"></div>
                       Loading portfolio holdings...
                     </td>
@@ -559,9 +617,9 @@
             <article class="dashboard-card">
               <div class="card-header">
                 <div>
-                  <h2>Performance</h2>
+                  <h2>Performance & Real Return</h2>
 
-                  <p>Portfolio metrics</p>
+                  <p>Nominal return vs Inflation-adjusted purchasing power</p>
                 </div>
               </div>
 
@@ -585,9 +643,51 @@
                 </div>
 
                 <div class="metric-row">
-                  <span> Return </span>
+                  <span> Realized profit/loss </span>
+
+                  <strong id="metricRealizedProfit"> ৳0.00 </strong>
+                </div>
+
+                <div class="metric-row">
+                  <span> Total profit/loss </span>
+
+                  <strong id="metricTotalProfit"> ৳0.00 </strong>
+                </div>
+
+                <div class="metric-row">
+                  <span> Total fees paid </span>
+
+                  <strong id="metricTotalFees"> ৳0.00 </strong>
+                </div>
+
+                <div class="metric-row">
+                  <span> Net cash flow </span>
+
+                  <strong id="metricNetCashFlow"> ৳0.00 </strong>
+                </div>
+
+                <div class="metric-row">
+                  <span> Nominal Return </span>
 
                   <strong class="positive-text" id="metricReturnPercentage"> 0.0% </strong>
+                </div>
+
+                <div class="metric-row">
+                  <span id="metricInflationLabel" title="Cumulative inflation over investment period">
+                    Inflation Rate (Cumulative)
+                    <small class="text-muted d-block" id="metricInflationPeriod" style="font-size: 0.72rem; font-weight: normal;"></small>
+                  </span>
+
+                  <strong id="metricInflationRate"> 0.0% </strong>
+                </div>
+
+                <div class="metric-row" style="background: var(--color-surface-hover); border-radius: 6px; padding: 6px 8px;">
+                  <span>
+                    <i class="bi bi-shield-check text-success me-1"></i> <strong>Real Return (Purchasing Power)</strong>
+                    <small class="text-muted d-block" id="metricRealReturnStatus" style="font-size: 0.72rem; font-weight: normal;"></small>
+                  </span>
+
+                  <strong id="metricRealReturnPercentage" class="fw-bold"> 0.0% </strong>
                 </div>
               </div>
             </article>

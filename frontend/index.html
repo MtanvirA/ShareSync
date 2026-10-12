@@ -19,6 +19,8 @@
         var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
         var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
         document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-bs-theme", theme);
+        try { var u = JSON.parse(localStorage.getItem("sharesync_user") || "{}"); if ((u.role || "").toUpperCase() === "ADMIN") { document.documentElement.classList.add("is-admin-user"); } } catch(_) {}
       })();
     </script>
 
@@ -199,6 +201,7 @@
                 </div>
 
                 <div class="py-2 border-bottom">
+                  <a href="admin.html" class="dropdown-item-link px-3 py-2 align-items-center gap-2 text-danger fw-semibold admin-only-nav" id="adminDropdownLink"><i class="bi bi-shield-lock-fill text-danger"></i><span>Admin Control Panel</span></a>
                   <a href="settings.html" class="dropdown-item-link px-3 py-2 d-flex align-items-center gap-2">
                     <i class="bi bi-person"></i>
                     <span>My Profile & Settings</span>
@@ -314,10 +317,41 @@
               <span> Reports </span>
             </a>
 
-            <a href="activity.html" class="sidebar-link">
-              <i class="bi bi-clock-history"></i>
-              <span>Activity</span>
-            </a>
+            <!-- Compact More Dropdown -->
+            <div class="dropdown d-inline-block position-relative" id="navMoreDropdown">
+              <button
+                class="sidebar-link dropdown-toggle bg-transparent border-0"
+                type="button"
+                id="moreNavDropdownBtn"
+                data-bs-toggle="dropdown"
+                data-bs-popper-config='{"strategy":"fixed"}'
+                aria-expanded="false"
+              >
+                <i class="bi bi-three-dots"></i>
+                <span>More</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow border" aria-labelledby="moreNavDropdownBtn" style="min-width: 210px; font-size: 13px; z-index: 1060;">
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="learning-center.html" id="navLearningCenterLink">
+                    <i class="bi bi-mortarboard-fill text-primary"></i>
+                    <span>Learn &amp; Formulas</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="activity.html" id="navActivityLink">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Activity Log</span>
+                  </a>
+                </li>
+                <li class="admin-only-nav"><hr class="dropdown-divider my-1"></li>
+                <li class="admin-only-nav">
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger fw-semibold admin-only-nav" href="admin.html" id="adminNavTabLink">
+                    <i class="bi bi-shield-lock-fill text-danger"></i>
+                    <span>Admin Control</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
 
 
           </nav>

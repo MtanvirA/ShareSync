@@ -16,6 +16,7 @@
         var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
         var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
         document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-bs-theme", theme);
       })();
     </script>
 
@@ -310,10 +311,41 @@
               <span> Reports </span>
             </a>
 
-            <a href="activity.html" class="sidebar-link">
-              <i class="bi bi-clock-history"></i>
-              <span>Activity</span>
-            </a>
+            <!-- Compact More Dropdown -->
+            <div class="dropdown d-inline-block position-relative" id="navMoreDropdown">
+              <button
+                class="sidebar-link dropdown-toggle bg-transparent border-0"
+                type="button"
+                id="moreNavDropdownBtn"
+                data-bs-toggle="dropdown"
+                data-bs-popper-config='{"strategy":"fixed"}'
+                aria-expanded="false"
+              >
+                <i class="bi bi-three-dots"></i>
+                <span>More</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow border" aria-labelledby="moreNavDropdownBtn" style="min-width: 210px; font-size: 13px; z-index: 1060;">
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="learning-center.html" id="navLearningCenterLink">
+                    <i class="bi bi-mortarboard-fill text-primary"></i>
+                    <span>Learn &amp; Formulas</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="activity.html" id="navActivityLink">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Activity Log</span>
+                  </a>
+                </li>
+                <li class="admin-only-nav"><hr class="dropdown-divider my-1"></li>
+                <li class="admin-only-nav">
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger fw-semibold admin-only-nav" href="admin.html" id="adminNavTabLink">
+                    <i class="bi bi-shield-lock-fill text-danger"></i>
+                    <span>Admin Control</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
           </nav>
         </div>
 
@@ -755,6 +787,32 @@
                   </select>
                 </div>
 
+                <!-- LF-29: Canonical Asset Type, Currency & Multi-Currency Information Strip -->
+                <div id="txSecurityInfoCard" class="d-none" style="grid-column: 1 / -1; margin-top: -6px; margin-bottom: 4px;">
+                  <div class="p-2 px-3 rounded-2 d-flex flex-wrap align-items-center justify-content-between gap-2" style="background: var(--color-surface-hover, rgba(0,0,0,0.03)); border: 1px solid var(--color-border); font-size: 12px;">
+                    <div class="d-flex align-items-center gap-3">
+                      <div>
+                        <span class="text-muted me-1">Asset Type:</span>
+                        <span id="txAssetTypeBadge" class="badge bg-primary text-white px-2 py-1" style="font-size: 11px;">EQUITY</span>
+                      </div>
+                      <div>
+                        <span class="text-muted me-1">Currency:</span>
+                        <span id="txCurrencyBadge" class="badge bg-body-secondary text-body px-2 py-1" style="font-size: 11px; border: 1px solid var(--color-border);">BDT</span>
+                      </div>
+                    </div>
+                    <div id="txFxRateInfo" class="d-none align-items-center gap-3 text-muted">
+                      <div>
+                        <span>Exchange Rate:</span>
+                        <strong id="txFxRateVal" class="text-body ms-1">1 USD = 121.50 BDT</strong>
+                      </div>
+                      <div>
+                        <span>Base-Currency Value:</span>
+                        <strong id="txBaseCurrencyVal" class="text-primary ms-1">৳0.00</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Quantity -->
 
                 <div class="form-field">
@@ -777,7 +835,7 @@
                   <label for="price"> Price per share </label>
 
                   <div class="input-with-prefix">
-                    <span> ৳ </span>
+                    <span id="txPricePrefix"> ৳ </span>
 
                     <input
                       type="number"
@@ -788,6 +846,30 @@
                       required
                     />
                   </div>
+                </div>
+
+                <!-- Transaction Fee (LF-27) -->
+                <div class="form-field">
+                  <label for="transactionFee">
+                    Fee / Commission
+                    <span>(optional)</span>
+                  </label>
+
+                  <div class="input-with-prefix">
+                    <span id="txFeePrefix"> ৳ </span>
+
+                    <input
+                      type="number"
+                      id="transactionFee"
+                      min="0"
+                      step="0.01"
+                      value="0.00"
+                      placeholder="e.g. 15.00"
+                    />
+                  </div>
+                  <small id="netCashImpactHint" class="text-muted d-block mt-1" style="font-size: 11px;">
+                    Net cash impact: <strong id="netCashImpactVal" class="text-primary">৳0.00</strong>
+                  </small>
                 </div>
 
                 <!-- Date -->
@@ -952,7 +1034,10 @@
                     <th>Type</th>
                     <th style="cursor: pointer;" id="thSortQty" title="Click to sort by quantity">Quantity <i class="bi bi-arrow-down-up" style="font-size: 10px;"></i></th>
                     <th style="cursor: pointer;" id="thSortPrice" title="Click to sort by price">Price <i class="bi bi-arrow-down-up" style="font-size: 10px;"></i></th>
-                    <th style="cursor: pointer;" id="thSortTotal" title="Click to sort by transaction value">Total <i class="bi bi-arrow-down-up" style="font-size: 10px;"></i></th>
+                    <th style="cursor: pointer;" id="thSortTotal" title="Click to sort by transaction value">Gross <i class="bi bi-arrow-down-up" style="font-size: 10px;"></i></th>
+                    <th>Fee</th>
+                    <th>Net Amount</th>
+                    <th>Realized P/L</th>
                     <th>Portfolio</th>
                     <th>Actions</th>
                   </tr>
@@ -960,7 +1045,7 @@
 
                 <tbody id="transactionTableBody">
                   <tr>
-                    <td colspan="8" class="text-center py-4 text-muted">
+                    <td colspan="11" class="text-center py-4 text-muted">
                       <div class="spinner-border spinner-border-sm me-2" role="status"></div>
                       Loading transaction records...
                     </td>

@@ -5,6 +5,8 @@ CREATE TABLE companies (
     sector_id       NUMBER NOT NULL,
     current_price   NUMBER(14,2) NOT NULL,
     market_cap      NUMBER(20,2),
+    asset_type      VARCHAR2(20) DEFAULT 'EQUITY' NOT NULL,
+    currency        VARCHAR2(10) DEFAULT 'BDT' NOT NULL,
     is_active       NUMBER(1) DEFAULT 1 NOT NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
@@ -19,6 +21,12 @@ CREATE TABLE companies (
 
     CONSTRAINT ck_companies_market_cap
         CHECK (market_cap IS NULL OR market_cap >= 0),
+
+    CONSTRAINT ck_companies_asset_type
+        CHECK (asset_type IN ('EQUITY', 'ETF', 'MUTUAL_FUND', 'CASH')),
+
+    CONSTRAINT ck_companies_currency
+        CHECK (currency IN ('BDT', 'USD')),
 
     CONSTRAINT fk_companies_sector
         FOREIGN KEY (sector_id)

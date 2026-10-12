@@ -13,6 +13,7 @@
         var prefDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
         var theme = saved === "dark" || (saved === "system" && prefDark) || (!saved && prefDark) ? "dark" : "light";
         document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-bs-theme", theme);
       })();
     </script>
 
@@ -294,10 +295,41 @@
               <span>Reports</span>
             </a>
 
-            <a href="activity.html" class="sidebar-link">
-              <i class="bi bi-clock-history"></i>
-              <span>Activity</span>
-            </a>
+            <!-- Compact More Dropdown -->
+            <div class="dropdown d-inline-block position-relative" id="navMoreDropdown">
+              <button
+                class="sidebar-link dropdown-toggle bg-transparent border-0"
+                type="button"
+                id="moreNavDropdownBtn"
+                data-bs-toggle="dropdown"
+                data-bs-popper-config='{"strategy":"fixed"}'
+                aria-expanded="false"
+              >
+                <i class="bi bi-three-dots"></i>
+                <span>More</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow border" aria-labelledby="moreNavDropdownBtn" style="min-width: 210px; font-size: 13px; z-index: 1060;">
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="learning-center.html" id="navLearningCenterLink">
+                    <i class="bi bi-mortarboard-fill text-primary"></i>
+                    <span>Learn &amp; Formulas</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="activity.html" id="navActivityLink">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Activity Log</span>
+                  </a>
+                </li>
+                <li class="admin-only-nav"><hr class="dropdown-divider my-1"></li>
+                <li class="admin-only-nav">
+                  <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger fw-semibold admin-only-nav" href="admin.html" id="adminNavTabLink">
+                    <i class="bi bi-shield-lock-fill text-danger"></i>
+                    <span>Admin Control</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
           </nav>
         </div>
 
@@ -733,6 +765,54 @@
                   <button id="securityLogoutBtn" type="button" class="btn btn-outline-danger btn-sm px-3">
                     <i class="bi bi-box-arrow-right me-1"></i> Sign Out
                   </button>
+                </div>
+              </article>
+
+              <!-- Two-Factor Authentication (TOTP Foundation - LF-32) -->
+              <article class="dashboard-card mb-4">
+                <div class="card-header pb-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div>
+                    <h2>Two-Factor Authentication (TOTP Foundation)</h2>
+                    <p>Cryptographic RFC 6238 time-based one-time password security foundation.</p>
+                  </div>
+                  <span class="badge bg-info-subtle text-info border px-2 py-1">Foundation Active</span>
+                </div>
+
+                <div class="mt-3" style="max-width: 720px;">
+                  <p class="text-muted small mb-3">
+                    ShareSync features an RFC 6238 compliant TOTP engine compatible with standard authenticator applications (such as Google Authenticator, Microsoft Authenticator, and Bitwarden).
+                    Full mandatory enforcement during login is scheduled for future enterprise release.
+                  </p>
+
+                  <div class="p-3 border rounded mb-3" style="background: var(--color-surface-soft); border-color: var(--color-border) !important;">
+                    <div class="row g-2 small">
+                      <div class="col-sm-4"><strong>Algorithm:</strong> RFC 6238 TOTP</div>
+                      <div class="col-sm-4"><strong>Hash:</strong> HMAC-SHA1</div>
+                      <div class="col-sm-4"><strong>Timestep / Digits:</strong> 30s / 6 Digits</div>
+                    </div>
+                  </div>
+
+                  <button id="generateMfaKeyBtn" type="button" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-key-fill me-1"></i> Generate Test Authenticator Key
+                  </button>
+
+                  <div id="mfaSetupDetails" class="d-none mt-3 p-3 border rounded" style="background: var(--color-surface); border-color: var(--color-border) !important;">
+                    <h6 class="fw-bold mb-2"><i class="bi bi-qr-code-scan me-1 text-primary"></i> Authenticator Enrollment Details</h6>
+                    <div class="mb-2">
+                      <label class="form-label small text-muted mb-0">Base32 Secret Key:</label>
+                      <div class="input-group input-group-sm">
+                        <input type="text" id="mfaSecretKeyDisplay" class="form-control font-monospace" readonly />
+                        <button class="btn btn-outline-secondary" type="button" id="copyMfaKeyBtn"><i class="bi bi-clipboard"></i> Copy</button>
+                      </div>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small text-muted mb-0">Authenticator URI:</label>
+                      <input type="text" id="mfaUriDisplay" class="form-control form-control-sm font-monospace text-truncate" readonly />
+                    </div>
+                    <div class="alert alert-secondary small mb-0 py-2">
+                      <i class="bi bi-info-circle me-1"></i> Foundation demonstration: Key generation and verification algorithms are active. Mandatory login prompt integration is planned for future enterprise release.
+                    </div>
+                  </div>
                 </div>
               </article>
             </div>

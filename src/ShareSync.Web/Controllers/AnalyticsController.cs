@@ -6,6 +6,11 @@ using ShareSync.Application.Interfaces;
 
 namespace ShareSync.Web.Controllers;
 
+/// <summary>
+/// API: Analytics Controller
+/// Generates advanced portfolio performance analytics, risk indicators, asset and sector allocation breakdowns.
+/// FEATURE: Portfolio Analytics
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]

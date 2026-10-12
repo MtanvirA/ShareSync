@@ -8,6 +8,10 @@ using ShareSync.Domain.Entities;
 
 namespace ShareSync.Application.Services;
 
+/// <summary>
+/// Service providing what-if hypothetical trade simulations to forecast portfolio weights, cost basis, and cash balances.
+/// FEATURE: Simulator
+/// </summary>
 public class SimulatorService : ISimulatorService
 {
     private readonly IApplicationDbContext _context;
@@ -55,6 +59,12 @@ public class SimulatorService : ISimulatorService
         if (request.HypotheticalPrice <= 0)
         {
             throw new AppException("Hypothetical price per share must be greater than zero.", 400);
+        }
+
+        // Fee validation
+        if (request.Fee < 0)
+        {
+            throw new AppException("Fee cannot be negative.", 400);
         }
 
         // 4. Portfolio existence and strict ownership check
@@ -170,7 +180,9 @@ public class SimulatorService : ISimulatorService
             simulatedInvestedVal = simulatedNetQty * simulatedAvgCost;
             simulatedUnrealizedPL = simulatedMarketVal - simulatedInvestedVal;
             simulatedReturnPct = simulatedInvestedVal > 0 ? (simulatedUnrealizedPL / simulatedInvestedVal) * 100 : 0m;
-            realizedPL = Math.Round((request.HypotheticalPrice - currentAvgBuyPrice) * request.Quantity, 2);
+            decimal grossProceeds = request.Quantity * request.HypotheticalPrice;
+            decimal costBasisSold = request.Quantity * currentAvgBuyPrice;
+            realizedPL = Math.Round(grossProceeds - request.Fee - costBasisSold, 2);
         }
         else
         {
@@ -201,6 +213,9 @@ public class SimulatorService : ISimulatorService
             : 0m;
 
         decimal totalSimulatedAmount = Math.Round(request.Quantity * request.HypotheticalPrice, 2);
+        decimal netSimulatedAmount = txType == "BUY"
+            ? totalSimulatedAmount + request.Fee
+            : Math.Max(0m, totalSimulatedAmount - request.Fee);
 
         var result = new SimulationResultDto
         {
@@ -213,6 +228,8 @@ public class SimulatorService : ISimulatorService
             Quantity = request.Quantity,
             HypotheticalPrice = Math.Round(request.HypotheticalPrice, 2),
             TotalHypotheticalAmount = totalSimulatedAmount,
+            Fee = Math.Round(request.Fee, 2),
+            NetHypotheticalAmount = Math.Round(netSimulatedAmount, 2),
             CurrentMarketPrice = Math.Round(company.CurrentPrice, 2),
 
             // Current state

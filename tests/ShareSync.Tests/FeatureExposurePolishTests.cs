@@ -239,6 +239,7 @@ public class FeatureExposurePolishTests
         // Verify database transaction record and audit
         var dbTx = await context.Transactions.Include(t => t.Company).FirstOrDefaultAsync(t => t.TransactionId == res.Data.TransactionId);
         Assert.NotNull(dbTx);
+        Assert.NotNull(dbTx.Company);
         Assert.Equal("CASH", dbTx.Company.AssetType);
         Assert.Equal("USD", dbTx.Company.Currency);
 

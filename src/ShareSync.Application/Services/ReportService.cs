@@ -460,7 +460,7 @@ public class ReportService : IReportService
             .AsNoTracking()
             .Include(t => t.Portfolio)
             .Include(t => t.Company)
-            .Where(t => t.Portfolio.UserId == userId);
+            .Where(t => t.Portfolio != null && t.Portfolio.UserId == userId);
 
         if (portfolioId.HasValue)
         {
@@ -648,7 +648,7 @@ public class ReportService : IReportService
         var transactions = await _context.Transactions
             .AsNoTracking()
             .Include(t => t.Company)
-                .ThenInclude(c => c.Sector)
+                .ThenInclude(c => c!.Sector)
             .Where(t => userPortfolioIds.Contains(t.PortfolioId) && t.Company != null)
             .ToListAsync(cancellationToken);
 

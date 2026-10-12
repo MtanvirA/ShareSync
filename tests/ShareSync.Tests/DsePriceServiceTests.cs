@@ -125,6 +125,7 @@ public class DsePriceServiceTests
 
         // Assert
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         Assert.Equal(1, response.Data.UpdatedCount);
         Assert.Equal(245.50m, response.Data.UpdatedPrices["GP"]);
 
@@ -146,6 +147,7 @@ public class DsePriceServiceTests
 
         // Assert
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         Assert.Equal(0, response.Data.UpdatedCount);
     }
 
@@ -244,6 +246,7 @@ public class DsePriceServiceTests
         var dbCompany = await context.Companies.Include(c => c.Sector).FirstOrDefaultAsync(c => c.TickerSymbol == "RENATA");
         Assert.NotNull(dbCompany);
         Assert.Equal(450.00m, dbCompany.CurrentPrice);
+        Assert.NotNull(dbCompany.Sector);
         Assert.Equal("Pharmaceuticals", dbCompany.Sector.SectorName);
 
         var history = await context.CompanyPriceHistories.FirstOrDefaultAsync(h => h.CompanyId == dbCompany.CompanyId);

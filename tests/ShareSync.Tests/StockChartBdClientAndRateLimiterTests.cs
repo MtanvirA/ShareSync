@@ -520,7 +520,8 @@ public class StockChartBdClientAndRateLimiterTests
 
         // 2nd call with forceRefresh: upstream fails with 503, but last-known-good catalog is retained!
         var catalog2 = await client.GetCompaniesAsync(forceRefresh: true);
-        Assert.Single(catalog2!);
+        Assert.NotNull(catalog2);
+        Assert.Single(catalog2);
         Assert.Equal("GP", catalog2[0].Symbol);
     }
 

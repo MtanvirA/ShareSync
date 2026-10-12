@@ -93,10 +93,12 @@ public class MathematicalAccuracyAuditTests
         var sell2 = await txService.CreateTransactionAsync(new CreateTransactionRequestDto { PortfolioId = 1, CompanyId = 1, TransactionType = "SELL", Quantity = 40m, PricePerShare = 90m, Fee = 10m, TransactionDate = d1.AddDays(3) }, 1);
 
         // Verify sell 1 realized P/L
+        Assert.NotNull(sell1.Data);
         Assert.NotNull(sell1.Data.RealizedProfitLoss);
         Assert.Equal(1380.00m, sell1.Data.RealizedProfitLoss.Value);
 
         // Verify sell 2 realized P/L (loss-making)
+        Assert.NotNull(sell2.Data);
         Assert.NotNull(sell2.Data.RealizedProfitLoss);
         Assert.Equal(-676.67m, sell2.Data.RealizedProfitLoss.Value);
 
@@ -131,6 +133,7 @@ public class MathematicalAccuracyAuditTests
             PortfolioId = 1, CompanyId = 1, TransactionType = "BUY", Quantity = 50m, PricePerShare = 100m, Fee = 25m
         }, 1);
 
+        Assert.NotNull(buyRes.Data);
         Assert.Equal(5000m, buyRes.Data.TotalAmount);
         Assert.Equal(25m, buyRes.Data.Fee);
         Assert.Equal(5025m, buyRes.Data.NetAmount); // Gross + Fee
@@ -141,6 +144,7 @@ public class MathematicalAccuracyAuditTests
             PortfolioId = 1, CompanyId = 1, TransactionType = "SELL", Quantity = 20m, PricePerShare = 120m, Fee = 12m
         }, 1);
 
+        Assert.NotNull(sellRes.Data);
         Assert.Equal(2400m, sellRes.Data.TotalAmount);
         Assert.Equal(12m, sellRes.Data.Fee);
         Assert.Equal(2388m, sellRes.Data.NetAmount); // Gross - Fee

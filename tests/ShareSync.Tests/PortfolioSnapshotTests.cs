@@ -103,6 +103,7 @@ public class PortfolioSnapshotTests
         var response = await service.CreateSnapshotAsync(1, request, userId: 1);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         // Portfolio 1 holdings: 100 * 120 + 50 * 300 = 12,000 + 15,000 = 27,000
         Assert.Equal(27000.00m, response.Data.TotalValue);
     }
@@ -197,6 +198,7 @@ public class PortfolioSnapshotTests
         var response = await service.GetPortfolioSnapshotsAsync(1, userId: 1);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         var list = response.Data;
         Assert.Equal(3, list.Count);
 
@@ -232,6 +234,7 @@ public class PortfolioSnapshotTests
         var response = await service.GetPortfolioSnapshotsAsync(1, userId: 1, filter);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         Assert.Single(response.Data);
         Assert.Equal(new DateTime(2026, 8, 15), response.Data[0].SnapshotDate);
     }
@@ -243,10 +246,12 @@ public class PortfolioSnapshotTests
         var service = new PortfolioSnapshotService(context);
 
         var created = await service.CreateSnapshotAsync(1, new CreateSnapshotRequestDto { SnapshotDate = new DateTime(2026, 9, 1), TotalValue = 75000m }, userId: 1);
+        Assert.NotNull(created.Data);
 
         var response = await service.GetSnapshotByIdAsync(created.Data.SnapshotId, userId: 1);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         Assert.Equal(75000m, response.Data.TotalValue);
         Assert.Equal("User 1 Portfolio", response.Data.PortfolioName);
     }
@@ -258,6 +263,7 @@ public class PortfolioSnapshotTests
         var service = new PortfolioSnapshotService(context);
 
         var created = await service.CreateSnapshotAsync(1, new CreateSnapshotRequestDto { SnapshotDate = new DateTime(2026, 9, 1), TotalValue = 75000m }, userId: 1);
+        Assert.NotNull(created.Data);
 
         var ex = await Assert.ThrowsAsync<AppException>(() =>
             service.GetSnapshotByIdAsync(created.Data.SnapshotId, userId: 2));
@@ -272,6 +278,7 @@ public class PortfolioSnapshotTests
         var service = new PortfolioSnapshotService(context);
 
         var created = await service.CreateSnapshotAsync(1, new CreateSnapshotRequestDto { SnapshotDate = new DateTime(2026, 9, 1), TotalValue = 75000m }, userId: 1);
+        Assert.NotNull(created.Data);
 
         var deleteRes = await service.DeleteSnapshotAsync(created.Data.SnapshotId, userId: 1);
         Assert.True(deleteRes.Success);
@@ -288,6 +295,7 @@ public class PortfolioSnapshotTests
         var service = new PortfolioSnapshotService(context);
 
         var created = await service.CreateSnapshotAsync(1, new CreateSnapshotRequestDto { SnapshotDate = new DateTime(2026, 9, 1), TotalValue = 75000m }, userId: 1);
+        Assert.NotNull(created.Data);
 
         var ex = await Assert.ThrowsAsync<AppException>(() =>
             service.DeleteSnapshotAsync(created.Data.SnapshotId, userId: 2));
@@ -307,6 +315,7 @@ public class PortfolioSnapshotTests
         var response = await service.GetPerformanceDataAsync(1, userId: 1);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         var data = response.Data;
         Assert.Equal(2, data.Labels.Count);
         Assert.Equal(100000m, data.StartingValue);
@@ -325,6 +334,7 @@ public class PortfolioSnapshotTests
         var response = await service.GetPerformanceDataAsync(1, userId: 1);
 
         Assert.True(response.Success);
+        Assert.NotNull(response.Data);
         var data = response.Data;
         Assert.Single(data.Labels);
         // Auto-computed holdings value = 27,000

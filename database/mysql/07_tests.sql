@@ -8,7 +8,7 @@
 USE sharesync;
 
 -- ============================================================
--- TEST 1: VERIFY ALL 17 TABLES EXIST
+-- TEST 1: VERIFY ALL 18 TABLES EXIST
 -- ============================================================
 SELECT 
     table_name,
@@ -19,7 +19,7 @@ WHERE table_schema = 'sharesync' AND table_type = 'BASE TABLE'
 ORDER BY table_name;
 
 -- ============================================================
--- TEST 2: ROW COUNT AUDIT ACROSS ALL ENTITIES (17 TABLES)
+-- TEST 2: ROW COUNT AUDIT ACROSS ALL ENTITIES (18 TABLES)
 -- ============================================================
 SELECT 'APP_USERS' AS entity, COUNT(*) AS total_rows FROM app_users
 UNION ALL SELECT 'SECTORS', COUNT(*) FROM sectors

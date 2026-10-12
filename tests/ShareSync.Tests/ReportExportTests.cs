@@ -269,6 +269,7 @@ public class ReportExportTests
 
         var authoritative = await reportService.GetCompanySectorReportAsync(userId: 1, portfolioId: 1);
         Assert.True(authoritative.Success);
+        Assert.NotNull(authoritative.Data);
         var uiData = authoritative.Data;
 
         var csvResult = await exportService.ExportReportAsync("company-sector", "csv", userId: 1, new ReportExportFilterDto
@@ -297,6 +298,7 @@ public class ReportExportTests
 
         var authoritative = await reportService.GetPerformanceReportAsync(userId: 1, portfolioId: 1, period: "12");
         Assert.True(authoritative.Success);
+        Assert.NotNull(authoritative.Data);
         var uiData = authoritative.Data;
 
         var csvResult = await exportService.ExportReportAsync("performance", "csv", userId: 1, new ReportExportFilterDto
@@ -381,6 +383,7 @@ public class ReportExportTests
 
         var authoritative = await reportService.GetWatchlistTargetReportAsync(userId: 1);
         Assert.True(authoritative.Success);
+        Assert.NotNull(authoritative.Data);
         var uiData = authoritative.Data;
 
         var csvResult = await exportService.ExportReportAsync("watchlist", "csv", userId: 1, new ReportExportFilterDto());

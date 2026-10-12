@@ -59,7 +59,7 @@ public class TransactionService : ITransactionService
             .AsNoTracking()
             .Include(t => t.Portfolio)
             .Include(t => t.Company)
-            .Where(t => t.Portfolio.UserId == userId);
+            .Where(t => t.Portfolio != null && t.Portfolio.UserId == userId);
 
         if (filter.PortfolioId.HasValue && filter.PortfolioId > 0)
         {
@@ -159,10 +159,10 @@ public class TransactionService : ITransactionService
             {
                 TransactionId = t.TransactionId,
                 PortfolioId = t.PortfolioId,
-                PortfolioName = t.Portfolio.PortfolioName,
+                PortfolioName = t.Portfolio != null ? t.Portfolio.PortfolioName : string.Empty,
                 CompanyId = t.CompanyId,
-                CompanyName = t.Company.CompanyName,
-                TickerSymbol = t.Company.TickerSymbol,
+                CompanyName = t.Company != null ? t.Company.CompanyName : string.Empty,
+                TickerSymbol = t.Company != null ? t.Company.TickerSymbol : string.Empty,
                 TransactionType = t.TransactionType,
                 Quantity = t.Quantity,
                 PricePerShare = t.PricePerShare,
@@ -269,7 +269,7 @@ public class TransactionService : ITransactionService
         }
 
         // Strict ownership check
-        if (transaction.Portfolio.UserId != userId)
+        if (transaction.Portfolio == null || transaction.Portfolio.UserId != userId)
         {
             throw new AppException("You do not have permission to view this transaction.", 403);
         }
@@ -289,7 +289,9 @@ public class TransactionService : ITransactionService
             realizedPL = Math.Round((gross - transaction.Fee) - (transaction.Quantity * avgCost), 2);
         }
 
-        var dto = MapToDto(transaction, transaction.Portfolio.PortfolioName, transaction.Company, realizedPL);
+        var portfolioName = transaction.Portfolio?.PortfolioName ?? "Portfolio";
+        var company = transaction.Company ?? new Company();
+        var dto = MapToDto(transaction, portfolioName, company, realizedPL);
         return ApiResponse<TransactionDto>.Ok(dto);
     }
 
@@ -522,7 +524,7 @@ public class TransactionService : ITransactionService
         }
 
         // Strict ownership check
-        if (transaction.Portfolio.UserId != userId)
+        if (transaction.Portfolio == null || transaction.Portfolio.UserId != userId)
         {
             throw new AppException("You do not have permission to modify this transaction.", 403);
         }
@@ -565,8 +567,9 @@ public class TransactionService : ITransactionService
 
         if (newTotalSells > newTotalBuys)
         {
+            var ticker = transaction.Company?.TickerSymbol ?? "Company";
             throw new BusinessRuleException(
-                $"Cannot update transaction: New quantity would result in negative holdings (Total Bought: {newTotalBuys:N2}, Total Sold: {newTotalSells:N2}) for {transaction.Company.TickerSymbol}."
+                $"Cannot update transaction: New quantity would result in negative holdings (Total Bought: {newTotalBuys:N2}, Total Sold: {newTotalSells:N2}) for {ticker}."
             );
         }
 
@@ -594,13 +597,14 @@ public class TransactionService : ITransactionService
             var feeVal = Math.Round(transaction.Fee, 2);
             var netVal = transaction.TransactionType == "BUY" ? grossVal + feeVal : grossVal - feeVal;
 
+            var ticker = transaction.Company?.TickerSymbol ?? "Company";
             var audit = new TransactionAudit
             {
                 TransactionId = transaction.TransactionId,
                 ActionType = "UPDATE",
                 ActionDate = DateTime.UtcNow,
                 ChangedBy = $"User #{userId}",
-                Details = $"Updated {transaction.TransactionType} {transaction.Company.TickerSymbol}: Qty {oldQty:N4} -> {request.Quantity:N4}, Price ৳{oldPrice:N2} -> ৳{request.PricePerShare:N2}, Fee ৳{oldFee:N2} -> ৳{transaction.Fee:N2} (Net: ৳{netVal:N2}). {request.Notes}".Trim()
+                Details = $"Updated {transaction.TransactionType} {ticker}: Qty {oldQty:N4} -> {request.Quantity:N4}, Price ৳{oldPrice:N2} -> ৳{request.PricePerShare:N2}, Fee ৳{oldFee:N2} -> ৳{transaction.Fee:N2} (Net: ৳{netVal:N2}). {request.Notes}".Trim()
             };
 
             _context.TransactionAudits.Add(audit);
@@ -616,7 +620,9 @@ public class TransactionService : ITransactionService
                 realizedPL = Math.Round((grossVal - feeVal) - (transaction.Quantity * avgCost), 2);
             }
 
-            var dto = MapToDto(transaction, transaction.Portfolio.PortfolioName, transaction.Company, realizedPL);
+            var portfolioName = transaction.Portfolio?.PortfolioName ?? "Portfolio";
+            var company = transaction.Company ?? new Company();
+            var dto = MapToDto(transaction, portfolioName, company, realizedPL);
             return ApiResponse<TransactionDto>.Ok(dto, "Transaction updated successfully.");
         }
         catch (Exception)
@@ -642,7 +648,7 @@ public class TransactionService : ITransactionService
         }
 
         // Strict ownership check
-        if (transaction.Portfolio.UserId != userId)
+        if (transaction.Portfolio == null || transaction.Portfolio.UserId != userId)
         {
             throw new AppException("You do not have permission to delete this transaction.", 403);
         }
@@ -660,8 +666,9 @@ public class TransactionService : ITransactionService
             var remainingBuys = totalBuys - transaction.Quantity;
             if (remainingBuys < totalSells)
             {
+                var ticker = transaction.Company?.TickerSymbol ?? "Company";
                 throw new BusinessRuleException(
-                    $"Cannot delete this BUY transaction: Existing SELL orders require these shares. Remaining shares would be {remainingBuys - totalSells:N2} for {transaction.Company.TickerSymbol}."
+                    $"Cannot delete this BUY transaction: Existing SELL orders require these shares. Remaining shares would be {remainingBuys - totalSells:N2} for {ticker}."
                 );
             }
         }
@@ -670,13 +677,15 @@ public class TransactionService : ITransactionService
         try
         {
             // 1. Audit the deletion before removing row
+            var ticker = transaction.Company?.TickerSymbol ?? "Company";
+            var portfolioName = transaction.Portfolio?.PortfolioName ?? "Portfolio";
             var audit = new TransactionAudit
             {
                 TransactionId = null, // Detached so audit record is retained permanently
                 ActionType = "DELETE",
                 ActionDate = DateTime.UtcNow,
                 ChangedBy = $"User #{userId}",
-                Details = $"Deleted transaction #{transaction.TransactionId}: {transaction.TransactionType} {transaction.Quantity:N4} shares of {transaction.Company.TickerSymbol} @ ৳{transaction.PricePerShare:N2} (Portfolio: {transaction.Portfolio.PortfolioName})"
+                Details = $"Deleted transaction #{transaction.TransactionId}: {transaction.TransactionType} {transaction.Quantity:N4} shares of {ticker} @ ৳{transaction.PricePerShare:N2} (Portfolio: {portfolioName})"
             };
             _context.TransactionAudits.Add(audit);
 

@@ -10,6 +10,11 @@
 *.userprefs
 *.pidb
 *.booproj
+[Tt]est[Rr]esults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
 
 ## IDEs
 .vscode/*
@@ -33,6 +38,7 @@ archive/
 
 ## Configuration & Environment Secrets
 appsettings.Development.json
+appsettings.Local.json
 *.local.json
 Credentials.txt
 

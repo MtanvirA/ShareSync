@@ -184,10 +184,21 @@ $$\text{OverallScore} = 0.30 \cdot S_{\text{return}} + 0.20 \cdot S_{\text{risk}
 ## 8. Live Market Data Pipeline & Cross-Source Reconciliation
 
 ### 8.1 Primary Live Source & Provenance
-- **Primary Live Feed:** StockChartBD Live Quote API (`https://stockchartbd.com/api/v1.php?endpoint=quote&symbol={symbol}`).
-- **Secondary External Source:** Currently, only one public real-time/EOD web API exists for Dhaka Stock Exchange (DSE). Internal cross-source validation is performed against canonical database historical baselines and stored company prices.
+- **Primary Live Feed:** StockChartBD Public REST API (`https://stockchartbd.com/api/v1.php`).
+- **Data Attribution:** Underlying public exchange quotations sourced from Dhaka Stock Exchange (`dsebd.org`) via DSE Intelligence / StockChartBD.
+- **Network Routing & Fault-Tolerance:** DNS A-record failover is active. Connections to `stockchartbd.com` are explicitly routed to the live server IP (`147.79.69.124`), bypassing the non-responsive secondary record (`88.222.243.235`) with graceful DNS fallback.
+- **Rate-Limiting Architecture:** Enforces a conservative rolling 1-hour window budget of $\le 100$ requests/hour (below the provider's documented 120 req/hour/IP quota). Respects HTTP 429 `Retry-After` headers with backoff and avoids request storms via multi-tier caching (quotes: 1 min, market summary: 5 mins, catalog: 60 mins).
+- **Supported Endpoints:**
+  - `?endpoint=market`: Market summary, benchmark indices (DSEX, DS30, DSES, CDSET), and trading breadth.
+  - `?endpoint=companies`: Complete 400+ DSE listed company directory with market caps and sectors.
+  - `?endpoint=quote&symbol={symbol}`: Real-time stock quote with session OHLCV and trading stats.
+  - `?endpoint=history&symbol={symbol}&limit={N}`: Historical daily OHLCV series.
+  - `?endpoint=financials&symbol={symbol}`: Yearly and interim financial statement metrics.
+  - `?endpoint=health&symbol={symbol}`: Exchange operational solvency and category health indicators.
+  - `?endpoint=sectors`: DSE sector breakdown with constituent counts and capitalization.
+- **Fallback Feed:** Automatic fallback to official Dhaka Stock Exchange portal (`dsebd.org`) for illiquid or unlisted symbols (e.g. `AMCLPRAN`).
 - **Provenance States:**
-  - `LIVE`: Valid real-time quote received with recent timestamp.
+  - `LIVE`: Valid real-time quote received with recent timestamp from StockChartBD.
   - `STALE`: Quote timestamp older than 7 calendar days (e.g. trading holiday or suspended instrument).
   - `PRESERVED_FALLBACK`: External API offline, timed out, or returned 4xx/5xx; database preserves last validated current price.
   - `REJECTED_ANOMALY`: Extreme price jump (> 1000%) or flash collapse (< 0.05x) rejected to protect portfolio valuation.
@@ -197,6 +208,7 @@ $$\text{OverallScore} = 0.30 \cdot S_{\text{return}} + 0.20 \cdot S_{\text{risk}
 - **Price Range Validation:** Prices must satisfy $0 < P \le 500,000$ BDT.
 - **OHLC Harmonization:** Automatically ensures $\text{Low} \le \text{Open} \le \text{High}$ and $\text{Low} \le \text{Close} \le \text{High}$.
 - **Idempotent Storage:** Daily background sync upserts intraday rows for `(CompanyId, TradingDate)` in-place, preventing duplicate records.
+- **Historical Dataset Coexistence:** Recent API history (2024-Present) complements rather than replaces the validated 1999-2025 Harvard Dataverse research archive (`10.7910/DVN/XIFYT1`).
 
 ### 8.3 Terminology Alignments
 - **Benchmark Outperformance / Active Return:** The difference between portfolio return and benchmark return is explicitly presented as `Benchmark Outperformance` and `Active Return` (`ActiveReturnPercentage`).
@@ -207,11 +219,12 @@ $$\text{OverallScore} = 0.30 \cdot S_{\text{return}} + 0.20 \cdot S_{\text{risk}
 
 ## 9. Verification & Test Evidence
 
-All mathematical and live market data pipeline properties are covered by regression test suites:
-- **Total Test Suite:** 483 tests
-- **Passing:** 483 (100%)
+All mathematical, portfolio calculation, and live market data pipeline properties are covered by regression test suites:
+- **Total Test Suite:** 514 tests
+- **Passing:** 514 (100%)
 - **Failing:** 0
 - **Skipped:** 0
 - **Reference Calculator:** `IndependentReferenceCalculator.cs`
 - **Audit Suite:** `MathematicalAccuracyAuditTests.cs`
 - **Live Reconciliation Suite:** `LiveMarketDataReconciliationTests.cs`
+- **StockChartBD Integration & Rate Limiter Suite:** `StockChartBdClientAndRateLimiterTests.cs`

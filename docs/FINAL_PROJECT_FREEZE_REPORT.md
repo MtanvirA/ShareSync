@@ -53,10 +53,10 @@
   17. `currency_exchange_rates` — Foreign currency exchange rates for FX valuation (LF-29)
 
 - **Database Programmability:**
-  - `vw_portfolio_holdings` & `vw_portfolio_summary` database views
-  - `fn_get_weighted_avg_price` & `fn_calculate_unrealized_pl` stored functions
-  - `sp_execute_trade`, `sp_record_dividend`, `sp_rebalance_portfolio` stored procedures
-  - `trg_audit_transaction`, `trg_prevent_oversell`, `trg_update_company_price` triggers
+  - `vw_portfolio_holdings` database view (`database/mysql/01_schema.sql`)
+  - `fn_get_weighted_avg_price`, `fn_calculate_unrealized_pl`, `fn_calculate_realized_pl`, `fn_calculate_net_cash_flow`, `fn_calculate_real_return` stored functions (`04_functions.sql`)
+  - `sp_record_transaction`, `sp_generate_portfolio_snapshot` stored procedures (`05_procedures.sql`)
+  - `trg_transactions_after_insert`, `trg_transactions_after_update`, `trg_transactions_after_delete` audit triggers (`06_triggers.sql`)
 
 ---
 

@@ -42,6 +42,18 @@ document.addEventListener('DOMContentLoaded', () => {
     searchTimeout = setTimeout(() => performSearch(query), 300);
   });
 
+  companySearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const firstItem = companySearchDropdown.querySelector('.dropdown-item');
+      if (companySearchDropdown.style.display !== 'none' && firstItem) {
+        firstItem.click();
+      } else if (!analyzeBtn.disabled) {
+        analyzeBtn.click();
+      }
+    }
+  });
+
   const localCompanyMap = new Map();
 
   async function loadExistingCompanies() {

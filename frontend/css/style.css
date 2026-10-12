@@ -3879,20 +3879,6 @@ input:focus-visible {
    GLOBAL SEARCH COMPONENT (FEATURE 8)
 ========================================= */
 
-.global-search-container {
-  max-width: 440px;
-}
-
-.global-search-container .input-group {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border-radius: 8px;
-}
-
-.global-search-container input:focus {
-  border-color: var(--color-primary) !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
-}
-
 .global-search-dropdown {
   border-color: var(--color-border);
   background: var(--color-surface);
@@ -4115,33 +4101,6 @@ input:focus-visible {
   font-feature-settings: "tnum";
 }
 
-/* COMPONENT: Search Bar */
-/* COMPONENT: Company Search */
-.global-search-container {
-  max-width: 440px;
-}
-
-.global-search-container .input-group {
-  border-radius: 8px;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.global-search-container .input-group-text {
-  background: var(--color-surface-soft) !important;
-  border-color: var(--color-border) !important;
-  color: var(--color-text-muted) !important;
-  border-radius: 8px 0 0 8px;
-  padding: 0 12px;
-}
-
-.global-search-container input {
-  height: 38px;
-  font-size: 13px;
-  background: var(--color-surface) !important;
-  border-color: var(--color-border) !important;
-  color: var(--color-text) !important;
-  border-radius: 0 8px 8px 0;
-}
 
 /* COMPONENT: DSE Market Table */
 /* COMPONENT: Portfolio Holdings Table */
@@ -4744,12 +4703,9 @@ textarea:focus-visible,
    BATCH 2: SEARCH, FILTERS & BUTTON SYSTEM
 ========================================= */
 
-/* SEARCH: Global Search Bar & Results Dropdown */
-.global-search-container {
-  max-width: 440px;
-  position: relative;
-}
-
+/* SEARCH: Reusable Search Input Controls & Global Search Bar */
+.search-input-group,
+.company-search-group,
 .global-search-container .input-group {
   border-radius: 8px;
   border: 1px solid var(--color-border);
@@ -4758,26 +4714,79 @@ textarea:focus-visible,
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
+.search-input-group:focus-within,
+.company-search-group:focus-within,
 .global-search-container .input-group:focus-within {
   border-color: var(--color-accent) !important;
   box-shadow: 0 0 0 3px var(--color-input-focus-ring) !important;
 }
 
+.search-input-group .input-group-text,
+.company-search-group .input-group-text,
 .global-search-container .input-group-text {
   background: transparent !important;
   border: none !important;
+  border-radius: 0 !important;
   color: var(--color-text-muted) !important;
-  padding: 0 10px 0 12px;
+  padding: 0 8px 0 14px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+.search-input-group input.form-control,
+.search-input-group input,
+.company-search-group input.form-control,
+.company-search-group input,
+.global-search-container input.form-control,
 .global-search-container input {
   height: 38px;
   font-size: 13px;
   background: transparent !important;
   border: none !important;
+  border-radius: 0 !important;
   color: var(--color-text) !important;
-  padding: 8px 12px 8px 0;
+  padding: 8px 16px 8px 8px !important;
   box-shadow: none !important;
+  outline: none !important;
+  min-width: 0;
+}
+
+.global-search-container input.form-control,
+.global-search-container input {
+  padding-right: 36px !important; /* Preserves clear button separation */
+}
+
+.search-input-group input:focus,
+.search-input-group input:focus-visible,
+.company-search-group input:focus,
+.company-search-group input:focus-visible,
+.global-search-container input:focus,
+.global-search-container input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Large variant for primary feature search (Investment Intelligence) */
+.search-input-group.input-group-lg,
+.company-search-group.input-group-lg {
+  border-radius: 10px;
+}
+
+.search-input-group.input-group-lg .input-group-text,
+.company-search-group.input-group-lg .input-group-text {
+  padding: 0 8px 0 16px !important;
+  font-size: 1.15rem;
+}
+
+.search-input-group.input-group-lg input.form-control,
+.search-input-group.input-group-lg input,
+.company-search-group.input-group-lg input.form-control,
+.company-search-group.input-group-lg input {
+  height: 48px;
+  font-size: 15px;
+  padding: 12px 16px 12px 8px !important;
 }
 
 .global-search-dropdown,

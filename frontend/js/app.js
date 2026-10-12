@@ -247,7 +247,7 @@ async function setupUserHeader() {
         }
       }
       const sidebarNav = document.querySelector(".sidebar-nav");
-      if (sidebarNav && !document.getElementById("sidebarAdminLink")) {
+      if (sidebarNav && !document.getElementById("sidebarAdminLink") && !document.getElementById("adminNavTabLink")) {
         const adminSideA = document.createElement("a");
         adminSideA.id = "sidebarAdminLink";
         adminSideA.href = "admin.html";
@@ -1826,6 +1826,530 @@ async function setupSettingsPage() {
   }
 }
 
+// ============================================================
+// UI: Accessible Custom Select Component (ShareSync Custom Dropdown)
+// Replaces browser-native option popups with a polished, accessible,
+// theme-aware custom dropdown matching ShareSync visual design.
+// Transparently synchronizes with the underlying native <select>.
+// ============================================================
+
+function createCustomSelect(selectEl) {
+  if (!selectEl || selectEl.tagName !== "SELECT") return null;
+  if (selectEl.__ssCustomSelect) {
+    selectEl.__ssCustomSelect.sync();
+    return selectEl.__ssCustomSelect;
+  }
+
+  // Create wrapper container
+  const container = document.createElement("div");
+  container.className = "ss-select-container";
+  if (selectEl.classList.contains("form-select-sm") || selectEl.classList.contains("filter-select-sm")) {
+    container.classList.add("ss-select-sm");
+  }
+  if (selectEl.classList.contains("d-none")) {
+    container.classList.add("d-none");
+  }
+
+  // Inherit explicit inline sizing constraints if present
+  if (selectEl.style.width) container.style.width = selectEl.style.width;
+  if (selectEl.style.minWidth) container.style.minWidth = selectEl.style.minWidth;
+  if (selectEl.style.maxWidth) container.style.maxWidth = selectEl.style.maxWidth;
+  if (selectEl.style.flex) container.style.flex = selectEl.style.flex;
+
+  // Trigger button
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "ss-select-trigger";
+  trigger.setAttribute("role", "combobox");
+  trigger.setAttribute("aria-haspopup", "listbox");
+  trigger.setAttribute("aria-expanded", "false");
+  if (selectEl.style.fontWeight) trigger.style.fontWeight = selectEl.style.fontWeight;
+
+  if (selectEl.id) {
+    trigger.id = `${selectEl.id}-trigger`;
+    trigger.setAttribute("aria-controls", `${selectEl.id}-menu`);
+    const label = document.querySelector(`label[for="${selectEl.id}"]`);
+    if (label) {
+      if (!label.id) label.id = `${selectEl.id}-label`;
+      trigger.setAttribute("aria-labelledby", `${label.id} ${trigger.id}`);
+    }
+  }
+
+  const labelSpan = document.createElement("span");
+  labelSpan.className = "ss-select-label";
+
+  const arrowSpan = document.createElement("span");
+  arrowSpan.className = "ss-select-arrow";
+  arrowSpan.innerHTML = '<i class="bi bi-chevron-down"></i>';
+
+  trigger.appendChild(labelSpan);
+  trigger.appendChild(arrowSpan);
+
+  // Dropdown menu
+  const dropdown = document.createElement("div");
+  dropdown.className = "ss-select-dropdown";
+  dropdown.setAttribute("role", "listbox");
+  dropdown.setAttribute("tabindex", "-1");
+  if (selectEl.id) {
+    dropdown.id = `${selectEl.id}-menu`;
+    dropdown.setAttribute("aria-labelledby", trigger.id);
+  }
+
+  const optionsList = document.createElement("div");
+  optionsList.className = "ss-select-options";
+  dropdown.appendChild(optionsList);
+
+  // Insert container in DOM right before selectEl, then move selectEl inside container
+  selectEl.parentNode.insertBefore(container, selectEl);
+  container.appendChild(trigger);
+  container.appendChild(dropdown);
+  container.appendChild(selectEl);
+
+  // Visually hide native select while keeping it in DOM for forms/APIs
+  selectEl.classList.add("ss-native-select-hidden");
+  selectEl.setAttribute("tabindex", "-1");
+  selectEl.setAttribute("aria-hidden", "true");
+
+  let focusedIndex = -1;
+  let isOpen = false;
+
+  function syncOptions() {
+    optionsList.innerHTML = "";
+    const options = Array.from(selectEl.options);
+
+    if (options.length === 0) {
+      const emptyItem = document.createElement("div");
+      emptyItem.className = "ss-select-option is-disabled";
+      emptyItem.textContent = "No options available";
+      optionsList.appendChild(emptyItem);
+      labelSpan.textContent = "No options";
+      trigger.title = "No options";
+      return;
+    }
+
+    const selectedIndex = selectEl.selectedIndex >= 0 ? selectEl.selectedIndex : 0;
+    const selectedOpt = options[selectedIndex] || options[0];
+
+    const currentText = selectedOpt ? selectedOpt.text.trim() : "";
+    labelSpan.textContent = currentText;
+    trigger.title = currentText;
+
+    options.forEach((opt, idx) => {
+      const optEl = document.createElement("div");
+      optEl.className = "ss-select-option";
+      optEl.setAttribute("role", "option");
+      optEl.setAttribute("data-value", opt.value);
+      optEl.setAttribute("data-index", idx);
+      if (selectEl.id) optEl.id = `${selectEl.id}-opt-${idx}`;
+
+      const isSelected = idx === selectedIndex;
+      optEl.setAttribute("aria-selected", isSelected ? "true" : "false");
+      if (isSelected) {
+        optEl.classList.add("is-selected");
+      }
+      if (opt.disabled) {
+        optEl.classList.add("is-disabled");
+        optEl.setAttribute("aria-disabled", "true");
+      }
+
+      const textSpan = document.createElement("span");
+      textSpan.className = "ss-option-text";
+      textSpan.textContent = opt.text.trim();
+      textSpan.title = opt.text.trim();
+
+      const checkIcon = document.createElement("i");
+      checkIcon.className = "bi bi-check2 ss-option-check";
+
+      optEl.appendChild(textSpan);
+      optEl.appendChild(checkIcon);
+
+      optEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (opt.disabled) return;
+        selectByIndex(idx);
+      });
+
+      optionsList.appendChild(optEl);
+    });
+  }
+
+  function syncValue() {
+    const selectedIndex = selectEl.selectedIndex >= 0 ? selectEl.selectedIndex : 0;
+    const options = Array.from(selectEl.options);
+    const selectedOpt = options[selectedIndex];
+
+    const currentText = selectedOpt ? selectedOpt.text.trim() : "";
+    labelSpan.textContent = currentText;
+    trigger.title = currentText;
+
+    const optEls = optionsList.querySelectorAll(".ss-select-option[data-index]");
+    optEls.forEach((el, idx) => {
+      const isSelected = idx === selectedIndex;
+      el.classList.toggle("is-selected", isSelected);
+      el.setAttribute("aria-selected", isSelected ? "true" : "false");
+    });
+  }
+
+  function selectByIndex(idx) {
+    const options = Array.from(selectEl.options);
+    if (idx < 0 || idx >= options.length) return;
+    const opt = options[idx];
+    if (opt.disabled) return;
+
+    const prevVal = selectEl.value;
+    selectEl.selectedIndex = idx;
+
+    if (originalDesc && originalDesc.set) {
+      originalDesc.set.call(selectEl, opt.value);
+    } else {
+      selectEl.value = opt.value;
+    }
+
+    syncValue();
+    closeDropdown();
+    trigger.focus();
+
+    if (selectEl.value !== prevVal || true) {
+      selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+      selectEl.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  }
+
+  function openDropdown() {
+    if (selectEl.disabled) return;
+
+    // Close any other open dropdowns
+    document.querySelectorAll(".ss-select-container.is-open").forEach(c => {
+      if (c !== container && c.__ssClose) c.__ssClose();
+    });
+
+    // Check viewport space for dropup vs dropdown
+    const rect = trigger.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const estimatedHeight = Math.min(280, (selectEl.options.length * 36) + 16);
+
+    if (spaceBelow < estimatedHeight && spaceAbove > spaceBelow) {
+      container.classList.add("ss-dropup");
+    } else {
+      container.classList.remove("ss-dropup");
+    }
+
+    // Horizontal positioning within viewport
+    const viewportWidth = window.innerWidth;
+    if (rect.left + 260 > viewportWidth && rect.right > 260) {
+      dropdown.style.left = "auto";
+      dropdown.style.right = "0";
+    } else {
+      dropdown.style.left = "0";
+      dropdown.style.right = "auto";
+    }
+
+    container.classList.add("is-open");
+    trigger.setAttribute("aria-expanded", "true");
+    isOpen = true;
+
+    focusedIndex = selectEl.selectedIndex >= 0 ? selectEl.selectedIndex : 0;
+    highlightOption(focusedIndex);
+    scrollFocusedIntoView();
+
+    document.addEventListener("pointerdown", handleOutsideClick);
+    document.addEventListener("keydown", handleKeydown);
+  }
+
+  function closeDropdown() {
+    if (!isOpen) return;
+    container.classList.remove("is-open");
+    container.classList.remove("ss-dropup");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.removeAttribute("aria-activedescendant");
+    isOpen = false;
+    clearHighlight();
+
+    document.removeEventListener("pointerdown", handleOutsideClick);
+    document.removeEventListener("keydown", handleKeydown);
+  }
+
+  function toggleDropdown() {
+    if (isOpen) closeDropdown();
+    else openDropdown();
+  }
+
+  function handleOutsideClick(e) {
+    if (!container.contains(e.target)) {
+      closeDropdown();
+    }
+  }
+
+  function highlightOption(index) {
+    clearHighlight();
+    const items = optionsList.querySelectorAll(".ss-select-option[data-index]");
+    if (index >= 0 && index < items.length) {
+      const item = items[index];
+      item.classList.add("is-focused");
+      focusedIndex = index;
+      if (item.id) trigger.setAttribute("aria-activedescendant", item.id);
+    }
+  }
+
+  function clearHighlight() {
+    optionsList.querySelectorAll(".ss-select-option.is-focused").forEach(el => {
+      el.classList.remove("is-focused");
+    });
+  }
+
+  function scrollFocusedIntoView() {
+    const focused = optionsList.querySelector(".ss-select-option.is-focused");
+    if (focused && dropdown) {
+      const dropdownRect = dropdown.getBoundingClientRect();
+      const focusedRect = focused.getBoundingClientRect();
+      if (focusedRect.top < dropdownRect.top) {
+        focused.scrollIntoView({ block: "nearest" });
+      } else if (focusedRect.bottom > dropdownRect.bottom) {
+        focused.scrollIntoView({ block: "nearest" });
+      }
+    }
+  }
+
+  let typeaheadBuffer = "";
+  let typeaheadTimeout = null;
+
+  function handleTypeahead(char) {
+    clearTimeout(typeaheadTimeout);
+    typeaheadBuffer += char.toLowerCase();
+    typeaheadTimeout = setTimeout(() => { typeaheadBuffer = ""; }, 500);
+
+    const options = Array.from(selectEl.options);
+    const matchIndex = options.findIndex((opt) => {
+      if (opt.disabled) return false;
+      return opt.text.trim().toLowerCase().startsWith(typeaheadBuffer);
+    });
+
+    if (matchIndex >= 0) {
+      if (isOpen) {
+        highlightOption(matchIndex);
+        scrollFocusedIntoView();
+      } else {
+        selectByIndex(matchIndex);
+      }
+    }
+  }
+
+  function handleKeydown(e) {
+    if (!isOpen) {
+      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) {
+        e.preventDefault();
+        openDropdown();
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        handleTypeahead(e.key);
+      }
+      return;
+    }
+
+    const options = Array.from(selectEl.options);
+    if (options.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      let next = focusedIndex + 1;
+      while (next < options.length && options[next].disabled) next++;
+      if (next < options.length) {
+        highlightOption(next);
+        scrollFocusedIntoView();
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      let prev = focusedIndex - 1;
+      while (prev >= 0 && options[prev].disabled) prev--;
+      if (prev >= 0) {
+        highlightOption(prev);
+        scrollFocusedIntoView();
+      }
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      let first = 0;
+      while (first < options.length && options[first].disabled) first++;
+      if (first < options.length) {
+        highlightOption(first);
+        scrollFocusedIntoView();
+      }
+    } else if (e.key === "End") {
+      e.preventDefault();
+      let last = options.length - 1;
+      while (last >= 0 && options[last].disabled) last--;
+      if (last >= 0) {
+        highlightOption(last);
+        scrollFocusedIntoView();
+      }
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (focusedIndex >= 0 && focusedIndex < options.length) {
+        selectByIndex(focusedIndex);
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      closeDropdown();
+      trigger.focus();
+    } else if (e.key === "Tab") {
+      closeDropdown();
+    } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      handleTypeahead(e.key);
+    }
+  }
+
+  trigger.addEventListener("click", (e) => {
+    e.preventDefault();
+    toggleDropdown();
+  });
+
+  trigger.addEventListener("keydown", (e) => {
+    if (!isOpen) {
+      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) {
+        e.preventDefault();
+        openDropdown();
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        handleTypeahead(e.key);
+      }
+    }
+  });
+
+  // Intercept native value property descriptor to sync trigger when script sets selectEl.value = ...
+  const originalDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+  Object.defineProperty(selectEl, "value", {
+    get() {
+      return originalDesc.get.call(this);
+    },
+    set(val) {
+      originalDesc.set.call(this, val);
+      syncValue();
+    },
+    configurable: true
+  });
+
+  // Also listen to native change/input events
+  selectEl.addEventListener("change", syncValue);
+  selectEl.addEventListener("input", syncValue);
+
+  // MutationObserver for dynamic options and visibility
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.type === "childList") {
+        syncOptions();
+      } else if (m.type === "attributes") {
+        if (m.attributeName === "class") {
+          container.classList.toggle("d-none", selectEl.classList.contains("d-none"));
+        } else if (m.attributeName === "disabled") {
+          trigger.disabled = selectEl.disabled;
+          container.classList.toggle("is-disabled", selectEl.disabled);
+        }
+      }
+    }
+  });
+
+  observer.observe(selectEl, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["class", "disabled"]
+  });
+
+  if (selectEl.disabled) {
+    trigger.disabled = true;
+    container.classList.add("is-disabled");
+  }
+
+  // Initial sync
+  syncOptions();
+
+  // Handle form reset
+  if (selectEl.form) {
+    selectEl.form.addEventListener("reset", () => {
+      setTimeout(() => {
+        syncValue();
+      }, 0);
+    });
+  }
+
+  container.__ssClose = closeDropdown;
+
+  const instance = {
+    container,
+    trigger,
+    dropdown,
+    sync: () => {
+      syncOptions();
+      container.classList.toggle("d-none", selectEl.classList.contains("d-none"));
+      if (selectEl.style.minWidth) container.style.minWidth = selectEl.style.minWidth;
+      if (selectEl.style.maxWidth) container.style.maxWidth = selectEl.style.maxWidth;
+      if (selectEl.style.width) container.style.width = selectEl.style.width;
+      if (selectEl.style.fontWeight) trigger.style.fontWeight = selectEl.style.fontWeight;
+    },
+    destroy: () => {
+      observer.disconnect();
+      closeDropdown();
+      selectEl.classList.remove("ss-native-select-hidden");
+      selectEl.removeAttribute("tabindex");
+      selectEl.removeAttribute("aria-hidden");
+      container.parentNode.insertBefore(selectEl, container);
+      container.remove();
+      delete selectEl.__ssCustomSelect;
+    }
+  };
+
+  selectEl.__ssCustomSelect = instance;
+  return instance;
+}
+
+function initShareSyncCustomSelects(root = document) {
+  const targetSelectors = [
+    "#filterPortfolioSelect",
+    "#filterStatusSelect",
+    "#analyticsPortfolioSelect",
+    "#benchmarkSelect",
+    "#dividendPortfolioFilter",
+    "#dividendCompanyAnalyticsFilter",
+    "#dividendYearFilter",
+    "#dividendCompanyFilter",
+    "#dividendFilter",
+    "#watchlistSelect",
+    "#watchlistFilter",
+    "#portfolioSelect",
+    "#portfolioFilter",
+    "#typeFilter",
+    "#sectorFilter",
+    "#reportPortfolioSelect",
+    "#reportPeriodSelect",
+    "#reportFormatSelect",
+    "#alertPortfolioSelect",
+    "#alertConditionSelect",
+    "[data-custom-select]",
+    ".custom-select-enhanced"
+  ];
+
+  targetSelectors.forEach(selector => {
+    try {
+      const elements = root.querySelectorAll(selector);
+      elements.forEach(el => {
+        if (el.tagName === "SELECT") {
+          createCustomSelect(el);
+        }
+      });
+    } catch {
+      // Ignore invalid selector on legacy browsers
+    }
+  });
+}
+
+window.ShareSyncCustomSelect = {
+  create: createCustomSelect,
+  init: initShareSyncCustomSelects,
+  sync: function(selectEl) {
+    if (selectEl && selectEl.__ssCustomSelect) {
+      selectEl.__ssCustomSelect.sync();
+    }
+  }
+};
+
 // BUGFIX: Dashboard Initialization
 // Keep dashboard event binding after shared UI initialization so a startup
 // exception in an optional component cannot prevent core controls from loading.
@@ -1840,6 +2364,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupTableHints();
   setupUserHeader();
   setupHeaderDropdowns();
+  initShareSyncCustomSelects();
 
   if (typeof setupLoginForm === "function") setupLoginForm();
   if (typeof setupRegisterForm === "function") setupRegisterForm();
@@ -2614,13 +3139,79 @@ async function setupWatchlistForm() {
   if (watchlistForm) setupInlineValidation(watchlistForm);
   if (watchlistManageForm) setupInlineValidation(watchlistManageForm);
 
+  const watchlistCurrentPriceDisplay = document.getElementById("watchlistCurrentPriceDisplay");
+  let watchlistCompanies = [];
+
+  async function updateWatchlistCurrentPrice() {
+    if (!watchlistCurrentPriceDisplay) return;
+
+    const compId = parseInt(companySelect?.value, 10);
+    if (!compId) {
+      watchlistCurrentPriceDisplay.textContent = "--";
+      watchlistCurrentPriceDisplay.removeAttribute("data-price");
+      watchlistCurrentPriceDisplay.removeAttribute("title");
+      watchlistCurrentPriceDisplay.style.cursor = "default";
+      return;
+    }
+
+    const selectedOpt = companySelect?.options[companySelect.selectedIndex];
+    const cachedPrice = selectedOpt?.dataset?.price || watchlistCompanies.find(c => c.companyId === compId)?.currentPrice;
+
+    if (cachedPrice !== undefined && cachedPrice !== null && cachedPrice !== "") {
+      const num = parseFloat(cachedPrice);
+      watchlistCurrentPriceDisplay.textContent = formatBDT(num);
+      watchlistCurrentPriceDisplay.setAttribute("data-price", num);
+      watchlistCurrentPriceDisplay.title = "Click to apply current price as target";
+      watchlistCurrentPriceDisplay.style.cursor = "pointer";
+    } else {
+      watchlistCurrentPriceDisplay.innerHTML = '<span class="spinner-border spinner-border-sm" style="width: 11px; height: 11px; border-width: 2px;" role="status"></span>';
+      watchlistCurrentPriceDisplay.style.cursor = "default";
+    }
+
+    // Always fetch latest live price from API /companies/{id}
+    try {
+      const res = await apiRequest(`/companies/${compId}`);
+      if (res && res.data && res.data.currentPrice !== undefined && res.data.currentPrice !== null) {
+        const livePrice = res.data.currentPrice;
+        watchlistCurrentPriceDisplay.textContent = formatBDT(livePrice);
+        watchlistCurrentPriceDisplay.setAttribute("data-price", livePrice);
+        watchlistCurrentPriceDisplay.title = "Click to apply current price as target";
+        watchlistCurrentPriceDisplay.style.cursor = "pointer";
+        if (selectedOpt) selectedOpt.dataset.price = livePrice;
+        const compInList = watchlistCompanies.find(c => c.companyId === compId);
+        if (compInList) compInList.currentPrice = livePrice;
+      }
+    } catch (err) {
+      console.warn("Could not fetch company price from API:", err);
+      if (!watchlistCurrentPriceDisplay.getAttribute("data-price")) {
+        watchlistCurrentPriceDisplay.textContent = "Unavailable";
+      }
+    }
+  }
+
+  if (companySelect) {
+    companySelect.addEventListener("change", () => updateWatchlistCurrentPrice());
+  }
+
+  if (watchlistCurrentPriceDisplay && targetPriceInput) {
+    watchlistCurrentPriceDisplay.addEventListener("click", () => {
+      const price = watchlistCurrentPriceDisplay.getAttribute("data-price");
+      if (price && !isNaN(price)) {
+        targetPriceInput.value = parseFloat(price).toFixed(2);
+        targetPriceInput.focus();
+        targetPriceInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
+  }
+
   // Load companies for the Add Company dropdown
   try {
     const res = await apiRequest("/companies");
-    const companies = res.data || [];
+    watchlistCompanies = res.data || [];
     if (companySelect) {
       companySelect.innerHTML = '<option value="">Select company</option>' +
-        companies.map(c => `<option value="${c.companyId}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
+        watchlistCompanies.map(c => `<option value="${c.companyId}" data-price="${c.currentPrice ?? ''}">${escapeHtml(c.tickerSymbol)} - ${escapeHtml(c.companyName)}</option>`).join("");
+      updateWatchlistCurrentPrice();
     }
   } catch (err) {
     console.error("Failed to load companies for watchlist:", err);
@@ -2645,6 +3236,7 @@ async function setupWatchlistForm() {
   if (openAddCompBtn) {
     openAddCompBtn.addEventListener("click", () => {
       if (watchlistForm) watchlistForm.reset();
+      updateWatchlistCurrentPrice();
       if (targetWatchlistSelect && currentWatchlistId) {
         targetWatchlistSelect.value = currentWatchlistId;
       }
@@ -2658,6 +3250,7 @@ async function setupWatchlistForm() {
   function closeAddCompForm() {
     if (addCompCard) addCompCard.classList.add("form-hidden");
     if (watchlistForm) watchlistForm.reset();
+    updateWatchlistCurrentPrice();
   }
 
   if (closeAddCompBtn) closeAddCompBtn.addEventListener("click", closeAddCompForm);
@@ -5716,19 +6309,48 @@ async function loadPortfolioDetail(portfolioId) {
 
     const metricInflationRate = document.getElementById("metricInflationRate");
     const metricRealReturnPercentage = document.getElementById("metricRealReturnPercentage");
+    const metricInflationPeriod = document.getElementById("metricInflationPeriod");
+    const metricRealReturnStatus = document.getElementById("metricRealReturnStatus");
+
     if (metricInflationRate) {
-      metricInflationRate.textContent = d.inflationRate !== null && d.inflationRate !== undefined
-        ? `${d.inflationRate.toFixed(2)}%`
-        : "N/A";
+      if (d.inflationRate !== null && d.inflationRate !== undefined) {
+        metricInflationRate.textContent = `${d.inflationRate.toFixed(2)}%`;
+        metricInflationRate.className = "";
+        const periodText = d.inflationPeriod || (d.latestCpiMonth ? `Through ${d.latestCpiMonth}` : "");
+        if (metricInflationPeriod) {
+          metricInflationPeriod.textContent = periodText ? `(${periodText})` : "";
+          metricInflationPeriod.title = d.inflationStatus || "";
+        }
+        metricInflationRate.title = d.inflationStatus || "";
+      } else {
+        metricInflationRate.textContent = "Data unavailable";
+        metricInflationRate.className = "text-muted small";
+        metricInflationRate.title = d.inflationStatus || "Data unavailable";
+        if (metricInflationPeriod) {
+          metricInflationPeriod.textContent = d.inflationStatus ? `(${d.inflationStatus})` : "(Coverage incomplete)";
+          metricInflationPeriod.title = d.inflationStatus || "";
+        }
+      }
     }
+
     if (metricRealReturnPercentage) {
       if (d.realReturnPercentage !== null && d.realReturnPercentage !== undefined) {
         const isRealPos = d.realReturnPercentage >= 0;
         metricRealReturnPercentage.textContent = `${isRealPos ? '+' : ''}${d.realReturnPercentage.toFixed(2)}%`;
         metricRealReturnPercentage.className = isRealPos ? "positive-text fw-bold" : "negative-text fw-bold";
+        metricRealReturnPercentage.title = d.inflationStatus || "";
+        if (metricRealReturnStatus) {
+          metricRealReturnStatus.textContent = d.inflationPeriod ? `Purchasing power adjusted (${d.inflationPeriod})` : "Fisher-adjusted";
+          metricRealReturnStatus.title = d.inflationStatus || "";
+        }
       } else {
         metricRealReturnPercentage.textContent = "Data unavailable";
         metricRealReturnPercentage.className = "text-muted small";
+        metricRealReturnPercentage.title = d.inflationStatus || "Data unavailable";
+        if (metricRealReturnStatus) {
+          metricRealReturnStatus.textContent = d.inflationStatus ? `(${d.inflationStatus})` : "";
+          metricRealReturnStatus.title = d.inflationStatus || "";
+        }
       }
     }
 
@@ -6821,6 +7443,17 @@ async function openCompanyWatchlistModal() {
 
   if (targetInput && currentCompanyDetailData) {
     targetInput.value = currentCompanyDetailData.targetPrice || currentCompanyDetailData.currentPrice || "";
+  }
+
+  const pricePreview = document.getElementById("companyWatchlistCurrentPricePreview");
+  if (pricePreview && currentCompanyDetailData) {
+    pricePreview.textContent = currentCompanyDetailData.currentPrice ? formatBDT(currentCompanyDetailData.currentPrice) : "৳0.00";
+    pricePreview.onclick = () => {
+      if (targetInput && currentCompanyDetailData.currentPrice) {
+        targetInput.value = Number(currentCompanyDetailData.currentPrice).toFixed(2);
+        targetInput.focus();
+      }
+    };
   }
 
   if (select) {
@@ -10798,6 +11431,7 @@ window.quickAddDseCompany = async function(symbol, preferredName, preferredSecto
             opt.textContent = `${comp.tickerSymbol} - ${comp.companyName}`;
             sel.appendChild(opt);
           }
+          opt.dataset.price = comp.currentPrice ?? '';
           sel.value = comp.companyId;
           sel.dispatchEvent(new Event('change'));
         }
